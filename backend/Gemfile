@@ -53,7 +53,8 @@ gem 'sidekiq'
 gem 'sidekiq-scheduler'
 # Pin connection_pool to 2.x for compatibility with Sidekiq 7.3.9
 # connection_pool 3.0+ has API changes that break Sidekiq scheduler
-gem 'connection_pool', '~> 2.4'
+# Using ~> 2.5 to match Gemfile.lock (2.5.5) and allow future 2.x releases
+gem 'connection_pool', '~> 2.5'
 
 # Real-time
 gem 'redis'
