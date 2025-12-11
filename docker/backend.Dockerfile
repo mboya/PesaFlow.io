@@ -1,6 +1,7 @@
 # Multi-stage build for optimized Rails backend image
 # Stage 1: Build stage - includes all build dependencies
-FROM ruby:3.2-alpine AS builder
+# Ruby version matches .ruby-version file (3.3.7)
+FROM ruby:3.3-alpine AS builder
 
 # Update package index and install build dependencies
 # Using BuildKit cache mount to cache apk index for faster subsequent builds
@@ -33,7 +34,8 @@ RUN if bundle list | grep -q bootsnap; then \
     fi
 
 # Stage 2: Runtime stage - minimal runtime dependencies only
-FROM ruby:3.2-alpine AS runtime
+# Ruby version matches .ruby-version file (3.3.7)
+FROM ruby:3.3-alpine AS runtime
 
 # Install only runtime dependencies (no build tools)
 # Using BuildKit cache mount to cache apk index for faster subsequent builds

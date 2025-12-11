@@ -289,7 +289,6 @@ backend/config/database.yml
 
 /docker/BUILD_OPTIMIZATION.md
 /docker/OPTIMIZATION.md
-/.env.example
 /backend/config/environments/development.rb
 /backend/config/environments/test.rb
 /backend/config/database.local.yml
