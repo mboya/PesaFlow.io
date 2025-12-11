@@ -51,6 +51,9 @@ gem 'oj'
 # Background Jobs
 gem 'sidekiq'
 gem 'sidekiq-scheduler'
+# Pin connection_pool to 2.x for compatibility with Sidekiq 7.3.9
+# connection_pool 3.0+ has API changes that break Sidekiq scheduler
+gem 'connection_pool', '~> 2.4'
 
 # Real-time
 gem 'redis'
