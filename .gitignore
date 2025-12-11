@@ -1,0 +1,305 @@
+# ============================================
+# SECURITY-SENSITIVE FILES - NEVER COMMIT THESE
+# ============================================
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env*.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Security keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.csr
+*.jks
+*.keystore
+*.truststore
+secrets/
+credentials/
+*.secret
+*.token
+*.password
+*.gpg
+*.pgp
+
+# Rails credentials and master keys
+# Match master.key files anywhere
+master.key
+**/master.key
+config/master.key
+backend/config/master.key
+
+# Match credential key files
+**/credentials/*.key
+backend/config/credentials/*.key
+
+# Match credentials.yml.enc files anywhere
+credentials.yml.enc
+**/credentials.yml.enc
+backend/config/credentials.yml.enc
+
+# Rails secrets files (legacy, but still used in some apps)
+**/secrets.yml
+**/secrets.yml.enc
+config/secrets.yml
+backend/config/secrets.yml
+
+# Local configuration overrides (may contain sensitive local settings)
+**/*.local.yml
+config/*.local.yml
+backend/config/*.local.yml
+config/environments/*.local.yml
+backend/config/environments/*.local.yml
+
+# Docker Compose local overrides (may contain local credentials)
+docker-compose.override.yml
+docker-compose.local.yml
+*.override.yml
+
+# ============================================
+# DEPENDENCIES
+# ============================================
+node_modules/
+vendor/bundle
+vendor/cache
+.bundle/
+frontend/node_modules/
+backend/node_modules/
+
+# ============================================
+# BUILD OUTPUTS AND CACHE
+# ============================================
+dist/
+build/
+out/
+.next/
+.turbo/
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/build/
+frontend/.turbo/
+frontend/.swc/
+backend/public/assets
+backend/public/packs
+backend/public/packs-test
+
+# ============================================
+# LOGS AND TEMPORARY FILES
+# ============================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log.*
+backend/log/*
+backend/tmp/*
+frontend/.next/
+
+# ============================================
+# DATABASE FILES
+# ============================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+pgdata/
+postgres_data/
+mysql_data/
+mongo_data/
+backend/storage/*
+!backend/storage/.keep
+
+# ============================================
+# TESTING AND COVERAGE
+# ============================================
+coverage/
+.nyc_output/
+.coverage/
+*.coverage
+*.lcov
+.jest/
+.pytest_cache/
+.rspec_cache/
+backend/coverage/
+frontend/coverage/
+
+# ============================================
+# IDE AND EDITOR FILES
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.vscode/launch.json
+.idea/runConfigurations/
+
+# ============================================
+# OS FILES
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+.AppleDouble
+.LSOverride
+Icon
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ============================================
+# DOCKER
+# ============================================
+docker-compose.override.yml
+*.dockerignore
+postgres_data/
+redis_data/
+bundle_cache/
+mysql_data/
+mongo_data/
+
+# ============================================
+# CACHE DIRECTORIES
+# ============================================
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.npm/
+.yarn/
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.js
+backend/.sass-cache
+backend/.byebug_history
+
+# ============================================
+# TEMPORARY AND BACKUP FILES
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*~
+
+# ============================================
+# LOCAL DEVELOPMENT FILES
+# ============================================
+.local/
+local/
+*.local
+config/local.yml
+config/local_*.yml
+config/*.local.yml
+
+# ============================================
+# DEPLOYMENT AND CLOUD
+# ============================================
+.vercel
+.netlify
+.firebase/
+.firebaserc
+firebase.json
+.aws-sam/
+samconfig.toml
+.gcloud/
+service-account*.json
+.azure/
+.sentryclirc
+.sentry/
+
+# ============================================
+# INFRASTRUCTURE AS CODE
+# ============================================
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.retry
+*.kubeconfig
+kubeconfig
+.pulumi/
+
+# ============================================
+# MISC
+# ============================================
+*.pid
+*.seed
+*.pid.lock
+.npm
+.vercel
+storybook-static/
+.turbo
+
+# ============================================
+# NOTE: Lock files are typically committed for reproducible builds
+# Uncomment the following lines if you want to ignore them:
+# ============================================
+# package-lock.json
+# yarn.lock
+# Gemfile.lock
+# Pipfile.lock
+# poetry.lock
+
+backend/config/environments/development.rb
+backend/config/environments/test.rb
+backend/config/database.yml
+
+/docker/BUILD_OPTIMIZATION.md
+/docker/OPTIMIZATION.md
+/.env.example
+/backend/config/environments/development.rb
+/backend/config/environments/test.rb
+/backend/config/database.local.yml
+/backend/config/database.yml
+/backend/log/
+/backend/public/
+/backend/public/robots.txt
+/backend/storage/
+/backend/storage/.keep
+/backend/tmp/
+/backend/vendor/
+/backend/docker-compose.override.yml
+/docker-compose.prod.yml
