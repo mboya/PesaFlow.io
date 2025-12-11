@@ -1,0 +1,107 @@
+# docker-compose.yml
+#version: '3.8'
+
+services:
+  postgres:
+    container_name: pG
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-subscription_billing_development}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: rD
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    container_name: bE
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+      target: development
+    command: bundle exec rails s -b 0.0.0.0 -p 3000
+    volumes:
+      - ./backend:/app
+      - bundle_cache:/usr/local/bundle
+    ports:
+      # Expose backend on host port 3000, container port 3000
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-subscription_billing_development}
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+      SAFARICOM_CONSUMER_KEY: ${SAFARICOM_CONSUMER_KEY:-}
+      SAFARICOM_CONSUMER_SECRET: ${SAFARICOM_CONSUMER_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  sidekiq:
+    container_name: sK
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+      target: development
+    command: bundle exec sidekiq
+    volumes:
+      - ./backend:/app
+      - bundle_cache:/usr/local/bundle
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-subscription_billing_development}
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    container_name: fE
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      target: development
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      # Expose frontend on host port 3001, container port 3000
+      # Frontend and backend use different host ports for external access
+      - "3001:3000"
+    environment:
+      # Client-side API URL (browser connects to host port 3000)
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      # WebSocket URL for ActionCable (browser connects to host port 3000)
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000/cable
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  bundle_cache:
