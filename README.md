@@ -33,9 +33,13 @@ A subscription billing platform with Rails backend and Next.js frontend.
 
 2. **Access the application:**
    - Frontend: http://localhost:3001
-   - Backend API: http://localhost:3000
+   - System Status: http://localhost:3001/system-status (view health status of both services)
+   - Backend API: Proxied through frontend at http://localhost:3001/api/proxy
+   - Backend WebSocket: Proxied through frontend at ws://localhost:3001/api/proxy/ws
    - PostgreSQL: localhost:5432
    - Redis: localhost:6379
+   
+   **Note**: The backend is not directly accessible from the host. All requests must go through the frontend proxy.
 
 3. **Stop services:**
    ```bash
@@ -49,20 +53,20 @@ A subscription billing platform with Rails backend and Next.js frontend.
 ### Port Configuration
 
 - **Frontend**: Port `3001` (host) → Port `3000` (container)
-- **Backend**: Port `3000` (host) → Port `3000` (container)
+- **Backend**: Not exposed to host (completely private, accessible only via frontend proxy)
 - **PostgreSQL**: Port `5432`
 - **Redis**: Port `6379`
 
-The frontend communicates with the backend API at `http://localhost:3000` (configured via `NEXT_PUBLIC_API_URL`).
+### Network Architecture
 
-### Environment Variables
+The backend services (backend, sidekiq, postgres, redis) run on a **private Docker network** (`backend_network`) and are **completely inaccessible** from the host machine. This provides maximum security by isolating backend services.
 
-Create a `.env` file in the project root with:
+- **HTTP API**: All HTTP API requests are proxied through the Next.js frontend at `/api/proxy/*`. The browser makes requests to the frontend, which forwards them to the backend over the private network.
+- **WebSocket**: WebSocket connections (ActionCable) are proxied through the Next.js custom server at `/api/proxy/ws`. The frontend server handles WebSocket upgrades and forwards them to the backend over the private network.
 
-```env
-SAFARICOM_CONSUMER_KEY=your_consumer_key_here
-SAFARICOM_CONSUMER_SECRET=your_consumer_secret_here
-```
+**Security**: The backend is completely isolated - no ports are exposed to the host. All communication (HTTP and WebSocket) must go through the frontend proxy, ensuring the backend cannot be accessed directly from the browser or host machine.
+
+The frontend communicates with the backend API through the proxy at `http://localhost:3001/api/proxy` (configured via `NEXT_PUBLIC_API_URL`).
 
 ## Development
 
@@ -124,9 +128,6 @@ For production builds, use the optimized multi-stage Dockerfiles:
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
 ```
-
-See [docker/OPTIMIZATION.md](docker/OPTIMIZATION.md) for details on the optimized builds.
-
 ## Project Structure
 
 ```
