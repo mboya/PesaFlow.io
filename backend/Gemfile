@@ -78,4 +78,8 @@ group :development, :test do
   gem 'factory_bot_rails'
   gem 'faker'
   gem 'pry-rails'
+  # RSpec helpers and matchers
+  gem 'shoulda-matchers', '~> 6.0'
+  # Code coverage
+  gem 'simplecov', require: false
 end
