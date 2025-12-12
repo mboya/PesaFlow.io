@@ -3,10 +3,10 @@ module Api
     class HealthController < ApplicationController
       def show
         status = {
-          status: 'ok',
-          service: 'backend',
+          status: "ok",
+          service: "backend",
           timestamp: Time.current.iso8601,
-          version: '1.0.0',
+          version: "1.0.0",
           environment: Rails.env,
           database: database_status,
           redis: redis_status,
@@ -21,7 +21,7 @@ module Api
 
       def database_status
         # Try to establish connection and execute a simple query
-        ActiveRecord::Base.connection.execute('SELECT 1')
+        ActiveRecord::Base.connection.execute("SELECT 1")
         {
           connected: true,
           pool_size: ActiveRecord::Base.connection_pool.size,
@@ -36,8 +36,8 @@ module Api
       end
 
       def redis_status
-        require 'redis'
-        redis_client = Redis.new(url: ENV['REDIS_URL'] || 'redis://localhost:6379/0')
+        require "redis"
+        redis_client = Redis.new(url: ENV["REDIS_URL"] || "redis://localhost:6379/0")
         redis_client.ping
         {
           connected: true,
@@ -52,10 +52,10 @@ module Api
       end
 
       def sidekiq_status
-        require 'sidekiq/api'
+        require "sidekiq/api"
         stats = Sidekiq::Stats.new
         processes = Sidekiq::ProcessSet.new
-        
+
         {
           connected: true,
           processes: processes.size,
@@ -78,4 +78,3 @@ module Api
     end
   end
 end
-

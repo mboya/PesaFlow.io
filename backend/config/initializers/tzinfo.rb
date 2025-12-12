@@ -3,7 +3,7 @@
 # and sidekiq-scheduler depends on tzinfo for timezone handling
 
 begin
-  require 'tzinfo/data'
+  require "tzinfo/data"
 rescue LoadError
   # tzinfo-data not available, will use system zoneinfo
 end
@@ -12,4 +12,3 @@ end
 if defined?(TZInfo::DataSources::RubyDataSource)
   TZInfo::DataSource.set(:ruby)
 end
-
