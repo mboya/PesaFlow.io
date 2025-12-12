@@ -1,85 +1,52 @@
 source "https://rubygems.org"
 
-# Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 7.2.2", ">= 7.2.2.2"
-# Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
-# Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
-# Build JSON APIs with ease [https://github.com/rails/jbuilder]
-# gem "jbuilder"
-# Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
-
-# Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
-# gem "kredis"
-
-# Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
-
-# Windows and Alpine Linux (musl) do not include zoneinfo files, so bundle the tzinfo-data gem
-# Note: linux-musl is not a valid Bundler platform, so we install it for all platforms
-# It's harmless on other platforms and required for Alpine Linux (Docker)
 gem "tzinfo-data"
-
-# Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-# gem "image_processing", "~> 1.2"
-
-# Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
-# gem "rack-cors"
-
 group :development, :test do
-  # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
-
-  # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
-
-  # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 end
 
-
-
 # API & Serialization
-gem 'blueprinter'
-gem 'oj'
+gem "blueprinter"
+gem "oj"
 
 # Background Jobs
-gem 'sidekiq'
-gem 'sidekiq-scheduler'
+gem "sidekiq"
+gem "sidekiq-scheduler"
 # Pin connection_pool to 2.x for compatibility with Sidekiq 7.3.9
 # connection_pool 3.0+ has API changes that break Sidekiq scheduler
 # Using ~> 2.5 to match Gemfile.lock (2.5.5) and allow future 2.x releases
-gem 'connection_pool', '~> 2.5'
+gem "connection_pool", "~> 2.5"
 
 # Real-time
-gem 'redis'
+gem "redis"
 
 # CORS
-gem 'rack-cors'
+gem "rack-cors"
 
 # Authentication (optional)
-gem 'devise'
-gem 'devise-jwt'
+gem "devise"
+gem "devise-jwt"
 
 # Environment variables
-gem 'dotenv-rails', groups: [:development, :test]
+gem "dotenv-rails", groups: [ :development, :test ]
 
-# Your Safaricom gem
-# gem 'safaricom_api', path: '../safaricom_api'  # or from rubygems
-gem 'mpesa_stk', '~> 2.0'
+# Your Mpesa gem
+gem "mpesa_stk", "~> 2.0"
 
 group :development, :test do
-  gem 'rspec-rails'
-  gem 'factory_bot_rails'
-  gem 'faker'
-  gem 'pry-rails'
+  gem "rspec-rails"
+  gem "factory_bot_rails"
+  gem "faker"
+  gem "pry-rails"
   # RSpec helpers and matchers
-  gem 'shoulda-matchers', '~> 6.0'
+  gem "shoulda-matchers", "~> 6.0"
   # Code coverage
-  gem 'simplecov', require: false
+  gem "simplecov", require: false
 end
