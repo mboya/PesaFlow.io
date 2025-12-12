@@ -8,4 +8,3 @@ RSpec.describe 'Health Check', type: :request do
     end
   end
 end
-

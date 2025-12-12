@@ -10,4 +10,3 @@ RSpec.describe ApplicationRecord, type: :model do
     end
   end
 end
-
