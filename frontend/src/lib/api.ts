@@ -1,7 +1,10 @@
 // frontend/src/lib/api.ts
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// API_URL points to the Next.js proxy route, which forwards requests to the backend
+// The backend is on a private network and not directly accessible from the browser
+// The proxy route is at /api/proxy, and it automatically prepends /api/v1/ to backend requests
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/proxy';
 
 export const apiClient = axios.create({
     baseURL: `${API_URL}/api/v1`,
@@ -10,6 +13,15 @@ export const apiClient = axios.create({
     },
     withCredentials: true,
 });
+
+// Add response interceptor for debugging
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        console.error('API Error:', error.response?.status, error.response?.data || error.message);
+        return Promise.reject(error);
+    }
+);
 
 // Add auth token to requests
 apiClient.interceptors.request.use((config) => {
