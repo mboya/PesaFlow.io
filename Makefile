@@ -12,8 +12,15 @@ help:
 setup:
 	@echo "Setting up monorepo..."
 	npm install
-	cd backend && bundle install && rails db:create db:migrate db:seed
+	cd backend && bundle install
 	cd frontend && npm install
+	@echo "Starting Docker services..."
+	docker-compose up -d postgres redis
+	@echo "Waiting for PostgreSQL to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	docker-compose exec -T backend bundle exec rails db:create db:migrate db:seed || \
+		docker-compose run --rm backend bundle exec rails db:create db:migrate db:seed
 	@echo "Setup complete!"
 
 start:
@@ -38,7 +45,8 @@ clean:
 	rm -rf frontend/.next
 
 db-reset:
-	cd backend && rails db:drop db:create db:migrate db:seed
+	docker-compose exec backend bundle exec rails db:drop db:create db:migrate db:seed || \
+		docker-compose run --rm backend bundle exec rails db:drop db:create db:migrate db:seed
 
 console-backend:
 	docker-compose exec backend rails console
