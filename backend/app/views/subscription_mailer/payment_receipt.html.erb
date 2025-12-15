@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h1>Payment Receipt</h1>
+    
+    <p>Dear <%= @customer.name %>,</p>
+    
+    <p>Thank you for your payment. Your subscription payment has been successfully processed.</p>
+    
+    <h2>Payment Details</h2>
+    <ul>
+      <li><strong>Subscription:</strong> <%= @subscription.reference_number %></li>
+      <li><strong>Plan:</strong> <%= @plan.name %></li>
+      <li><strong>Amount:</strong> KES <%= @payment.amount %></li>
+      <li><strong>Payment Method:</strong> <%= @payment.payment_method.upcase %></li>
+      <li><strong>M-Pesa Transaction ID:</strong> <%= @payment.mpesa_transaction_id %></li>
+      <% if @payment.mpesa_receipt_number.present? %>
+        <li><strong>M-Pesa Receipt:</strong> <%= @payment.mpesa_receipt_number %></li>
+      <% end %>
+      <li><strong>Payment Date:</strong> <%= @payment.paid_at.strftime('%B %d, %Y at %I:%M %p') %></li>
+    </ul>
+    
+    <h2>Subscription Details</h2>
+    <ul>
+      <li><strong>Current Period:</strong> <%= @subscription.current_period_start&.strftime('%B %d, %Y') %> - <%= @subscription.current_period_end&.strftime('%B %d, %Y') %></li>
+      <li><strong>Next Billing Date:</strong> <%= @subscription.next_billing_date&.strftime('%B %d, %Y') %></li>
+      <li><strong>Status:</strong> <%= @subscription.status.capitalize %></li>
+    </ul>
+    
+    <p>If you have any questions, please contact our support team.</p>
+    
+    <p>Thank you for your business!</p>
+  </body>
+</html>

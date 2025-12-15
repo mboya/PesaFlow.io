@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { width: 80%; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+    .header { background-color: #f4f4f4; padding: 10px; text-align: center; border-bottom: 1px solid #ddd; }
+    .content { padding: 20px 0; }
+    .footer { margin-top: 20px; font-size: 0.8em; color: #777; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
+    .button { display: inline-block; padding: 10px 20px; margin-top: 15px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; }
+    .success { background-color: #d4edda; border: 1px solid #28a745; padding: 15px; border-radius: 5px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Trial Period Ended - PesaFlow</h2>
+    </div>
+    <div class="content">
+      <div class="success">
+        <strong>✓ Your trial has been converted to a paid subscription</strong>
+      </div>
+      
+      <p>Dear <%= @customer.name %>,</p>
+      
+      <p>Great news! Your trial period for the <strong><%= @plan.name %></strong> plan has ended, and your subscription has been successfully converted to a paid plan.</p>
+
+      <h3>Subscription Details:</h3>
+      <ul>
+        <li><strong>Reference Number:</strong> <%= @subscription.reference_number %></li>
+        <li><strong>Plan:</strong> <%= @plan.name %></li>
+        <li><strong>Status:</strong> <%= @subscription.status.humanize %></li>
+        <li><strong>Current Period End:</strong> <%= @subscription.current_period_end&.strftime("%Y-%m-%d") %></li>
+        <li><strong>Next Billing Date:</strong> <%= @subscription.next_billing_date&.strftime("%Y-%m-%d") %></li>
+      </ul>
+
+      <p>Your subscription is now active and you can continue enjoying all the features of your plan.</p>
+
+      <p><a href="http://localhost:3001/dashboard" class="button">View Dashboard</a></p>
+
+      <p>If you have any questions, please don't hesitate to contact us.</p>
+      
+      <p>Sincerely,<br/>The PesaFlow Team</p>
+    </div>
+    <div class="footer">
+      <p>&copy; <%= Time.current.year %> PesaFlow. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+

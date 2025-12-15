@@ -1,0 +1,36 @@
+Service Suspended - PesaFlow
+
+⚠️ Your subscription has been suspended
+
+Dear <%= @customer.name %>,
+
+We regret to inform you that your subscription to the <%= @plan.name %> plan has been suspended due to non-payment.
+
+Subscription Details:
+Reference Number: <%= @subscription.reference_number %>
+Plan: <%= @plan.name %>
+Outstanding Amount: KES <%= @subscription.outstanding_amount %>
+Suspended At: <%= @subscription.suspended_at.strftime("%Y-%m-%d %H:%M:%S") %>
+
+How to Reactivate:
+To reactivate your subscription, please make a payment of KES <%= @subscription.outstanding_amount %> using M-Pesa:
+
+M-Pesa Payment Instructions:
+1. Go to M-Pesa menu
+2. Select "Pay Bill"
+3. Enter Business Number: <%= @paybill %>
+4. Enter Account Number: <%= @subscription.reference_number %>
+5. Enter Amount: KES <%= @subscription.outstanding_amount %>
+6. Enter your M-Pesa PIN
+7. Confirm the transaction
+
+Once payment is received, your subscription will be automatically reactivated.
+
+View your subscription details: http://localhost:3001/dashboard
+
+If you have any questions or need assistance, please don't hesitate to contact our support team.
+
+Sincerely,
+The PesaFlow Team
+© <%= Time.current.year %> PesaFlow. All rights reserved.
+

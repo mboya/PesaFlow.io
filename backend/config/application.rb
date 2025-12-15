@@ -51,5 +51,8 @@ module Backend
       httponly: true,
       secure: Rails.env.production?,
       same_site: :lax
+
+    # Configure Active Job to use Sidekiq
+    config.active_job.queue_adapter = :sidekiq
   end
 end

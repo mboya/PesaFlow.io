@@ -1,0 +1,22 @@
+# Sidekiq Scheduler Configuration
+# This file defines scheduled jobs that run automatically
+
+# Process billing for subscriptions due today
+# Runs daily at 9:00 AM EAT (East Africa Time)
+process_billing:
+  cron: '0 9 * * *'  # Every day at 9:00 AM
+  class: ProcessBillingJob
+  queue: critical
+  description: 'Process billing for all subscriptions due today'
+
+# Check subscription status and suspend overdue subscriptions
+# Runs daily at 10:00 AM EAT (1 hour after billing)
+check_subscription_status:
+  cron: '0 10 * * *'  # Every day at 10:00 AM
+  class: CheckSubscriptionStatusJob
+  queue: default
+  description: 'Check subscription status, suspend overdue subscriptions, and convert expired trials'
+
+# Optional: Add more scheduled jobs here
+# Example: Weekly reports, monthly summaries, etc.
+
