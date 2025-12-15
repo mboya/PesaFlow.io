@@ -18,17 +18,17 @@ module Subscriptions
         # Update standing order for next period
         if @subscription.standing_order_id.present?
           # Cancel current standing order
-          Payments::StandingOrderService.new(@subscription).cancel
+          ::Payments::StandingOrderService.new(@subscription).cancel
           
           # Create new one starting at next billing date
           @subscription.update!(plan: new_plan, amount: new_plan.amount)
-          Payments::StandingOrderService.new(@subscription).create
+          ::Payments::StandingOrderService.new(@subscription).create
         else
           @subscription.update!(plan: new_plan, amount: new_plan.amount)
         end
 
         # Send notification
-        NotificationService.send_downgrade_confirmation(@subscription, old_plan, new_plan)
+        ::NotificationService.send_downgrade_confirmation(@subscription, old_plan, new_plan)
 
         @subscription
       end

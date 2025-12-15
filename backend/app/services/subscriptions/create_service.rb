@@ -37,7 +37,7 @@ module Subscriptions
         setup_payment_method
 
         # Send confirmation
-        NotificationService.send_subscription_confirmation(@subscription)
+        ::NotificationService.send_subscription_confirmation(@subscription)
 
         self
       end
@@ -70,7 +70,7 @@ module Subscriptions
     end
 
     def process_setup_fee
-      Payments::StkPushService.new(@subscription).initiate(
+      ::Payments::StkPushService.new(@subscription).initiate(
         payment_type: 'setup_fee',
         amount: @plan.setup_fee,
         description: "Setup fee for #{@plan.name}"
@@ -80,7 +80,7 @@ module Subscriptions
     def setup_payment_method
       case @payment_method
       when 'ratiba'
-        Payments::StandingOrderService.new(@subscription).create
+        ::Payments::StandingOrderService.new(@subscription).create
       when 'stk_push'
         # STK Push will be initiated on first billing
         @subscription.update!(preferred_payment_method: 'stk_push')
