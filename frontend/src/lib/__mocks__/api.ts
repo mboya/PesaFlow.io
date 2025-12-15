@@ -21,16 +21,39 @@ export const subscriptionsApi = {
   getAll: vi.fn(),
   getById: vi.fn(),
   create: vi.fn(),
+  update: vi.fn(),
   cancel: vi.fn(),
-};
-
-export const paymentsApi = {
-  initiateStkPush: vi.fn(),
-  getHistory: vi.fn(),
+  reactivate: vi.fn(),
+  upgrade: vi.fn(),
+  downgrade: vi.fn(),
 };
 
 export const plansApi = {
   getAll: vi.fn(),
   getById: vi.fn(),
+};
+
+export const paymentMethodsApi = {
+  setupRatiba: vi.fn(),
+  initiateStkPush: vi.fn(),
+};
+
+export const dashboardApi = {
+  getData: vi.fn(),
+};
+
+export const invoicesApi = {
+  getAll: vi.fn(),
+  getById: vi.fn(),
+};
+
+export const refundsApi = {
+  getAll: vi.fn(),
+  getById: vi.fn(),
+  create: vi.fn(),
+};
+
+export const paymentsApi = {
+  getBySubscription: vi.fn(),
 };
 

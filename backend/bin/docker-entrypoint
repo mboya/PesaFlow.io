@@ -8,6 +8,10 @@ fi
 # If running the rails server then create or migrate existing database
 if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
   ./bin/rails db:prepare
+  # Seed the database with initial data (idempotent) - only in development/staging
+  if [ "${RAILS_ENV}" != "production" ]; then
+    ./bin/rails db:seed
+  fi
 fi
 
 exec "${@}"

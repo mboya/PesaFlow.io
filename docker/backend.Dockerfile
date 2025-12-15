@@ -1,90 +1,32 @@
-# Multi-stage build for optimized Rails backend image
-# Stage 1: Build stage - includes all build dependencies
+# Simplified Dockerfile for development only
 # Ruby version matches .ruby-version file (3.3.7)
-FROM ruby:3.3-alpine AS builder
+FROM ruby:3.3-alpine
 
-# Update package index and install build dependencies
-# Using BuildKit cache mount to cache apk index for faster subsequent builds
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk update && \
+# Install dependencies
+RUN apk update && \
     apk add --no-cache \
     build-base \
     postgresql-dev \
+    postgresql-libs \
     yaml-dev \
+    yaml \
     tzdata \
     git \
     nodejs
 
 WORKDIR /app
 
-# Copy dependency files
+# Set environment variable for timezone data
+ENV TZINFO_DATA_SOURCE=ruby \
+    BUNDLE_PATH=/usr/local/bundle
+
+# Copy dependency files (code will be mounted as volume)
 COPY Gemfile Gemfile.lock ./
 
-# Install all gems (including dev/test for development)
-# In production, we can exclude dev/test gems
-RUN bundle install --jobs 4 --retry 3 && \
-    bundle clean --force
-
-# Copy application code
-COPY . .
-
-# Precompile bootsnap cache for faster startup (if bootsnap is available)
-RUN if bundle list | grep -q bootsnap; then \
-        bundle exec bootsnap precompile --gemfile app/ lib/ || true; \
-    fi
-
-# Stage 2: Runtime stage - minimal runtime dependencies only
-# Ruby version matches .ruby-version file (3.3.7)
-FROM ruby:3.3-alpine AS runtime
-
-# Install only runtime dependencies (no build tools)
-# Using BuildKit cache mount to cache apk index for faster subsequent builds
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk update && \
-    apk add --no-cache \
-    postgresql-libs \
-    yaml \
-    tzdata \
-    nodejs
-
-WORKDIR /app
-
-# Create non-root user for security
-RUN addgroup -g 1000 -S appgroup && \
-    adduser -u 1000 -S appuser -G appgroup
-
-# Copy gems from builder stage
-COPY --from=builder /usr/local/bundle /usr/local/bundle
-
-# Copy application code from builder stage
-COPY --from=builder --chown=appuser:appgroup /app /app
-
-# Set environment variable to use tzinfo-data gem for timezone data
-# This is required for Alpine Linux (musl) which doesn't have system zoneinfo
-ENV TZINFO_DATA_SOURCE=ruby
-
-# Switch to non-root user
-USER appuser
+# Install gems (will be cached in bundle_cache volume)
+RUN bundle install --jobs 4 --retry 3
 
 EXPOSE 3000
 
 # Default command (can be overridden in docker-compose)
-CMD ["bundle", "exec", "rails", "s", "-b", "0.0.0.0", "-p", "3000"]
-
-# Stage 3: Development stage - includes dev tools, runs as root for volume mounts
-FROM builder AS development
-
-# tzdata already installed in builder stage, no need to reinstall
-
-WORKDIR /app
-
-# Set environment variable to use tzinfo-data gem for timezone data
-# This is required for Alpine Linux (musl) which doesn't have system zoneinfo
-ENV TZINFO_DATA_SOURCE=ruby
-
-# Keep as root for development (allows volume mounts to work properly)
-# In production, use the runtime stage which runs as non-root
-
-EXPOSE 3000
-
 CMD ["bundle", "exec", "rails", "s", "-b", "0.0.0.0", "-p", "3000"]

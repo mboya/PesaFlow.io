@@ -1,6 +1,38 @@
 class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
   before_action :authenticate_api_v1_user!
   
+  # POST /api/v1/payment_methods/ratiba
+  def setup_ratiba
+    customer = current_user_customer
+    return render json: { error: 'Customer not found' }, status: :not_found unless customer
+    
+    # Update customer phone number if provided
+    if params[:phone_number].present?
+      customer.update!(phone_number: params[:phone_number])
+    end
+    
+    # Find subscription by reference or use active subscription
+    subscription = if params[:reference].present?
+      customer.subscriptions.find_by(reference_number: params[:reference]) || customer.subscriptions.active.first
+    else
+      customer.subscriptions.active.first
+    end
+    
+    return render json: { error: 'No active subscription found' }, status: :not_found unless subscription
+    
+    # Use StandingOrderService to create standing order
+    response = Payments::StandingOrderService.new(subscription).create
+    
+    render json: { 
+      message: 'Ratiba standing order setup successfully',
+      standing_order_id: subscription.reload.standing_order_id,
+      subscription: Api::V1::SubscriptionSerializer.render(subscription)
+    }
+  rescue StandardError => e
+    Rails.logger.error("Error setting up Ratiba: #{e.message}")
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+  
   # POST /api/v1/payment_methods/setup_standing_order
   def setup_standing_order
     customer = current_user_customer
@@ -21,12 +53,28 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
   
-  # POST /api/v1/payment_methods/initiate_stk_push
+  # POST /api/v1/payment_methods/stk_push (frontend endpoint)
   def initiate_stk_push
     customer = current_user_customer
     return render json: { error: 'Customer not found' }, status: :not_found unless customer
     
-    subscription = customer.subscriptions.find(params[:subscription_id])
+    # Update customer phone number if provided
+    phone_number = params[:phone_number] || customer.phone_number
+    if params[:phone_number].present? && phone_number != customer.phone_number
+      customer.update!(phone_number: phone_number)
+    end
+    
+    return render json: { error: 'Phone number is required' }, status: :unprocessable_entity unless phone_number.present?
+    
+    # Find subscription by reference or use active subscription
+    subscription = if params[:reference].present?
+      customer.subscriptions.find_by(reference_number: params[:reference]) || customer.subscriptions.active.first
+    else
+      customer.subscriptions.active.first
+    end
+    
+    return render json: { error: 'No active subscription found' }, status: :not_found unless subscription
+    
     amount = params[:amount] || subscription.outstanding_amount || subscription.plan.amount
     
     # Create billing attempt
@@ -48,9 +96,9 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
     
     # Initiate STK Push
     response = SafaricomApi.client.mpesa.stk_push.initiate(
-      phone_number: customer.phone_number,
+      phone_number: phone_number,
       amount: amount,
-      account_reference: subscription.reference_number,
+      account_reference: params[:reference] || subscription.reference_number,
       transaction_desc: "Payment for #{subscription.plan.name}",
       callback_url: callback_url
     )

@@ -51,8 +51,10 @@ Rails.application.routes.draw do
       resources :plans, only: [:index, :show]
       
       # Payment methods
+      post 'payment_methods/ratiba', to: 'payment_methods#setup_ratiba'
+      post 'payment_methods/stk_push', to: 'payment_methods#initiate_stk_push'
+      # Legacy routes (for backward compatibility)
       post 'payment_methods/setup_standing_order', to: 'payment_methods#setup_standing_order'
-      post 'payment_methods/initiate_stk_push', to: 'payment_methods#initiate_stk_push'
       
       # Customer portal
       get 'dashboard', to: 'dashboard#show'
@@ -60,7 +62,7 @@ Rails.application.routes.draw do
       get 'invoices/:id', to: 'invoices#show'
       
       # Refunds
-      post 'refunds', to: 'refunds#create'
+      resources :refunds, only: [:index, :show, :create]
     end
   end
 

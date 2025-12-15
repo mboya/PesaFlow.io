@@ -1,3 +1,6 @@
+# Require subscription services explicitly to avoid autoloading issues
+Dir[Rails.root.join('app/services/subscriptions/*.rb')].each { |f| require f }
+
 class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   before_action :authenticate_api_v1_user!
   before_action :set_subscription, only: [:show, :update, :cancel, :reactivate, :upgrade, :downgrade]
@@ -5,18 +8,18 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   # GET /api/v1/subscriptions
   def index
     @subscriptions = current_user.customer&.subscriptions || Subscription.none
-    render json: @subscriptions, each_serializer: SubscriptionSerializer
+    render json: @subscriptions, each_serializer: Api::V1::SubscriptionSerializer
   end
   
   # GET /api/v1/subscriptions/:id
   def show
     authorize_subscription!
-    render json: @subscription, serializer: SubscriptionSerializer
+    render json: @subscription, serializer: Api::V1::SubscriptionSerializer
   end
   
   # POST /api/v1/subscriptions
   def create
-    result = Subscriptions::CreateService.new(
+    result = ::Subscriptions::CreateService.new(
       customer_params: customer_params,
       plan_id: params[:plan_id],
       payment_method: params[:payment_method] || 'ratiba'
@@ -44,7 +47,7 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   def cancel
     authorize_subscription!
     
-    Subscriptions::CancelService.new(@subscription).call(
+    ::Subscriptions::CancelService.new(@subscription).call(
       reason: params[:reason] || 'Customer requested',
       refund_unused: params[:refund_unused] || false
     )
@@ -72,8 +75,8 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   def upgrade
     authorize_subscription!
     
-    new_plan = Plan.find(params[:new_plan_id])
-    Subscriptions::UpgradeService.new(@subscription).call(new_plan)
+    new_plan = Plan.find(params[:plan_id])
+    ::Subscriptions::UpgradeService.new(@subscription).call(new_plan)
     
     render json: { message: 'Subscription upgraded successfully', subscription: Api::V1::SubscriptionSerializer.render(@subscription.reload) }
   rescue StandardError => e
@@ -84,8 +87,8 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   def downgrade
     authorize_subscription!
     
-    new_plan = Plan.find(params[:new_plan_id])
-    Subscriptions::DowngradeService.new(@subscription).call(new_plan)
+    new_plan = Plan.find(params[:plan_id])
+    ::Subscriptions::DowngradeService.new(@subscription).call(new_plan)
     
     render json: { message: 'Subscription will be downgraded at next billing cycle', subscription: Api::V1::SubscriptionSerializer.render(@subscription.reload) }
   rescue StandardError => e

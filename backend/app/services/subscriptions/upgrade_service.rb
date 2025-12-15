@@ -28,7 +28,7 @@ module Subscriptions
 
         if difference > 0
           # Customer owes money - charge via STK Push
-          Payments::StkPushService.new(@subscription).initiate(
+          ::Payments::StkPushService.new(@subscription).initiate(
             payment_type: 'upgrade',
             amount: difference,
             description: "Upgrade charge: #{old_plan.name} -> #{new_plan.name}"
@@ -40,7 +40,7 @@ module Subscriptions
 
         # Update standing order with new amount
         if @subscription.standing_order_id.present?
-          Payments::StandingOrderService.new(@subscription).update_amount(new_plan.amount)
+          ::Payments::StandingOrderService.new(@subscription).update_amount(new_plan.amount)
         end
 
         # Update subscription
@@ -50,7 +50,7 @@ module Subscriptions
         )
 
         # Send notification
-        NotificationService.send_upgrade_confirmation(@subscription, old_plan, new_plan)
+        ::NotificationService.send_upgrade_confirmation(@subscription, old_plan, new_plan)
 
         @subscription
       end
