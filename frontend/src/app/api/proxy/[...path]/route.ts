@@ -131,12 +131,13 @@ async function proxyRequest(
     });
 
     // Forward response headers (excluding CORS, connection, and cache headers that might cause issues)
+    // But explicitly include Authorization header for JWT tokens
     response.headers.forEach((value, key) => {
       const lowerKey = key.toLowerCase();
       if (
         !['access-control-allow-origin', 'connection', 'etag', 'last-modified', 'cache-control'].includes(
           lowerKey
-        )
+        ) || lowerKey === 'authorization'
       ) {
         proxiedResponse.headers.set(key, value);
       }

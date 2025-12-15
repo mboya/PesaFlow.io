@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
-import Home from './page';
-import { useAuth } from '@/contexts/AuthContext';
+import Home from '../../app/page';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -10,7 +10,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock AuthContext
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
@@ -100,3 +100,4 @@ describe('Home Page', () => {
     });
   });
 });
+
