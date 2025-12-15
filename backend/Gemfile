@@ -30,9 +30,13 @@ gem "redis"
 # CORS
 gem "rack-cors"
 
-# Authentication (optional)
+# Authentication
 gem "devise"
 gem "devise-jwt"
+# OTP (Two-Factor Authentication)
+gem "rotp" # Time-based OTP generation and verification
+gem "rqrcode" # QR code generation for authenticator apps
+gem "chunky_png" # Required by rqrcode for PNG generation
 
 # Environment variables
 gem "dotenv-rails", groups: [ :development, :test ]
@@ -49,4 +53,6 @@ group :development, :test do
   gem "shoulda-matchers", "~> 6.0"
   # Code coverage
   gem "simplecov", require: false
+  # Database cleaning for tests
+  gem "database_cleaner-active_record"
 end
