@@ -1,0 +1,25 @@
+Payment Receipt
+
+Dear <%= @customer.name %>,
+
+Thank you for your payment. Your subscription payment has been successfully processed.
+
+Payment Details:
+- Subscription: <%= @subscription.reference_number %>
+- Plan: <%= @plan.name %>
+- Amount: KES <%= @payment.amount %>
+- Payment Method: <%= @payment.payment_method.upcase %>
+- M-Pesa Transaction ID: <%= @payment.mpesa_transaction_id %>
+<% if @payment.mpesa_receipt_number.present? %>
+- M-Pesa Receipt: <%= @payment.mpesa_receipt_number %>
+<% end %>
+- Payment Date: <%= @payment.paid_at.strftime('%B %d, %Y at %I:%M %p') %>
+
+Subscription Details:
+- Current Period: <%= @subscription.current_period_start&.strftime('%B %d, %Y') %> - <%= @subscription.current_period_end&.strftime('%B %d, %Y') %>
+- Next Billing Date: <%= @subscription.next_billing_date&.strftime('%B %d, %Y') %>
+- Status: <%= @subscription.status.capitalize %>
+
+If you have any questions, please contact our support team.
+
+Thank you for your business!

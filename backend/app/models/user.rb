@@ -3,6 +3,9 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable, :validatable,
          :jwt_authenticatable, jwt_revocation_strategy: JwtDenylist
 
+  # Associations
+  has_one :customer, dependent: :destroy
+
   # Validations
   validates :email, presence: true, uniqueness: { case_sensitive: false }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }

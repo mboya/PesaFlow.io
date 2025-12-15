@@ -1,0 +1,83 @@
+class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
+  before_action :authenticate_api_v1_user!
+  
+  # POST /api/v1/payment_methods/setup_standing_order
+  def setup_standing_order
+    customer = current_user_customer
+    return render json: { error: 'Customer not found' }, status: :not_found unless customer
+    
+    subscription = customer.subscriptions.find(params[:subscription_id])
+    
+    # Use StandingOrderService to create standing order
+    response = Payments::StandingOrderService.new(subscription).create
+    
+    render json: { 
+      message: 'Standing order setup successfully',
+      standing_order_id: subscription.reload.standing_order_id,
+      subscription: Api::V1::SubscriptionSerializer.render(subscription)
+    }
+  rescue StandardError => e
+    Rails.logger.error("Error setting up standing order: #{e.message}")
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+  
+  # POST /api/v1/payment_methods/initiate_stk_push
+  def initiate_stk_push
+    customer = current_user_customer
+    return render json: { error: 'Customer not found' }, status: :not_found unless customer
+    
+    subscription = customer.subscriptions.find(params[:subscription_id])
+    amount = params[:amount] || subscription.outstanding_amount || subscription.plan.amount
+    
+    # Create billing attempt
+    billing_attempt = BillingAttempt.create!(
+      subscription: subscription,
+      amount: amount,
+      invoice_number: generate_invoice_number(subscription),
+      payment_method: 'stk_push',
+      status: 'pending',
+      attempted_at: Time.current,
+      attempt_number: 1
+    )
+    
+    # Build callback URL
+    callback_url = Rails.application.routes.url_helpers.webhooks_stk_push_callback_url(
+      host: ENV.fetch('APP_HOST', 'localhost:3000'),
+      protocol: Rails.env.production? ? 'https' : 'http'
+    )
+    
+    # Initiate STK Push
+    response = SafaricomApi.client.mpesa.stk_push.initiate(
+      phone_number: customer.phone_number,
+      amount: amount,
+      account_reference: subscription.reference_number,
+      transaction_desc: "Payment for #{subscription.plan.name}",
+      callback_url: callback_url
+    )
+    
+    # Update billing attempt
+    billing_attempt.update!(
+      status: 'processing',
+      stk_push_checkout_id: response.checkout_request_id,
+      attempted_at: Time.current
+    )
+    
+    render json: {
+      message: 'STK Push initiated successfully',
+      checkout_request_id: response.checkout_request_id,
+      billing_attempt: Api::V1::BillingAttemptSerializer.render(billing_attempt)
+    }
+  rescue StandardError => e
+    Rails.logger.error("Error initiating STK Push: #{e.message}")
+    billing_attempt&.update!(status: 'failed', failure_reason: e.message)
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+  
+  private
+  
+  def generate_invoice_number(subscription)
+    date_prefix = Date.current.strftime('%Y%m%d')
+    "INV-#{date_prefix}-#{subscription.reference_number}"
+  end
+end
+

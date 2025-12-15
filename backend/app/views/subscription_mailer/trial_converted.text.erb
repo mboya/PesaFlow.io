@@ -1,0 +1,25 @@
+Trial Period Ended - PesaFlow
+
+✓ Your trial has been converted to a paid subscription
+
+Dear <%= @customer.name %>,
+
+Great news! Your trial period for the <%= @plan.name %> plan has ended, and your subscription has been successfully converted to a paid plan.
+
+Subscription Details:
+Reference Number: <%= @subscription.reference_number %>
+Plan: <%= @plan.name %>
+Status: <%= @subscription.status.humanize %>
+Current Period End: <%= @subscription.current_period_end&.strftime("%Y-%m-%d") %>
+Next Billing Date: <%= @subscription.next_billing_date&.strftime("%Y-%m-%d") %>
+
+Your subscription is now active and you can continue enjoying all the features of your plan.
+
+View your dashboard: http://localhost:3001/dashboard
+
+If you have any questions, please don't hesitate to contact us.
+
+Sincerely,
+The PesaFlow Team
+© <%= Time.current.year %> PesaFlow. All rights reserved.
+

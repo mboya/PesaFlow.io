@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { width: 80%; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+    .header { background-color: #f4f4f4; padding: 10px; text-align: center; border-bottom: 1px solid #ddd; }
+    .content { padding: 20px 0; }
+    .footer { margin-top: 20px; font-size: 0.8em; color: #777; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
+    .button { display: inline-block; padding: 10px 20px; margin-top: 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+    .warning { background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Action Required - Trial Period Ended</h2>
+    </div>
+    <div class="content">
+      <div class="warning">
+        <strong>⚠️ Action Required</strong>
+      </div>
+      
+      <p>Dear <%= @customer.name %>,</p>
+      
+      <p>Your trial period for the <strong><%= @plan.name %></strong> plan has ended. Unfortunately, we were unable to automatically convert your trial to a paid subscription.</p>
+
+      <h3>Subscription Details:</h3>
+      <ul>
+        <li><strong>Reference Number:</strong> <%= @subscription.reference_number %></li>
+        <li><strong>Plan:</strong> <%= @plan.name %></li>
+        <li><strong>Status:</strong> <%= @subscription.status.humanize %></li>
+        <li><strong>Amount Due:</strong> KES <%= @plan.amount %></li>
+      </ul>
+
+      <h3>What You Need to Do:</h3>
+      <p>To continue using the service, please complete the payment process:</p>
+      
+      <ol>
+        <li>Log in to your account</li>
+        <li>Go to your subscription settings</li>
+        <li>Complete the payment for your subscription</li>
+      </ol>
+
+      <p>Alternatively, you can make a payment via M-Pesa:</p>
+      <ul>
+        <li>Go to M-Pesa menu → Pay Bill</li>
+        <li>Business Number: <%= ENV.fetch('MPESA_PAYBILL', ENV.fetch('business_short_code', 'N/A')) %></li>
+        <li>Account Number: <%= @subscription.reference_number %></li>
+        <li>Amount: KES <%= @plan.amount %></li>
+      </ul>
+
+      <p><a href="http://localhost:3001/dashboard" class="button">Complete Payment Now</a></p>
+
+      <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+      
+      <p>Sincerely,<br/>The PesaFlow Team</p>
+    </div>
+    <div class="footer">
+      <p>&copy; <%= Time.current.year %> PesaFlow. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+

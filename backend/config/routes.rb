@@ -37,7 +37,41 @@ Rails.application.routes.draw do
 
       # Protected route example
       get "protected", to: "protected#index"
+
+      # Subscription management
+      resources :subscriptions do
+        member do
+          post :cancel
+          post :reactivate
+          post :upgrade
+          post :downgrade
+        end
+      end
+      
+      resources :plans, only: [:index, :show]
+      
+      # Payment methods
+      post 'payment_methods/setup_standing_order', to: 'payment_methods#setup_standing_order'
+      post 'payment_methods/initiate_stk_push', to: 'payment_methods#initiate_stk_push'
+      
+      # Customer portal
+      get 'dashboard', to: 'dashboard#show'
+      get 'invoices', to: 'invoices#index'
+      get 'invoices/:id', to: 'invoices#show'
+      
+      # Refunds
+      post 'refunds', to: 'refunds#create'
     end
+  end
+
+  # Webhooks
+  namespace :webhooks do
+    post 'ratiba/callback', to: 'ratiba#callback'
+    post 'stk_push/callback', to: 'stk_push#callback'
+    post 'c2b/validation', to: 'c2b#validation'
+    post 'c2b/confirmation', to: 'c2b#confirmation'
+    post 'b2c/result', to: 'b2c#result'
+    post 'b2c/timeout', to: 'b2c#timeout'
   end
 
   # Defines the root path route ("/")
