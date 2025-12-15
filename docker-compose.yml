@@ -42,7 +42,6 @@ services:
     build:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
-      target: development
     command: bundle exec rails s -b 0.0.0.0 -p 3000
     volumes:
       - ./backend:/app
@@ -66,7 +65,6 @@ services:
     build:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
-      target: development
     command: bundle exec sidekiq
     volumes:
       - ./backend:/app
@@ -88,7 +86,6 @@ services:
     build:
       context: ./frontend
       dockerfile: ../docker/frontend.Dockerfile
-      target: development
     command: npm run dev
     volumes:
       - ./frontend:/app
