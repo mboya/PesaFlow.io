@@ -10,7 +10,9 @@ module Api
         resource.save
         if resource.persisted?
           if resource.active_for_authentication?
-            sign_up(resource_name, resource)
+            # Sign in the user (session is null store, so no data is stored)
+            # devise-jwt will automatically generate JWT token in response headers
+            sign_in(resource_name, resource)
             render json: {
               status: {
                 code: 200,
@@ -44,6 +46,10 @@ module Api
 
       def configure_sign_up_params
         devise_parameter_sanitizer.permit(:sign_up, keys: [ :email, :password ])
+      end
+
+      def sign_up_params
+        params.require(:user).permit(:email, :password)
       end
     end
   end

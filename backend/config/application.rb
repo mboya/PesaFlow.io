@@ -40,5 +40,16 @@ module Backend
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # Enable session middleware for Devise/Warden (required for JWT authentication)
+    # Use cookie store with minimal settings - sessions are only used temporarily
+    # during authentication, JWT tokens handle actual authentication
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore, 
+      key: '_pesaflow_session',
+      expire_after: nil, # Don't persist sessions
+      httponly: true,
+      secure: Rails.env.production?,
+      same_site: :lax
   end
 end

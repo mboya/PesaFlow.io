@@ -5,28 +5,46 @@ module Api
 
       # POST /api/v1/login
       def create
-        self.resource = warden.authenticate!(auth_options)
+        user_params = sign_in_params
+        email = user_params[:email]
+        password = user_params[:password]
 
-        if resource.otp_enabled?
-          # User has OTP enabled, require OTP verification before issuing JWT
-          render json: {
-            status: {
-              code: 200,
-              message: "OTP verification required"
-            },
-            otp_required: true,
-            user_id: resource.id
-          }, status: :ok
+        # Find user by email
+        user = User.find_by(email: email)
+        
+        # Authenticate user
+        if user && user.valid_password?(password)
+          self.resource = user
+          
+          if resource.otp_enabled?
+            # User has OTP enabled, require OTP verification before issuing JWT
+            render json: {
+              status: {
+                code: 200,
+                message: "OTP verification required"
+              },
+              otp_required: true,
+              user_id: resource.id
+            }, status: :ok
+          else
+            # User doesn't have OTP, issue JWT token immediately
+            sign_in(resource_name, resource)
+            render json: {
+              status: {
+                code: 200,
+                message: "Logged in successfully"
+              },
+              data: Api::V1::UserSerializer.serialize(resource)
+            }, status: :ok
+          end
         else
-          # User doesn't have OTP, issue JWT token immediately
-          sign_in(resource_name, resource)
+          # Invalid credentials
           render json: {
             status: {
-              code: 200,
-              message: "Logged in successfully"
-            },
-            data: Api::V1::UserSerializer.serialize(resource)
-          }, status: :ok
+              code: 401,
+              message: "Invalid email or password"
+            }
+          }, status: :unauthorized
         end
       end
 
@@ -55,6 +73,10 @@ module Api
 
       def configure_sign_in_params
         devise_parameter_sanitizer.permit(:sign_in, keys: [ :email, :password ])
+      end
+
+      def sign_in_params
+        params.require(:user).permit(:email, :password)
       end
 
       def respond_with(resource, _opts = {})

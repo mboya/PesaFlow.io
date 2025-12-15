@@ -7,17 +7,30 @@ import axios from 'axios';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/proxy';
 
 export const apiClient = axios.create({
-    baseURL: `${API_URL}/api/v1`,
+    baseURL: API_URL, // Proxy already handles /api/v1 prefix
     headers: {
         'Content-Type': 'application/json',
     },
     withCredentials: true,
 });
 
-// Add response interceptor for debugging
+// Add response interceptor to extract and store JWT tokens
 apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Extract token from response headers if present
+        // Axios normalizes headers to lowercase
+        const authHeader = response.headers?.['authorization'] || response.headers?.['Authorization'];
+        if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            localStorage.setItem('authToken', token);
+        }
+        return response;
+    },
     (error) => {
+        // Handle 401 errors by clearing token
+        if (error.response?.status === 401) {
+            localStorage.removeItem('authToken');
+        }
         console.error('API Error:', error.response?.status, error.response?.data || error.message);
         return Promise.reject(error);
     }
