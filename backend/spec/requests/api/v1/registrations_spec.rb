@@ -29,6 +29,20 @@ RSpec.describe "Registrations API", type: :request do
         expect(user.email).to eq("test@example.com")
       end
 
+      it "creates associated customer record" do
+        expect {
+          post "/api/v1/signup", params: valid_params, as: :json
+        }.to change(Customer, :count).by(1)
+
+        user = User.last
+        customer = user.customer
+        expect(customer).to be_present
+        expect(customer.email).to eq("test@example.com")
+        expect(customer.name).to be_present
+        expect(customer.status).to eq("active")
+        expect(customer.user_id).to eq(user.id)
+      end
+
       it "response includes user data" do
         post "/api/v1/signup", params: valid_params, as: :json
 
