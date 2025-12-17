@@ -7,7 +7,7 @@ class Api::V1::BillingAttemptSerializer < Blueprinter::Base
          :next_retry_at, :created_at, :updated_at
   
   # Add subscription association for invoice display
-  association :subscription, blueprint: Api::V1::SubscriptionSerializer, if: ->(billing_attempt, _options) { billing_attempt.subscription.present? }
+  association :subscription, blueprint: Api::V1::SubscriptionSerializer
   
   # Map fields for invoice compatibility
   field :due_date do |billing_attempt|
@@ -18,5 +18,7 @@ class Api::V1::BillingAttemptSerializer < Blueprinter::Base
     billing_attempt.status == 'completed' ? billing_attempt.attempted_at : nil
   end
   
-  field :currency, default: 'KES'
+  field :currency do |billing_attempt|
+    billing_attempt.subscription&.plan_currency || 'KES'
+  end
 end
