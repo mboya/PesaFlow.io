@@ -61,11 +61,13 @@ RSpec.describe SafaricomApi do
 
       it 'calls MpesaStk::Push.pay_bill with correct parameters' do
         expect(MpesaStk::Push).to receive(:pay_bill).with(
-          amount,
+          amount.to_s,  # Amount should be string
           phone_number,
           hash_including(
             'business_short_code' => '174379',
-            'callback_url' => callback_url
+            'callback_url' => callback_url,
+            'account_reference' => account_reference,
+            'transaction_desc' => transaction_desc
           )
         )
 

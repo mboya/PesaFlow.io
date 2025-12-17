@@ -1,8 +1,9 @@
 FactoryBot.define do
   factory :customer do
+    association :user
     name { Faker::Name.name }
-    email { Faker::Internet.email }
-    phone_number { "254#{rand(100000000..999999999)}" }
+    email { user&.email || Faker::Internet.email }
+    phone_number { "254#{rand(700000000..799999999)}" }
     status { 'active' }
     standing_order_enabled { false }
     preferred_payment_day { nil }
@@ -23,4 +24,3 @@ FactoryBot.define do
     end
   end
 end
-

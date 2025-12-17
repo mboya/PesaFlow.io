@@ -2,20 +2,21 @@ require 'rails_helper'
 
 RSpec.describe 'Api::V1::Subscriptions', type: :request do
   let(:user) { create(:user) }
-  let(:customer) { create(:customer, email: user.email) }
-  let(:plan) { create(:plan) }
+  let(:customer) { create(:customer, user: user, email: user.email) }
   let(:token) { login_user(user) }
   let(:headers) { auth_headers(token) }
 
   before do
-    # Associate customer with user via email (controllers find customer by email)
-    customer.update(email: user.email)
+    # Ensure customer exists for the user
+    customer
   end
 
   describe 'GET /api/v1/subscriptions' do
-    let!(:subscription1) { create(:subscription, customer: customer, plan: plan) }
-    let!(:subscription2) { create(:subscription, customer: customer, plan: plan) }
-    let!(:other_subscription) { create(:subscription) }
+    let!(:subscription1) { create(:subscription, customer: customer) }
+    let!(:subscription2) { create(:subscription, customer: customer) }
+    let(:other_user) { create(:user) }
+    let(:other_customer) { create(:customer, user: other_user) }
+    let!(:other_subscription) { create(:subscription, customer: other_customer) }
 
     it 'returns all subscriptions for the current user' do
       get '/api/v1/subscriptions', headers: headers
@@ -33,7 +34,7 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
   end
 
   describe 'GET /api/v1/subscriptions/:id' do
-    let(:subscription) { create(:subscription, customer: customer, plan: plan) }
+    let(:subscription) { create(:subscription, customer: customer) }
 
     it 'returns the subscription details' do
       get "/api/v1/subscriptions/#{subscription.id}", headers: headers
@@ -51,7 +52,9 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
     end
 
     it 'returns unauthorized for other user\'s subscription' do
-      other_subscription = create(:subscription)
+      other_user = create(:user)
+      other_customer = create(:customer, user: other_user)
+      other_subscription = create(:subscription, customer: other_customer)
       get "/api/v1/subscriptions/#{other_subscription.id}", headers: headers
 
       expect(response).to have_http_status(:unauthorized)
@@ -62,11 +65,21 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
     let(:subscription_params) do
       {
         subscription: {
-          preferred_payment_method: 'stk_push',
-          is_trial: false
+          name: 'Test Subscription',
+          description: 'A test subscription',
+          amount: 1000,
+          currency: 'KES',
+          billing_cycle_days: 30
         },
-        plan_id: plan.id
+        payment_method: 'stk_push'
       }
+    end
+
+    before do
+      # Mock STK Push API
+      allow(SafaricomApi.client.mpesa.stk_push).to receive(:initiate).and_return(
+        double(checkout_request_id: 'CHECKOUT123')
+      )
     end
 
     it 'creates a new subscription' do
@@ -76,7 +89,8 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
 
       expect(response).to have_http_status(:created)
       json = JSON.parse(response.body)
-      expect(json['plan_id']).to eq(plan.id)
+      expect(json['plan_name']).to eq('Test Subscription')
+      expect(json['plan_amount'].to_f).to eq(1000.0)
     end
 
     it 'requires authentication' do
@@ -87,11 +101,11 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
   end
 
   describe 'PATCH /api/v1/subscriptions/:id' do
-    let(:subscription) { create(:subscription, customer: customer, plan: plan) }
+    let(:subscription) { create(:subscription, customer: customer) }
     let(:update_params) do
       {
         subscription: {
-          preferred_payment_method: 'ratiba'
+          preferred_payment_method: 'stk_push'
         }
       }
     end
@@ -101,7 +115,7 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
 
       expect(response).to have_http_status(:ok)
       json = JSON.parse(response.body)
-      expect(json['preferred_payment_method']).to eq('ratiba')
+      expect(json['preferred_payment_method']).to eq('stk_push')
     end
 
     it 'requires authentication' do
@@ -112,7 +126,7 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
   end
 
   describe 'POST /api/v1/subscriptions/:id/cancel' do
-    let(:subscription) { create(:subscription, customer: customer, plan: plan, status: 'active') }
+    let(:subscription) { create(:subscription, customer: customer, status: 'active') }
 
     it 'cancels the subscription' do
       post "/api/v1/subscriptions/#{subscription.id}/cancel", headers: headers
@@ -131,7 +145,7 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
   end
 
   describe 'POST /api/v1/subscriptions/:id/reactivate' do
-    let(:subscription) { create(:subscription, customer: customer, plan: plan, status: 'suspended', outstanding_amount: 0) }
+    let(:subscription) { create(:subscription, customer: customer, status: 'suspended', outstanding_amount: 0) }
 
     it 'reactivates a suspended subscription' do
       post "/api/v1/subscriptions/#{subscription.id}/reactivate", headers: headers
@@ -153,8 +167,13 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
   end
 
   describe 'POST /api/v1/subscriptions/:id/upgrade' do
-    let(:subscription) { create(:subscription, customer: customer, plan: plan) }
-    let(:new_plan) { create(:plan, amount: plan.amount + 100) }
+    let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
+    let(:new_plan) { create(:plan, amount: subscription.plan_amount + 100) }
+
+    before do
+      # Mock the STK Push service for upgrade charges
+      allow_any_instance_of(::Payments::StkPushService).to receive(:initiate).and_return(true)
+    end
 
     it 'upgrades the subscription to a higher plan' do
       post "/api/v1/subscriptions/#{subscription.id}/upgrade", 
@@ -168,7 +187,7 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
     end
 
     it 'fails if new plan amount is not higher' do
-      lower_plan = create(:plan, amount: plan.amount - 100)
+      lower_plan = create(:plan, amount: subscription.plan_amount - 100)
       post "/api/v1/subscriptions/#{subscription.id}/upgrade", 
            params: { new_plan_id: lower_plan.id }, 
            headers: headers
@@ -178,8 +197,8 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
   end
 
   describe 'POST /api/v1/subscriptions/:id/downgrade' do
-    let(:subscription) { create(:subscription, customer: customer, plan: plan) }
-    let(:new_plan) { create(:plan, amount: plan.amount - 100) }
+    let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
+    let(:new_plan) { create(:plan, amount: subscription.plan_amount - 100) }
 
     it 'downgrades the subscription to a lower plan' do
       post "/api/v1/subscriptions/#{subscription.id}/downgrade", 
@@ -193,7 +212,7 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
     end
 
     it 'fails if new plan amount is not lower' do
-      higher_plan = create(:plan, amount: plan.amount + 100)
+      higher_plan = create(:plan, amount: subscription.plan_amount + 100)
       post "/api/v1/subscriptions/#{subscription.id}/downgrade", 
            params: { new_plan_id: higher_plan.id }, 
            headers: headers
@@ -202,4 +221,3 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
     end
   end
 end
-

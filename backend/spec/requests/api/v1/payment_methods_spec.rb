@@ -2,14 +2,13 @@ require 'rails_helper'
 
 RSpec.describe 'Api::V1::PaymentMethods', type: :request do
   let(:user) { create(:user) }
-  let(:customer) { create(:customer, email: user.email) }
-  let(:plan) { create(:plan) }
-  let(:subscription) { create(:subscription, customer: customer, plan: plan) }
+  let(:customer) { create(:customer, user: user, email: user.email, phone_number: '254712345678') }
+  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
   let(:token) { login_user(user) }
   let(:headers) { auth_headers(token) }
 
   before do
-    customer.update(email: user.email)
+    customer # ensure customer exists
   end
 
   describe 'POST /api/v1/payment_methods/setup_standing_order' do
@@ -45,7 +44,7 @@ RSpec.describe 'Api::V1::PaymentMethods', type: :request do
   end
 
   describe 'POST /api/v1/payment_methods/initiate_stk_push' do
-    let(:params) { { subscription_id: subscription.id, amount: subscription.plan.amount } }
+    let(:params) { { subscription_id: subscription.id, amount: subscription.plan_amount } }
 
     before do
       allow(SafaricomApi.client.mpesa.stk_push).to receive(:initiate).and_return(
@@ -81,4 +80,3 @@ RSpec.describe 'Api::V1::PaymentMethods', type: :request do
     end
   end
 end
-
