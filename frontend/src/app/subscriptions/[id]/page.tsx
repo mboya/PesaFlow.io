@@ -165,9 +165,9 @@ export default function SubscriptionDetailPage() {
               <div className="p-6">
                 <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
-                    <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Plan</dt>
+                    <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Subscription</dt>
                     <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                      {subscription.plan?.name || 'Unknown'}
+                      {subscription.name || subscription.reference_number}
                     </dd>
                   </div>
                   <div>
@@ -179,7 +179,10 @@ export default function SubscriptionDetailPage() {
                   <div>
                     <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Amount</dt>
                     <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                      {formatCurrency(subscription.plan?.amount || 0)} / {subscription.billing_frequency}
+                      {formatCurrency(subscription.amount || 0)}
+                      {subscription.billing_cycle_days && (
+                        <> / every {subscription.billing_cycle_days} days</>
+                      )}
                     </dd>
                   </div>
                   <div>

@@ -2,7 +2,6 @@
 import axios from 'axios';
 import type {
   Subscription,
-  Plan,
   Payment,
   Invoice,
   Refund,
@@ -58,9 +57,27 @@ apiClient.interceptors.request.use((config) => {
 export const subscriptionsApi = {
     getAll: (): Promise<{ data: Subscription[] }> => 
         apiClient.get('/subscriptions').then(res => ({ data: res.data })),
-    getById: (id: string | number): Promise<{ data: Subscription }> => 
+    getById: (id: string | number): Promise<{ data: Subscription }> =>
         apiClient.get(`/subscriptions/${id}`).then(res => ({ data: res.data })),
-    create: (data: { plan_id: number; payment_method?: 'ratiba' | 'stk_push' }): Promise<{ data: Subscription }> => 
+    // Create a subscription directly with name/description/amount etc.
+    create: (data: {
+        subscription: {
+            name: string;
+            description?: string;
+            amount: number;
+            currency?: string;
+            billing_cycle_days?: number;
+            trial_days?: number;
+            has_trial?: boolean;
+        };
+        customer?: {
+            phone_number?: string;
+            email?: string;
+            first_name?: string;
+            last_name?: string;
+        };
+        payment_method?: 'ratiba' | 'stk_push';
+    }): Promise<{ data: Subscription }> =>
         apiClient.post('/subscriptions', data).then(res => ({ data: res.data })),
     update: (id: string | number, data: Partial<Subscription>): Promise<{ data: Subscription }> => 
         apiClient.patch(`/subscriptions/${id}`, data).then(res => ({ data: res.data })),
@@ -68,18 +85,11 @@ export const subscriptionsApi = {
         apiClient.post(`/subscriptions/${id}/cancel`, data).then(res => ({ data: res.data })),
     reactivate: (id: string | number): Promise<{ data: Subscription }> => 
         apiClient.post(`/subscriptions/${id}/reactivate`).then(res => ({ data: res.data })),
-    upgrade: (id: string | number, planId: number): Promise<{ data: Subscription }> => 
-        apiClient.post(`/subscriptions/${id}/upgrade`, { plan_id: planId }).then(res => ({ data: res.data })),
-    downgrade: (id: string | number, planId: number): Promise<{ data: Subscription }> => 
-        apiClient.post(`/subscriptions/${id}/downgrade`, { plan_id: planId }).then(res => ({ data: res.data })),
-};
-
-// Plans API
-export const plansApi = {
-    getAll: (): Promise<{ data: Plan[] }> => 
-        apiClient.get('/plans').then(res => ({ data: res.data })),
-    getById: (id: string | number): Promise<{ data: Plan }> => 
-        apiClient.get(`/plans/${id}`).then(res => ({ data: res.data })),
+    // Upgrade/downgrade by plan are deprecated in the plan-less model. Kept as no-op wrappers for compatibility.
+    upgrade: (id: string | number, _planId: number): Promise<{ data: Subscription }> =>
+        apiClient.post(`/subscriptions/${id}/upgrade`, {}).then(res => ({ data: res.data })),
+    downgrade: (id: string | number, _planId: number): Promise<{ data: Subscription }> =>
+        apiClient.post(`/subscriptions/${id}/downgrade`, {}).then(res => ({ data: res.data })),
 };
 
 // Payment Methods API
@@ -118,4 +128,12 @@ export const refundsApi = {
 export const paymentsApi = {
     getBySubscription: (subscriptionId: string | number): Promise<{ data: Payment[] }> => 
         apiClient.get(`/subscriptions/${subscriptionId}/payments`).then(res => ({ data: res.data })),
+};
+
+// Profile API
+export const profileApi = {
+    get: (): Promise<{ data: Customer }> =>
+        apiClient.get('/profile').then(res => ({ data: res.data })),
+    update: (data: { profile: { name?: string; phone_number?: string; preferred_payment_day?: string } }): Promise<{ data: Customer }> =>
+        apiClient.patch('/profile', data).then(res => ({ data: res.data })),
 };
