@@ -1,12 +1,9 @@
-class Webhooks::RatibaController < ActionController::Base
+class Webhooks::RatibaController < ActionController::API
   include WebhookLoggable
-  
-  skip_before_action :verify_authenticity_token
-  protect_from_forgery with: :null_session
   
   def callback
     payload = JSON.parse(request.body.read)
-    log_webhook('ratiba', payload, request.headers.to_h)
+    log_webhook('ratiba', payload, request.env)
     
     # Find subscription by account reference
     subscription = Subscription.find_by(
@@ -61,7 +58,7 @@ class Webhooks::RatibaController < ActionController::Base
   def process_failed_payment(subscription, payload)
     billing_attempt = BillingAttempt.create!(
       subscription: subscription,
-      amount: subscription.plan.amount,
+      amount: subscription.plan_amount,
       invoice_number: generate_invoice_number(subscription),
       payment_method: 'ratiba',
       status: 'failed',

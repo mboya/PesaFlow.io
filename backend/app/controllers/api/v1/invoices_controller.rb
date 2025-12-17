@@ -18,7 +18,7 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
   
   # GET /api/v1/invoices/:id
   def show
-    authorize_invoice!
+    return unless authorize_invoice!
     render json: Api::V1::BillingAttemptSerializer.render(@invoice)
   end
   
@@ -32,7 +32,9 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
     customer = current_user_customer
     unless customer && @invoice.subscription.customer == customer
       render json: { error: 'Unauthorized' }, status: :unauthorized
+      return false
     end
+    true
   end
 end
 

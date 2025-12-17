@@ -1,14 +1,11 @@
-class Webhooks::B2cController < ActionController::Base
+class Webhooks::B2cController < ActionController::API
   include WebhookLoggable
-  
-  skip_before_action :verify_authenticity_token
-  protect_from_forgery with: :null_session
   
   # POST /webhooks/b2c/result
   def result
     # M-Pesa sends result after processing B2C payment (e.g., refunds)
     payload = JSON.parse(request.body.read)
-    log_webhook('b2c', payload.merge(event_type: 'result'), request.headers.to_h)
+    log_webhook('b2c', payload.merge(event_type: 'result'), request.env)
     
     Rails.logger.info("B2C Result received: #{payload.inspect}")
     

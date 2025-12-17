@@ -75,7 +75,7 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
     
     return render json: { error: 'No active subscription found' }, status: :not_found unless subscription
     
-    amount = params[:amount] || subscription.outstanding_amount || subscription.plan.amount
+    amount = params[:amount] || subscription.outstanding_amount || subscription.plan_amount
     
     # Create billing attempt
     billing_attempt = BillingAttempt.create!(
@@ -99,7 +99,7 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
       phone_number: phone_number,
       amount: amount,
       account_reference: params[:reference] || subscription.reference_number,
-      transaction_desc: "Payment for #{subscription.plan.name}",
+      transaction_desc: "Payment for #{subscription.plan_name}",
       callback_url: callback_url
     )
     

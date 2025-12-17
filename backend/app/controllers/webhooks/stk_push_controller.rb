@@ -1,12 +1,9 @@
-class Webhooks::StkPushController < ActionController::Base
+class Webhooks::StkPushController < ActionController::API
   include WebhookLoggable
-  
-  skip_before_action :verify_authenticity_token
-  protect_from_forgery with: :null_session
   
   def callback
     payload = JSON.parse(request.body.read)
-    log_webhook('stk_push', payload, request.headers.to_h)
+    log_webhook('stk_push', payload, request.env)
     
     result_code = payload.dig('Body', 'stkCallback', 'ResultCode')
     checkout_request_id = payload.dig('Body', 'stkCallback', 'CheckoutRequestID')

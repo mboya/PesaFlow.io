@@ -61,6 +61,11 @@ Rails.application.routes.draw do
       get 'invoices', to: 'invoices#index'
       get 'invoices/:id', to: 'invoices#show'
       
+      # Profile management
+      get 'profile', to: 'profile#show'
+      patch 'profile', to: 'profile#update'
+      put 'profile', to: 'profile#update'
+      
       # Refunds
       resources :refunds, only: [:index, :show, :create]
     end
