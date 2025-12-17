@@ -29,8 +29,7 @@ module Subscriptions
         # Update subscription
         @subscription.update!(
           status: 'cancelled',
-          cancelled_at: Time.current,
-          cancellation_reason: reason
+          cancelled_at: Time.current
         )
 
         # Send confirmation

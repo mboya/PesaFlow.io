@@ -7,15 +7,23 @@ module Payments
     end
 
     def create
+      phone = @subscription.customer.phone_number
+      raise ArgumentError, "Customer phone number is required for Ratiba standing orders" if phone.blank?
+      
+      amount = @subscription.plan_amount
+      raise ArgumentError, "Subscription amount is required for Ratiba standing orders" if amount.blank? || amount.to_f <= 0
+
+      Rails.logger.info("Creating standing order for #{phone}, amount: #{amount}")
+      
       response = @client.mpesa.ratiba.create(
         standing_order_name: standing_order_name,
-        phone_number: @subscription.customer.phone_number,
-        amount: @subscription.plan.amount,
-        frequency: map_frequency(@subscription.plan.billing_frequency),
+        phone_number: phone,
+        amount: amount,
+        frequency: map_frequency(@subscription.plan_billing_frequency),
         start_date: @subscription.current_period_start || Date.current,
         end_date: @subscription.current_period_end || 1.year.from_now.to_date,
         account_reference: @subscription.reference_number,
-        transaction_desc: "#{@subscription.plan.name} subscription",
+        transaction_desc: "#{@subscription.plan_name} subscription",
         callback_url: webhook_url
       )
 
@@ -72,7 +80,7 @@ module Payments
 
     def standing_order_name
       customer_name = @subscription.customer.name.presence || @subscription.customer.phone_number
-      "#{customer_name} - #{@subscription.plan.name}"
+      "#{customer_name} - #{@subscription.plan_name}"
     end
 
     def map_frequency(billing_frequency)

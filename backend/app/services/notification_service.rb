@@ -10,8 +10,8 @@ module NotificationService
       # SMS
       send_sms(
         customer.phone_number,
-        "Welcome! Your #{subscription.plan.name} subscription is active. " \
-        "#{subscription.plan.amount} KES will be charged #{billing_frequency_text(subscription.plan.billing_frequency)}."
+        "Welcome! Your #{subscription.plan_name} subscription is active. " \
+        "#{subscription.plan_amount} KES will be charged #{billing_frequency_text(subscription.plan_billing_frequency)}."
       )
     end
 
@@ -44,7 +44,7 @@ module NotificationService
         Your subscription is suspended due to payment failure.
         Pay manually: Paybill #{paybill},
         Account: #{subscription.reference_number},
-        Amount: #{subscription.outstanding_amount || subscription.plan.amount} KES
+        Amount: #{subscription.outstanding_amount || subscription.plan_amount} KES
       SMS
 
       send_sms(subscription.customer.phone_number, message)
@@ -76,21 +76,23 @@ module NotificationService
     def send_cancellation_confirmation(subscription)
       send_sms(
         subscription.customer.phone_number,
-        "Your #{subscription.plan.name} subscription has been cancelled. Thank you for using our service."
+        "Your #{subscription.plan_name} subscription has been cancelled. Thank you for using our service."
       )
     end
 
-    def send_upgrade_confirmation(subscription, old_plan, new_plan)
+    def send_upgrade_confirmation(subscription, old_name_or_plan, new_plan)
+      old_name = old_name_or_plan.respond_to?(:name) ? old_name_or_plan.name : old_name_or_plan
       send_sms(
         subscription.customer.phone_number,
-        "Subscription upgraded from #{old_plan.name} to #{new_plan.name}. New amount: #{new_plan.amount} KES."
+        "Subscription upgraded from #{old_name} to #{new_plan.name}. New amount: #{new_plan.amount} KES."
       )
     end
 
-    def send_downgrade_confirmation(subscription, old_plan, new_plan)
+    def send_downgrade_confirmation(subscription, old_name_or_plan, new_plan)
+      old_name = old_name_or_plan.respond_to?(:name) ? old_name_or_plan.name : old_name_or_plan
       send_sms(
         subscription.customer.phone_number,
-        "Subscription will be downgraded from #{old_plan.name} to #{new_plan.name} at next billing cycle."
+        "Subscription will be downgraded from #{old_name} to #{new_plan.name} at next billing cycle."
       )
     end
 

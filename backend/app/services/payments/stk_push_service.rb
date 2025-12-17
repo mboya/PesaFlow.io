@@ -7,13 +7,13 @@ module Payments
     end
 
     def initiate(payment_type: 'subscription', amount: nil, description: nil)
-      amount ||= @subscription.plan.amount
+      amount ||= @subscription.plan_amount
 
       response = @client.mpesa.stk_push.initiate(
         phone_number: @subscription.customer.phone_number,
         amount: amount,
         account_reference: generate_reference(payment_type),
-        transaction_desc: description || "#{@subscription.plan.name} payment",
+        transaction_desc: description || "#{@subscription.plan_name} payment",
         callback_url: webhook_url
       )
 
@@ -39,7 +39,7 @@ module Payments
     end
 
     def query(checkout_request_id:)
-      @client.mpesa.stk_push.query(checkout_request_id: checkout_request_id)
+      @client.mpesa.stk_push_query.query(checkout_request_id: checkout_request_id)
     end
 
     private

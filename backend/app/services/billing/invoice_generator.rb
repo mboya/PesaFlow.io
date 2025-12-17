@@ -11,7 +11,7 @@ module Billing
         customer: @subscription.customer,
         payment: @payment,
         invoice_number: generate_invoice_number,
-        amount: @subscription.plan.amount,
+        amount: @subscription.plan_amount,
         status: @payment ? 'paid' : 'sent',
         issue_date: Date.current,
         due_date: @subscription.current_period_end,
@@ -34,7 +34,7 @@ module Billing
       invoice = @subscription.invoices.create!(
         customer: @subscription.customer,
         invoice_number: generate_invoice_number,
-        amount: @subscription.plan.amount,
+        amount: @subscription.plan_amount,
         status: 'sent',
         issue_date: Date.current,
         due_date: @subscription.current_period_end,
@@ -57,10 +57,10 @@ module Billing
     def build_line_items
       [
         {
-          description: @subscription.plan.name,
+          description: @subscription.plan_name,
           quantity: 1,
-          unit_price: @subscription.plan.amount,
-          amount: @subscription.plan.amount,
+          unit_price: @subscription.plan_amount,
+          amount: @subscription.plan_amount,
           period_start: @subscription.current_period_start,
           period_end: @subscription.current_period_end
         }

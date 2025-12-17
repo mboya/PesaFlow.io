@@ -48,7 +48,7 @@ module Payments
     end
 
     def process_proration(subscription, cancellation_date = Date.current)
-      return 0 unless subscription.active?
+      return 0 unless subscription.is_active?
 
       days_used = (cancellation_date - subscription.current_period_start).to_i
       total_days = (subscription.current_period_end - subscription.current_period_start).to_i
@@ -56,7 +56,7 @@ module Payments
 
       return 0 if days_remaining <= 0
 
-      refund_amount = (subscription.plan.amount.to_f / total_days) * days_remaining
+      refund_amount = (subscription.plan_amount.to_f / total_days) * days_remaining
       refund_amount.round(2)
     end
 
