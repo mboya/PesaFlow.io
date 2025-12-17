@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h1>Invoice <%= @invoice.invoice_number %></h1>
+    
+    <p>Dear <%= @customer.name %>,</p>
+    
+    <p>Please find your invoice details below.</p>
+    
+    <h2>Invoice Information</h2>
+    <ul>
+      <li><strong>Invoice Number:</strong> <%= @invoice.invoice_number %></li>
+      <li><strong>Subscription:</strong> <%= @subscription.reference_number %></li>
+      <li><strong>Plan:</strong> <%= @subscription.plan_name %></li>
+      <li><strong>Amount:</strong> KES <%= @invoice.amount %></li>
+      <li><strong>Status:</strong> <%= @invoice.status.capitalize %></li>
+      <li><strong>Issue Date:</strong> <%= @invoice.issue_date.strftime('%B %d, %Y') %></li>
+      <li><strong>Due Date:</strong> <%= @invoice.due_date.strftime('%B %d, %Y') %></li>
+      <% if @invoice.paid_at.present? %>
+        <li><strong>Paid Date:</strong> <%= @invoice.paid_at.strftime('%B %d, %Y at %I:%M %p') %></li>
+      <% end %>
+    </ul>
+    
+    <h2>Line Items</h2>
+    <% if @invoice.line_items.present? %>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f5f5f5;">
+            <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Description</th>
+            <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Quantity</th>
+            <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Unit Price</th>
+            <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @invoice.line_items.each do |item| %>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><%= item['description'] %></td>
+              <td style="padding: 8px; text-align: right; border: 1px solid #ddd;"><%= item['quantity'] %></td>
+              <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">KES <%= item['unit_price'] %></td>
+              <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">KES <%= item['amount'] %></td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" style="padding: 8px; text-align: right; border: 1px solid #ddd;"><strong>Total:</strong></td>
+            <td style="padding: 8px; text-align: right; border: 1px solid #ddd;"><strong>KES <%= @invoice.amount %></strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    <% else %>
+      <p><%= @subscription.plan_name %> - KES <%= @invoice.amount %></p>
+    <% end %>
+    
+    <% if @invoice.status == 'sent' || @invoice.status == 'pending' %>
+      <p><strong>Payment is due by <%= @invoice.due_date.strftime('%B %d, %Y') %>.</strong></p>
+      <p>You can make a payment through your dashboard or by using M-Pesa.</p>
+    <% end %>
+    
+    <p>If you have any questions about this invoice, please contact our support team.</p>
+    
+    <p>Thank you for your business!</p>
+  </body>
+</html>
+

@@ -1,0 +1,39 @@
+Invoice <%= @invoice.invoice_number %>
+
+Dear <%= @customer.name %>,
+
+Please find your invoice details below.
+
+Invoice Information:
+- Invoice Number: <%= @invoice.invoice_number %>
+- Subscription: <%= @subscription.reference_number %>
+- Plan: <%= @subscription.plan_name %>
+- Amount: KES <%= @invoice.amount %>
+- Status: <%= @invoice.status.capitalize %>
+- Issue Date: <%= @invoice.issue_date.strftime('%B %d, %Y') %>
+- Due Date: <%= @invoice.due_date.strftime('%B %d, %Y') %>
+<% if @invoice.paid_at.present? %>
+- Paid Date: <%= @invoice.paid_at.strftime('%B %d, %Y at %I:%M %p') %>
+<% end %>
+
+Line Items:
+<% if @invoice.line_items.present? %>
+<% @invoice.line_items.each do |item| %>
+- <%= item['description'] %>: <%= item['quantity'] %> x KES <%= item['unit_price'] %> = KES <%= item['amount'] %>
+<% end %>
+<% else %>
+- <%= @subscription.plan_name %>: KES <%= @invoice.amount %>
+<% end %>
+
+Total: KES <%= @invoice.amount %>
+
+<% if @invoice.status == 'sent' || @invoice.status == 'pending' %>
+Payment is due by <%= @invoice.due_date.strftime('%B %d, %Y') %>.
+
+You can make a payment through your dashboard or by using M-Pesa.
+<% end %>
+
+If you have any questions about this invoice, please contact our support team.
+
+Thank you for your business!
+
