@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_15_062440) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -121,7 +121,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_15_062440) do
 
   create_table "subscriptions", force: :cascade do |t|
     t.bigint "customer_id", null: false
-    t.bigint "plan_id", null: false
+    t.bigint "plan_id"
     t.string "reference_number", null: false
     t.string "standing_order_id"
     t.string "status", default: "pending"
@@ -137,9 +137,26 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_15_062440) do
     t.string "preferred_payment_method"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "name"
+    t.text "description"
+    t.decimal "amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.string "currency", default: "KES", null: false
+    t.integer "billing_frequency"
+    t.integer "billing_cycle_days"
+    t.boolean "has_trial", default: false, null: false
+    t.integer "trial_days", default: 0, null: false
+    t.string "plan_name"
+    t.decimal "plan_amount", precision: 10, scale: 2
+    t.string "plan_currency", limit: 3
+    t.integer "plan_billing_frequency"
+    t.integer "plan_billing_cycle_days"
+    t.integer "plan_trial_days"
+    t.boolean "plan_has_trial"
+    t.jsonb "plan_features", default: {}, null: false
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["next_billing_date"], name: "index_subscriptions_on_next_billing_date"
     t.index ["plan_id"], name: "index_subscriptions_on_plan_id"
+    t.index ["plan_name"], name: "index_subscriptions_on_plan_name"
     t.index ["reference_number"], name: "index_subscriptions_on_reference_number", unique: true
     t.index ["standing_order_id"], name: "index_subscriptions_on_standing_order_id"
     t.index ["status"], name: "index_subscriptions_on_status"
@@ -158,6 +175,20 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_15_062440) do
     t.text "backup_codes"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+  end
+
+  create_table "webhook_logs", force: :cascade do |t|
+    t.string "source", null: false
+    t.string "event_type"
+    t.text "payload"
+    t.text "headers"
+    t.string "status", default: "received"
+    t.string "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_webhook_logs_on_created_at"
+    t.index ["source"], name: "index_webhook_logs_on_source"
+    t.index ["status"], name: "index_webhook_logs_on_status"
   end
 
   add_foreign_key "billing_attempts", "subscriptions"
