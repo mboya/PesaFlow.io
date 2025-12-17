@@ -42,8 +42,12 @@ class CheckSubscriptionStatusJob < ApplicationJob
     subscription.suspend!
     
     # Notify customer via SMS
-    send_sms(subscription.customer.phone_number,
-             "Your #{subscription.plan.name} subscription has been suspended due to non-payment. Pay KES #{subscription.outstanding_amount} to Paybill #{ENV.fetch('MPESA_PAYBILL', ENV.fetch('business_short_code', 'N/A'))}, Account: #{subscription.reference_number}")
+    send_sms(
+      subscription.customer.phone_number,
+      "Your #{subscription.plan_name} subscription has been suspended due to non-payment. " \
+      "Pay KES #{subscription.outstanding_amount} to Paybill #{ENV.fetch('MPESA_PAYBILL', ENV.fetch('business_short_code', 'N/A'))}, " \
+      "Account: #{subscription.reference_number}"
+    )
     
     # Send email notification
     SubscriptionMailer.service_suspended(subscription).deliver_later

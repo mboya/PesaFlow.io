@@ -5,15 +5,22 @@ class ProcessRefundJob < ApplicationJob
     refund = Refund.find_by(id: refund_id)
     return unless refund
     
-    # Skip if already processed
-    return unless refund.can_be_processed?
+    # Skip if already processed or not in processable state
+    return if refund.status.in?(['completed', 'failed', 'rejected'])
+    
+    # Auto-approve pending refunds
+    refund.update!(status: 'approved') if refund.status == 'pending'
     
     # Use M-Pesa B2C API to process refund
     # This is a placeholder - actual implementation depends on M-Pesa B2C API
     response = initiate_b2c_refund(refund)
     
     if response&.dig('ResponseCode') == '0'
-      # Refund initiated successfully
+      # Refund initiated successfully - mark as completed
+      refund.mark_as_completed!(
+        conversation_id: response['ConversationID'],
+        originator_conversation_id: response['OriginatorConversationID']
+      )
       Rails.logger.info("Refund #{refund.id} initiated successfully")
     else
       # Refund failed
