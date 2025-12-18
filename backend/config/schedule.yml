@@ -17,6 +17,14 @@ check_subscription_status:
   queue: default
   description: 'Check subscription status, suspend overdue subscriptions, and convert expired trials'
 
+# Check pending STK Push transactions and process successful ones
+# Runs every 15 minutes to catch payments where callback failed
+check_stk_push_status:
+  every: '15m'
+  class: CheckStkPushStatusJob
+  queue: default
+  description: 'Check pending STK Push transactions and process successful ones'
+
 # Optional: Add more scheduled jobs here
 # Example: Weekly reports, monthly summaries, etc.
 
