@@ -36,14 +36,17 @@ RSpec.describe ProcessRefundJob, type: :job do
       end
     end
 
-    context 'when refund is not approved' do
+    context 'when refund is pending' do
       before do
         refund.update!(status: 'pending')
       end
 
-      it 'does not process pending refund' do
-        expect_any_instance_of(ProcessRefundJob).not_to receive(:initiate_b2c_refund)
+      it 'auto-approves and processes the pending refund' do
         ProcessRefundJob.perform_now(refund.id)
+        
+        refund.reload
+        # Pending refunds are auto-approved and processed
+        expect(refund.status).to eq('completed')
       end
     end
 

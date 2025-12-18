@@ -76,6 +76,14 @@ RSpec.configure do |config|
   # Include Devise test helpers
   config.include Devise::Test::IntegrationHelpers, type: :request
 
+  # Set ActiveJob queue adapter to :test for job matchers
+  config.before(:each) do
+    ActiveJob::Base.queue_adapter = :test
+  end
+
+  # Include ActiveJob test helpers
+  config.include ActiveJob::TestHelper
+
   # Configure DatabaseCleaner
   config.before(:suite) do
     DatabaseCleaner.strategy = :transaction

@@ -56,15 +56,17 @@ RSpec.describe 'Webhooks::C2b', type: :request do
     end
 
     it 'processes successful C2B payment' do
-      expect {
-        post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
-      }.to change(Payment, :count).by(1)
+      # Verify subscription exists before request
+      expect(Subscription.find_by(reference_number: 'SUB-12345678')).to eq(subscription)
+      
+      post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
 
       expect(response).to have_http_status(:ok)
+      expect(Payment.count).to eq(1)
       
       payment = Payment.last
       expect(payment.subscription).to eq(subscription)
-      expect(payment.amount).to eq(100.0)
+      expect(payment.amount.to_f).to eq(100.0)
       expect(payment.payment_method).to eq('c2b')
       expect(payment.status).to eq('completed')
     end
@@ -74,15 +76,22 @@ RSpec.describe 'Webhooks::C2b', type: :request do
       
       post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
 
+      expect(response).to have_http_status(:ok)
       subscription.reload
-      expect(subscription.outstanding_amount).to eq(0)
+      # Outstanding amount is reduced by payment amount (100.0 - 100.0 = 0)
+      expect(subscription.outstanding_amount.to_f).to eq(0.0)
       expect(subscription.status).to eq('active')
     end
 
     it 'sends payment receipt email' do
-      expect {
-        post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
-      }.to have_enqueued_job(ActionMailer::MailDeliveryJob)
+      # Customer must have an email for the mailer to be called
+      expect(customer.email).to be_present
+      
+      post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
+      
+      expect(response).to have_http_status(:ok)
+      # Check that a mail delivery job was enqueued
+      expect(ActionMailer::MailDeliveryJob).to have_been_enqueued
     end
 
     it 'returns ok even if subscription not found' do

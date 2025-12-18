@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Sessions API", type: :request do
   describe "POST /api/v1/login" do
     context "with valid credentials (no OTP)" do
-      let(:user) { create(:user, email: "test@example.com", password: "password123") }
+      let!(:user) { create(:user, email: "test@example.com", password: "password123") }
 
       it "returns 200 and JWT token" do
         post "/api/v1/login", params: {
@@ -32,7 +32,7 @@ RSpec.describe "Sessions API", type: :request do
     end
 
     context "with valid credentials (OTP enabled)" do
-      let(:user) { create(:user, :with_otp, email: "test@example.com", password: "password123") }
+      let!(:user) { create(:user, :with_otp, email: "test@example.com", password: "password123") }
 
       it "returns 200 without JWT, requires OTP" do
         post "/api/v1/login", params: {
