@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe SubscriptionMailer, type: :mailer do
   let(:customer) { create(:customer) }
-  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0, plan_name: 'Premium Plan') }
+  let(:subscription) { create(:subscription, customer: customer, amount: 1000.0, name: 'Premium Plan') }
   let(:payment) { create(:payment, subscription: subscription, amount: 1000.0, status: 'completed') }
 
   describe "payment_receipt" do
@@ -24,12 +24,12 @@ RSpec.describe SubscriptionMailer, type: :mailer do
     let(:mail) { SubscriptionMailer.subscription_confirmation(subscription) }
 
     it "renders the headers" do
-      expect(mail.subject).to eq("Welcome! Your #{subscription.plan_name} Subscription is Active")
+      expect(mail.subject).to eq("Welcome! Your #{subscription.name} Subscription is Active")
       expect(mail.to).to eq([customer.email])
     end
 
     it "renders the body" do
-      expect(mail.body.encoded).to include(subscription.plan_name)
+      expect(mail.body.encoded).to include(subscription.name)
     end
   end
 

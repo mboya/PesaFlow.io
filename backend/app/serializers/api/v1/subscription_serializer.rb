@@ -6,8 +6,7 @@ class Api::V1::SubscriptionSerializer < Blueprinter::Base
          :is_trial, :trial_ends_at, :preferred_payment_method,
          :activated_at, :suspended_at, :cancelled_at, :created_at, :updated_at,
          :name, :description, :amount, :currency, :billing_cycle_days,
-         :plan_name, :plan_amount, :plan_currency, :plan_billing_frequency,
-         :plan_billing_cycle_days, :plan_trial_days, :plan_has_trial, :plan_features
+         :trial_days, :has_trial
   
   # Alias for frontend compatibility (deprecated, use preferred_payment_method)
   field :payment_method do |subscription|

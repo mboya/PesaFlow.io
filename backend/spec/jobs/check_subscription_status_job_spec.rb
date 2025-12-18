@@ -8,7 +8,7 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
       let(:overdue_subscription) do
         create(:subscription, 
                customer: customer, 
-               plan_amount: 1000.0,
+               amount: 1000.0,
                status: 'active',
                outstanding_amount: 1000,
                next_billing_date: 4.days.ago)
@@ -35,7 +35,7 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
       let(:current_subscription) do
         create(:subscription,
                customer: customer,
-               plan_amount: 1000.0,
+               amount: 1000.0,
                status: 'active',
                outstanding_amount: 0,
                next_billing_date: Date.current)
@@ -55,7 +55,7 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
         create(:subscription,
                :suspended,
                customer: customer,
-               plan_amount: 1000.0,
+               amount: 1000.0,
                outstanding_amount: 1000,
                next_billing_date: 4.days.ago)
       end
@@ -73,7 +73,7 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
         create(:subscription,
                :cancelled,
                customer: customer,
-               plan_amount: 1000.0,
+               amount: 1000.0,
                outstanding_amount: 1000,
                next_billing_date: 4.days.ago)
       end
@@ -92,7 +92,7 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
         create(:subscription,
                :trial,
                customer: customer,
-               plan_amount: 1000.0,
+               amount: 1000.0,
                trial_ends_at: 1.day.ago)
       end
 
@@ -109,7 +109,7 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
         create(:subscription,
                :trial,
                customer: customer,
-               plan_amount: 1000.0,
+               amount: 1000.0,
                trial_ends_at: 1.week.from_now)
       end
 
@@ -125,7 +125,7 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
       let(:overdue_subscription) do
         create(:subscription,
                customer: customer,
-               plan_amount: 1000.0,
+               amount: 1000.0,
                status: 'active',
                outstanding_amount: 1000,
                next_billing_date: 4.days.ago)
@@ -139,7 +139,7 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
         overdue_subscription # create first subscription
         other_overdue = create(:subscription,
                                customer: customer,
-                               plan_amount: 1000.0,
+                               amount: 1000.0,
                                status: 'active',
                                outstanding_amount: 1000,
                                next_billing_date: 4.days.ago)

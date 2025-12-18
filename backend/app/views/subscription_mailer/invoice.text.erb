@@ -7,7 +7,7 @@ Please find your invoice details below.
 Invoice Information:
 - Invoice Number: <%= @invoice.invoice_number %>
 - Subscription: <%= @subscription.reference_number %>
-- Service: <%= @subscription.plan_name %>
+- Service: <%= @subscription.name %>
 - Amount: KES <%= @invoice.amount %>
 - Status: <%= @invoice.status.capitalize %>
 - Issue Date: <%= @invoice.attempted_at&.strftime('%B %d, %Y') || Date.current.strftime('%B %d, %Y') %>
@@ -20,7 +20,7 @@ Invoice Information:
 <% end %>
 
 Details:
-- <%= @subscription.plan_name %>: KES <%= @invoice.amount %>
+- <%= @subscription.name %>: KES <%= @invoice.amount %>
 <% if @subscription.current_period_start && @subscription.current_period_end %>
   Period: <%= @subscription.current_period_start.strftime('%b %d') %> - <%= @subscription.current_period_end.strftime('%b %d, %Y') %>
 <% end %>

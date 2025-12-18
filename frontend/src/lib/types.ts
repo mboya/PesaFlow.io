@@ -13,7 +13,7 @@ export interface Customer {
 export interface Subscription {
   id: number;
   customer_id: number;
-  // Plan is no longer required; subscriptions are self-contained services
+  // plan_id is deprecated - subscriptions are self-contained services
   plan_id?: number | null;
   name: string;
   description?: string | null;

@@ -1,8 +1,6 @@
 FactoryBot.define do
   factory :subscription do
     association :customer
-    # Plan is now optional - subscriptions store their own plan data
-    plan { nil }
     reference_number { "SUB-#{SecureRandom.alphanumeric(8).upcase}" }
     status { 'active' }
     outstanding_amount { 0 }
@@ -14,27 +12,15 @@ FactoryBot.define do
     next_billing_date { 30.days.from_now.to_date }
     activated_at { Time.current }
 
-    # Direct subscription fields (snapshot of plan data)
-    plan_name { Faker::Commerce.product_name }
-    plan_amount { 1000.0 }
-    plan_currency { 'KES' }
-    plan_billing_frequency { 3 } # monthly
-    plan_billing_cycle_days { 30 }
-    plan_trial_days { 0 }
-    plan_has_trial { false }
-    plan_features { { 'feature1' => true, 'feature2' => false } }
-
-    trait :with_plan do
-      association :plan
-      plan_name { nil }
-      plan_amount { nil }
-      plan_currency { nil }
-      plan_billing_frequency { nil }
-      plan_billing_cycle_days { nil }
-      plan_trial_days { nil }
-      plan_has_trial { nil }
-      plan_features { {} }
-    end
+    # Direct subscription fields
+    name { Faker::Commerce.product_name }
+    description { Faker::Lorem.sentence }
+    amount { 1000.0 }
+    currency { 'KES' }
+    billing_frequency { 3 } # monthly
+    billing_cycle_days { 30 }
+    trial_days { 0 }
+    has_trial { false }
 
     trait :pending do
       status { 'pending' }
@@ -60,8 +46,8 @@ FactoryBot.define do
       is_trial { true }
       trial_ends_at { 14.days.from_now.to_date }
       status { 'active' }
-      plan_has_trial { true }
-      plan_trial_days { 14 }
+      has_trial { true }
+      trial_days { 14 }
     end
 
     trait :with_outstanding do

@@ -3,18 +3,26 @@ require 'rails_helper'
 RSpec.describe 'Api::V1::Invoices', type: :request do
   let(:user) { create(:user) }
   let(:customer) { create(:customer, user: user, email: user.email) }
-  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
+  let(:subscription) { create(:subscription, customer: customer, amount: 1000.0) }
   let(:token) { login_user(user) }
   let(:headers) { auth_headers(token) }
 
+  # Share customer and subscription across all examples to reduce setup time
   before do
-    customer # ensure customer exists
+    customer
+    subscription
   end
 
   describe 'GET /api/v1/invoices' do
-    let!(:billing_attempt1) { create(:billing_attempt, subscription: subscription, invoice_number: 'INV-001') }
-    let!(:billing_attempt2) { create(:billing_attempt, subscription: subscription, invoice_number: 'INV-002') }
-    let!(:other_billing_attempt) { create(:billing_attempt, invoice_number: 'INV-003') }
+    # Create billing attempts once for this describe block
+    before do
+      create(:billing_attempt, subscription: subscription, invoice_number: 'INV-001')
+      create(:billing_attempt, subscription: subscription, invoice_number: 'INV-002')
+      # Create other customer's billing attempt
+      other_customer = create(:customer)
+      other_subscription = create(:subscription, customer: other_customer)
+      create(:billing_attempt, subscription: other_subscription, invoice_number: 'INV-003')
+    end
 
     it 'returns all invoices for the customer' do
       get '/api/v1/invoices', headers: headers
@@ -53,7 +61,9 @@ RSpec.describe 'Api::V1::Invoices', type: :request do
     end
 
     it 'returns unauthorized for other customer\'s invoice' do
-      other_billing_attempt = create(:billing_attempt, invoice_number: 'INV-OTHER')
+      other_customer = create(:customer)
+      other_subscription = create(:subscription, customer: other_customer)
+      other_billing_attempt = create(:billing_attempt, subscription: other_subscription, invoice_number: 'INV-OTHER')
       get "/api/v1/invoices/#{other_billing_attempt.invoice_number}", headers: headers
 
       expect(response).to have_http_status(:unauthorized)

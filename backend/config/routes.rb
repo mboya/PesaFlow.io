@@ -43,14 +43,10 @@ Rails.application.routes.draw do
         member do
           post :cancel
           post :reactivate
-          post :upgrade
-          post :downgrade
         end
         # Nested payments for a subscription
         resources :payments, only: [:index], controller: 'subscription_payments'
       end
-      
-      resources :plans, only: [:index, :show]
       
       # Payment methods
       post 'payment_methods/ratiba', to: 'payment_methods#setup_ratiba'

@@ -14,7 +14,7 @@
     <ul>
       <li><strong>Invoice Number:</strong> <%= @invoice.invoice_number %></li>
       <li><strong>Subscription:</strong> <%= @subscription.reference_number %></li>
-      <li><strong>Service:</strong> <%= @subscription.plan_name %></li>
+      <li><strong>Service:</strong> <%= @subscription.name %></li>
       <li><strong>Amount:</strong> KES <%= number_with_precision(@invoice.amount, precision: 2) %></li>
       <li><strong>Status:</strong> <%= @invoice.status.capitalize %></li>
       <li><strong>Issue Date:</strong> <%= @invoice.attempted_at&.strftime('%B %d, %Y') || Date.current.strftime('%B %d, %Y') %></li>
@@ -38,7 +38,7 @@
       <tbody>
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd;">
-            <%= @subscription.plan_name %>
+            <%= @subscription.name %>
             <% if @subscription.current_period_start && @subscription.current_period_end %>
               <br><small>Period: <%= @subscription.current_period_start.strftime('%b %d') %> - <%= @subscription.current_period_end.strftime('%b %d, %Y') %></small>
             <% end %>

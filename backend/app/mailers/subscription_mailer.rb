@@ -47,7 +47,7 @@ class SubscriptionMailer < ApplicationMailer
 
     mail(
       to: @customer.email,
-      subject: "Welcome! Your #{@subscription.plan_name} Subscription is Active"
+      subject: "Welcome! Your #{@subscription.name} Subscription is Active"
     )
   end
 

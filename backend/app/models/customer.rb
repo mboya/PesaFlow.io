@@ -2,7 +2,6 @@ class Customer < ApplicationRecord
   # Associations
   belongs_to :user
   has_many :subscriptions, dependent: :destroy
-  has_many :plans, through: :subscriptions
 
   # Callbacks
   before_validation :format_phone_number

@@ -6,7 +6,7 @@ Thank you for your payment. Your subscription payment has been successfully proc
 
 Payment Details:
 - Subscription: <%= @subscription.reference_number %>
-- Plan: <%= @subscription.plan_name %>
+- Plan: <%= @subscription.name %>
 - Amount: KES <%= @payment.amount %>
 - Payment Method: <%= @payment.payment_method.upcase %>
 - M-Pesa Transaction ID: <%= @payment.mpesa_transaction_id %>

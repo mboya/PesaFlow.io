@@ -35,7 +35,7 @@ RSpec.describe 'Webhooks::C2b', type: :request do
 
   describe 'POST /webhooks/c2b/confirmation' do
     let(:customer) { create(:customer, phone_number: '254712345678') }
-    let(:subscription) { create(:subscription, customer: customer, reference_number: 'SUB-12345678', plan_amount: 1000.0) }
+    let(:subscription) { create(:subscription, customer: customer, reference_number: 'SUB-12345678', amount: 1000.0) }
     let(:payload) do
       {
         'TransactionType' => 'Pay Bill',

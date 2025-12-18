@@ -24,14 +24,14 @@
       
       <p>Dear <%= @customer.name %>,</p>
       
-      <p>Your trial period for the <strong><%= @subscription.plan_name %></strong> plan has ended. Unfortunately, we were unable to automatically convert your trial to a paid subscription.</p>
+      <p>Your trial period for the <strong><%= @subscription.name %></strong> plan has ended. Unfortunately, we were unable to automatically convert your trial to a paid subscription.</p>
 
       <h3>Subscription Details:</h3>
       <ul>
         <li><strong>Reference Number:</strong> <%= @subscription.reference_number %></li>
-        <li><strong>Plan:</strong> <%= @subscription.plan_name %></li>
+        <li><strong>Plan:</strong> <%= @subscription.name %></li>
         <li><strong>Status:</strong> <%= @subscription.status.humanize %></li>
-        <li><strong>Amount Due:</strong> KES <%= @subscription.plan_amount %></li>
+        <li><strong>Amount Due:</strong> KES <%= @subscription.amount %></li>
       </ul>
 
       <h3>What You Need to Do:</h3>
@@ -48,7 +48,7 @@
         <li>Go to M-Pesa menu → Pay Bill</li>
         <li>Business Number: <%= ENV.fetch('MPESA_PAYBILL', ENV.fetch('business_short_code', 'N/A')) %></li>
         <li>Account Number: <%= @subscription.reference_number %></li>
-        <li>Amount: KES <%= @subscription.plan_amount %></li>
+        <li>Amount: KES <%= @subscription.amount %></li>
       </ul>
 
       <p><a href="http://localhost:3001/dashboard" class="button">Complete Payment Now</a></p>

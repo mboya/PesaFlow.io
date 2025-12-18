@@ -85,11 +85,6 @@ export const subscriptionsApi = {
         apiClient.post(`/subscriptions/${id}/cancel`, data).then(res => ({ data: res.data })),
     reactivate: (id: string | number): Promise<{ data: Subscription }> => 
         apiClient.post(`/subscriptions/${id}/reactivate`).then(res => ({ data: res.data })),
-    // Upgrade/downgrade by plan are deprecated in the plan-less model. Kept as no-op wrappers for compatibility.
-    upgrade: (id: string | number, _planId: number): Promise<{ data: Subscription }> =>
-        apiClient.post(`/subscriptions/${id}/upgrade`, {}).then(res => ({ data: res.data })),
-    downgrade: (id: string | number, _planId: number): Promise<{ data: Subscription }> =>
-        apiClient.post(`/subscriptions/${id}/downgrade`, {}).then(res => ({ data: res.data })),
 };
 
 // Payment Methods API

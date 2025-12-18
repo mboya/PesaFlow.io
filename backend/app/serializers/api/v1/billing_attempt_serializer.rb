@@ -19,6 +19,6 @@ class Api::V1::BillingAttemptSerializer < Blueprinter::Base
   end
   
   field :currency do |billing_attempt|
-    billing_attempt.subscription&.plan_currency || 'KES'
+    billing_attempt.subscription&.currency || 'KES'
   end
 end

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthGuardProps {
@@ -17,16 +17,24 @@ export function AuthGuard({
 }: AuthGuardProps) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading) {
-      if (requireAuth && !isAuthenticated) {
-        router.push(redirectTo);
-      } else if (!requireAuth && isAuthenticated) {
-        router.push('/dashboard');
+    if (loading) return;
+
+    if (requireAuth && !isAuthenticated) {
+      // Only redirect if not already on the target page
+      if (pathname !== redirectTo) {
+        router.replace(redirectTo);
+      }
+    } else if (!requireAuth && isAuthenticated) {
+      // Only redirect if not already on dashboard
+      if (pathname !== '/dashboard') {
+        router.replace('/dashboard');
       }
     }
-  }, [isAuthenticated, loading, requireAuth, redirectTo, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, loading, requireAuth, redirectTo, pathname]);
 
   if (loading) {
     return (

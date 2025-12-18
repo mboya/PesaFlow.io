@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe 'Webhooks::B2c', type: :request do
   let(:customer) { create(:customer, phone_number: '254712345678') }
-  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
+  let(:subscription) { create(:subscription, customer: customer, amount: 1000.0) }
   let(:payment) { create(:payment, subscription: subscription, status: 'completed') }
   let(:refund) { create(:refund, :approved, subscription: subscription, payment: payment) }
 

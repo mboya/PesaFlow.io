@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :billing_attempt do
     association :subscription
-    amount { subscription.plan_amount || 1000.0 }
+    amount { subscription.amount || 1000.0 }
     invoice_number { "INV-#{Date.current.strftime('%Y%m%d')}-#{subscription.reference_number}" }
     payment_method { 'ratiba' }
     status { 'pending' }

@@ -3,13 +3,15 @@ require 'rails_helper'
 RSpec.describe 'Api::V1::Refunds', type: :request do
   let(:user) { create(:user) }
   let(:customer) { create(:customer, user: user, email: user.email) }
-  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
+  let(:subscription) { create(:subscription, customer: customer, amount: 1000.0) }
   let(:payment) { create(:payment, subscription: subscription, status: 'completed') }
   let(:token) { login_user(user) }
   let(:headers) { auth_headers(token) }
 
+  # Share customer and subscription across all examples to reduce setup time
   before do
-    customer # ensure customer exists
+    customer
+    subscription
   end
 
   describe 'POST /api/v1/refunds' do

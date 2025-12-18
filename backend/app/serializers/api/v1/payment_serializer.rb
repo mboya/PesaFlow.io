@@ -12,6 +12,6 @@ class Api::V1::PaymentSerializer < Blueprinter::Base
 
   # Currency from subscription
   field :currency do |payment|
-    payment.subscription&.plan_currency || 'KES'
+    payment.subscription&.currency || 'KES'
   end
 end

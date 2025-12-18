@@ -1,8 +1,17 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 # SimpleCov must be loaded first if coverage is enabled
 require_relative 'support/simplecov' if ENV['COVERAGE']
-require 'spec_helper'
+
+# Suppress harmless Devise/Warden method redefinition warnings
+# These occur because Devise redefines methods that Warden/Rails already define
+# They don't affect functionality and are safe to ignore
+# Suppress warnings before Rails environment is loaded
 ENV['RAILS_ENV'] ||= 'test'
+
+# Suppress warnings globally in test environment (they're mostly from dependencies)
+$VERBOSE = nil
+
+require 'spec_helper'
 
 # Allow DatabaseCleaner to work with Docker database URLs in test environment
 # Must be set BEFORE requiring database_cleaner
@@ -37,6 +46,9 @@ rescue ActiveRecord::PendingMigrationError => e
 end
 
 RSpec.configure do |config|
+  # Restore verbose mode after Rails is loaded (optional - keeps warnings off)
+  # config.after(:suite) { $VERBOSE = original_verbose }
+
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
     Rails.root.join('spec/fixtures')

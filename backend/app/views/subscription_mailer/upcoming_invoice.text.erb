@@ -10,13 +10,13 @@ This is a friendly reminder that your next invoice is due soon.
 Invoice Preview:
 - Invoice Number: <%= @invoice.invoice_number %>
 - Subscription: <%= @subscription.reference_number %>
-- Service: <%= @subscription.plan_name %>
+- Service: <%= @subscription.name %>
 - Amount: KES <%= @invoice.amount %>
 - Due Date: <%= due_date.strftime('%B %d, %Y') %>
 - Days Until Due: <%= days_until_due %> days
 
 Details:
-- <%= @subscription.plan_name %>: KES <%= @invoice.amount %>
+- <%= @subscription.name %>: KES <%= @invoice.amount %>
 <% if @subscription.current_period_start && @subscription.current_period_end %>
   Period: <%= @subscription.current_period_start.strftime('%b %d') %> - <%= @subscription.current_period_end.strftime('%b %d, %Y') %>
 <% end %>

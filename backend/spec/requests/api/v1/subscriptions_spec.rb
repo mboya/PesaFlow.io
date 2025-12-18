@@ -12,11 +12,15 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
   end
 
   describe 'GET /api/v1/subscriptions' do
-    let!(:subscription1) { create(:subscription, customer: customer) }
-    let!(:subscription2) { create(:subscription, customer: customer) }
-    let(:other_user) { create(:user) }
-    let(:other_customer) { create(:customer, user: other_user) }
-    let!(:other_subscription) { create(:subscription, customer: other_customer) }
+    # Create subscriptions once for this describe block
+    before do
+      create(:subscription, customer: customer)
+      create(:subscription, customer: customer)
+      # Create other user's subscription
+      other_user = create(:user)
+      other_customer = create(:customer, user: other_user)
+      create(:subscription, customer: other_customer)
+    end
 
     it 'returns all subscriptions for the current user' do
       get '/api/v1/subscriptions', headers: headers
@@ -75,10 +79,10 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
       }
     end
 
+    # Mock STK Push API once for all examples in this block
     before do
-      # Mock STK Push API
       allow(SafaricomApi.client.mpesa.stk_push).to receive(:initiate).and_return(
-        double(checkout_request_id: 'CHECKOUT123')
+        double(checkout_request_id: 'CHECKOUT123', success?: true)
       )
     end
 
@@ -89,8 +93,8 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
 
       expect(response).to have_http_status(:created)
       json = JSON.parse(response.body)
-      expect(json['plan_name']).to eq('Test Subscription')
-      expect(json['plan_amount'].to_f).to eq(1000.0)
+      expect(json['name']).to eq('Test Subscription')
+      expect(json['amount'].to_f).to eq(1000.0)
     end
 
     it 'requires authentication' do
@@ -166,58 +170,4 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
     end
   end
 
-  describe 'POST /api/v1/subscriptions/:id/upgrade' do
-    let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
-    let(:new_plan) { create(:plan, amount: subscription.plan_amount + 100) }
-
-    before do
-      # Mock the STK Push service for upgrade charges
-      allow_any_instance_of(::Payments::StkPushService).to receive(:initiate).and_return(true)
-    end
-
-    it 'upgrades the subscription to a higher plan' do
-      post "/api/v1/subscriptions/#{subscription.id}/upgrade", 
-           params: { new_plan_id: new_plan.id }, 
-           headers: headers
-
-      expect(response).to have_http_status(:ok)
-      json = JSON.parse(response.body)
-      expect(json['message']).to include('upgraded')
-      expect(subscription.reload.plan_id).to eq(new_plan.id)
-    end
-
-    it 'fails if new plan amount is not higher' do
-      lower_plan = create(:plan, amount: subscription.plan_amount - 100)
-      post "/api/v1/subscriptions/#{subscription.id}/upgrade", 
-           params: { new_plan_id: lower_plan.id }, 
-           headers: headers
-
-      expect(response).to have_http_status(:unprocessable_entity)
-    end
-  end
-
-  describe 'POST /api/v1/subscriptions/:id/downgrade' do
-    let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
-    let(:new_plan) { create(:plan, amount: subscription.plan_amount - 100) }
-
-    it 'downgrades the subscription to a lower plan' do
-      post "/api/v1/subscriptions/#{subscription.id}/downgrade", 
-           params: { new_plan_id: new_plan.id }, 
-           headers: headers
-
-      expect(response).to have_http_status(:ok)
-      json = JSON.parse(response.body)
-      expect(json['message']).to include('downgraded')
-      expect(subscription.reload.plan_id).to eq(new_plan.id)
-    end
-
-    it 'fails if new plan amount is not lower' do
-      higher_plan = create(:plan, amount: subscription.plan_amount + 100)
-      post "/api/v1/subscriptions/#{subscription.id}/downgrade", 
-           params: { new_plan_id: higher_plan.id }, 
-           headers: headers
-
-      expect(response).to have_http_status(:unprocessable_entity)
-    end
-  end
 end

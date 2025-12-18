@@ -4,11 +4,11 @@ Service Suspended - PesaFlow
 
 Dear <%= @customer.name %>,
 
-We regret to inform you that your subscription to the <%= @subscription.plan_name %> plan has been suspended due to non-payment.
+We regret to inform you that your subscription to the <%= @subscription.name %> plan has been suspended due to non-payment.
 
 Subscription Details:
 Reference Number: <%= @subscription.reference_number %>
-Plan: <%= @subscription.plan_name %>
+Plan: <%= @subscription.name %>
 Outstanding Amount: KES <%= @subscription.outstanding_amount %>
 Suspended At: <%= @subscription.suspended_at&.strftime("%Y-%m-%d %H:%M:%S") || 'N/A' %>
 

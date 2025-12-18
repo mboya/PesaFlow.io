@@ -13,7 +13,7 @@
     <h2>Payment Details</h2>
     <ul>
       <li><strong>Subscription:</strong> <%= @subscription.reference_number %></li>
-      <li><strong>Plan:</strong> <%= @subscription.plan_name %></li>
+      <li><strong>Plan:</strong> <%= @subscription.name %></li>
       <li><strong>Amount:</strong> KES <%= @payment.amount %></li>
       <li><strong>Payment Method:</strong> <%= @payment.payment_method.upcase %></li>
       <li><strong>M-Pesa Transaction ID:</strong> <%= @payment.mpesa_transaction_id %></li>

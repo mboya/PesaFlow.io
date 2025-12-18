@@ -2,7 +2,6 @@ class CreateSubscriptions < ActiveRecord::Migration[7.2]
   def change
     create_table :subscriptions do |t|
       t.references :customer, null: false, foreign_key: true
-      t.references :plan, null: false, foreign_key: true
       t.string :reference_number, null: false # SUB-12345 (uniqueness enforced by index below)
       t.string :standing_order_id # From Ratiba API
       

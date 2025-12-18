@@ -1,22 +1,28 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
+    if (loading) return;
+
+    if (isAuthenticated) {
+      if (pathname !== '/dashboard') {
+        router.replace('/dashboard');
+      }
+    } else {
+      if (pathname !== '/login') {
+        router.replace('/login');
       }
     }
-  }, [isAuthenticated, loading, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, loading, pathname]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">

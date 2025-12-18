@@ -11,9 +11,16 @@ RSpec.describe 'Api::V1::Dashboard', type: :request do
   end
 
   describe 'GET /api/v1/dashboard' do
-    let!(:active_subscription) { create(:subscription, customer: customer, plan_amount: 1000.0, status: 'active') }
-    let!(:suspended_subscription) { create(:subscription, customer: customer, plan_amount: 1000.0, status: 'suspended') }
-    let!(:payment) { create(:payment, subscription: active_subscription, status: 'completed') }
+    # Create subscriptions and payment once for this describe block
+    let(:active_subscription) { create(:subscription, customer: customer, amount: 1000.0, status: 'active') }
+    let(:suspended_subscription) { create(:subscription, customer: customer, amount: 1000.0, status: 'suspended') }
+    let(:payment) { create(:payment, subscription: active_subscription, status: 'completed') }
+    
+    before do
+      active_subscription
+      suspended_subscription
+      payment
+    end
 
     it 'returns dashboard data for the customer' do
       get '/api/v1/dashboard', headers: headers

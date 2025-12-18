@@ -82,22 +82,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.index ["subscription_id"], name: "index_payments_on_subscription_id"
   end
 
-  create_table "plans", force: :cascade do |t|
-    t.string "name", null: false
-    t.text "description"
-    t.decimal "amount", precision: 10, scale: 2, null: false
-    t.string "currency", default: "KES"
-    t.integer "billing_frequency"
-    t.integer "billing_cycle_days"
-    t.boolean "has_trial", default: false
-    t.integer "trial_days", default: 0
-    t.jsonb "features", default: {}
-    t.decimal "setup_fee", precision: 10, scale: 2, default: "0.0"
-    t.boolean "active", default: true
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-  end
-
   create_table "refunds", force: :cascade do |t|
     t.bigint "subscription_id", null: false
     t.bigint "payment_id"
@@ -121,7 +105,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
 
   create_table "subscriptions", force: :cascade do |t|
     t.bigint "customer_id", null: false
-    t.bigint "plan_id"
     t.string "reference_number", null: false
     t.string "standing_order_id"
     t.string "status", default: "pending"
@@ -145,18 +128,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.integer "billing_cycle_days"
     t.boolean "has_trial", default: false, null: false
     t.integer "trial_days", default: 0, null: false
-    t.string "plan_name"
-    t.decimal "plan_amount", precision: 10, scale: 2
-    t.string "plan_currency", limit: 3
-    t.integer "plan_billing_frequency"
-    t.integer "plan_billing_cycle_days"
-    t.integer "plan_trial_days"
-    t.boolean "plan_has_trial"
-    t.jsonb "plan_features", default: {}, null: false
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["next_billing_date"], name: "index_subscriptions_on_next_billing_date"
-    t.index ["plan_id"], name: "index_subscriptions_on_plan_id"
-    t.index ["plan_name"], name: "index_subscriptions_on_plan_name"
     t.index ["reference_number"], name: "index_subscriptions_on_reference_number", unique: true
     t.index ["standing_order_id"], name: "index_subscriptions_on_standing_order_id"
     t.index ["status"], name: "index_subscriptions_on_status"
@@ -199,5 +172,4 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
   add_foreign_key "refunds", "subscriptions"
   add_foreign_key "refunds", "users", column: "approved_by_id"
   add_foreign_key "subscriptions", "customers"
-  add_foreign_key "subscriptions", "plans"
 end

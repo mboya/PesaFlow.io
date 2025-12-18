@@ -24,12 +24,12 @@
       
       <p>Dear <%= @customer.name %>,</p>
       
-      <p>Great news! Your trial period for the <strong><%= @subscription.plan_name %></strong> plan has ended, and your subscription has been successfully converted to a paid plan.</p>
+      <p>Great news! Your trial period for the <strong><%= @subscription.name %></strong> plan has ended, and your subscription has been successfully converted to a paid plan.</p>
 
       <h3>Subscription Details:</h3>
       <ul>
         <li><strong>Reference Number:</strong> <%= @subscription.reference_number %></li>
-        <li><strong>Plan:</strong> <%= @subscription.plan_name %></li>
+        <li><strong>Plan:</strong> <%= @subscription.name %></li>
         <li><strong>Status:</strong> <%= @subscription.status.humanize %></li>
         <li><strong>Current Period End:</strong> <%= @subscription.current_period_end&.strftime("%Y-%m-%d") %></li>
         <li><strong>Next Billing Date:</strong> <%= @subscription.next_billing_date&.strftime("%Y-%m-%d") %></li>

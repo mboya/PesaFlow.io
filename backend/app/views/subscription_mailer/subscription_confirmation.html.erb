@@ -8,13 +8,13 @@
     
     <p>Dear <%= @customer.name %>,</p>
     
-    <p>Thank you for subscribing to <strong><%= @subscription.plan_name %></strong>! Your subscription is now active and ready to use.</p>
+    <p>Thank you for subscribing to <strong><%= @subscription.name %></strong>! Your subscription is now active and ready to use.</p>
     
     <h2>Subscription Details</h2>
     <ul>
-      <li><strong>Plan:</strong> <%= @subscription.plan_name %></li>
+      <li><strong>Service:</strong> <%= @subscription.name %></li>
       <li><strong>Reference Number:</strong> <%= @subscription.reference_number %></li>
-      <li><strong>Amount:</strong> KES <%= @subscription.plan_amount %> per <%= billing_frequency_text(@subscription.plan_billing_frequency) %></li>
+      <li><strong>Amount:</strong> KES <%= @subscription.amount %> per <%= billing_frequency_text(@subscription.billing_frequency) %></li>
       <li><strong>Status:</strong> <%= @subscription.status.capitalize %></li>
       <% if @subscription.current_period_start.present? %>
         <li><strong>Current Period:</strong> <%= @subscription.current_period_start.strftime('%B %d, %Y') %> - <%= @subscription.current_period_end.strftime('%B %d, %Y') %></li>
@@ -22,20 +22,10 @@
       <% if @subscription.next_billing_date.present? %>
         <li><strong>Next Billing Date:</strong> <%= @subscription.next_billing_date.strftime('%B %d, %Y') %></li>
       <% end %>
-      <% if @subscription.plan_trial_days.to_i > 0 && @subscription.is_trial? %>
-        <li><strong>Trial Period:</strong> <%= @subscription.plan_trial_days %> days (ends <%= @subscription.trial_ends_at&.strftime('%B %d, %Y') %>)</li>
+      <% if @subscription.trial_days.to_i > 0 && @subscription.is_trial? %>
+        <li><strong>Trial Period:</strong> <%= @subscription.trial_days %> days (ends <%= @subscription.trial_ends_at&.strftime('%B %d, %Y') %>)</li>
       <% end %>
     </ul>
-    
-    <h2>Plan Features</h2>
-    <% if @subscription.plan_features.present? %>
-      <ul>
-        <% @subscription.plan_features.each do |key, value| %>
-          <% next if value == false %>
-          <li><strong><%= key.to_s.humanize %>:</strong> <%= value %></li>
-        <% end %>
-      </ul>
-    <% end %>
     
     <p>You can manage your subscription, view invoices, and update payment methods from your dashboard.</p>
     

@@ -1,7 +1,6 @@
 class Subscription < ApplicationRecord
   # Associations
   belongs_to :customer
-  belongs_to :plan, optional: true
   has_many :billing_attempts, dependent: :destroy
   has_many :payments, dependent: :destroy
   has_many :refunds, dependent: :destroy
@@ -26,48 +25,6 @@ class Subscription < ApplicationRecord
   before_validation :generate_reference_number, on: :create
 
   # Instance methods
-
-  # ---- Plan snapshot helpers -------------------------------------------------
-  # These methods allow subscriptions to function even if the associated plan
-  # changes or is removed, by falling back to snapshot fields stored on the
-  # subscription record.
-
-  def plan_name
-    self[:plan_name] || plan&.name
-  end
-
-  def plan_amount
-    self[:plan_amount] || plan&.amount
-  end
-
-  def plan_currency
-    self[:plan_currency] || plan&.currency
-  end
-
-  def plan_billing_frequency
-    self[:plan_billing_frequency] || plan&.billing_frequency
-  end
-
-  def plan_billing_cycle_days
-    self[:plan_billing_cycle_days] || plan&.billing_cycle_days
-  end
-
-  def plan_trial_days
-    self[:plan_trial_days] || plan&.trial_days
-  end
-
-  def plan_has_trial?
-    if self[:plan_has_trial].nil?
-      plan&.has_trial?
-    else
-      self[:plan_has_trial]
-    end
-  end
-
-  def plan_features
-    # JSONB column default {} plus plan.features fallback
-    (self[:plan_features].presence || {}) || plan&.features || {}
-  end
 
   def activate!
     update!(
@@ -120,7 +77,7 @@ class Subscription < ApplicationRecord
   end
 
   def calculate_period_end
-    cycle_days = plan_billing_cycle_days
+    cycle_days = billing_cycle_days
     return nil unless cycle_days
 
     start_date = current_period_start || Date.current
@@ -128,7 +85,7 @@ class Subscription < ApplicationRecord
   end
 
   def calculate_next_billing_date
-    return nil unless plan_billing_cycle_days
+    return nil unless billing_cycle_days
 
     end_date = current_period_end || calculate_period_end
     return nil unless end_date
@@ -159,7 +116,7 @@ class Subscription < ApplicationRecord
   end
 
   def extend_period!
-    billing_interval = plan_billing_cycle_days || 30
+    billing_interval = billing_cycle_days || 30
     
     self.current_period_start = current_period_end || Date.current
     self.current_period_end = current_period_start + billing_interval.days
@@ -200,5 +157,3 @@ class Subscription < ApplicationRecord
     end
   end
 end
-
-
