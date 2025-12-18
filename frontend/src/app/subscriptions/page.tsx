@@ -46,6 +46,16 @@ export default function SubscriptionsPage() {
     });
   };
 
+  const formatPaymentMethod = (method: string | null | undefined) => {
+    if (!method) return 'Not set';
+    const methodMap: Record<string, string> = {
+      'ratiba': 'Ratiba',
+      'stk_push': 'STK Push',
+      'c2b': 'Paybill',
+    };
+    return methodMap[method] || method.toUpperCase();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -166,7 +176,7 @@ export default function SubscriptionsPage() {
                             {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-                            {subscription.payment_method || 'Not set'}
+                            {formatPaymentMethod(subscription.preferred_payment_method || subscription.payment_method)}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                             <Link

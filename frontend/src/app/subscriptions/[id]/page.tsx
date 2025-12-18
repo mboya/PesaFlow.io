@@ -85,6 +85,16 @@ export default function SubscriptionDetailPage() {
     });
   };
 
+  const formatPaymentMethod = (method: string | null | undefined) => {
+    if (!method) return 'Not set';
+    const methodMap: Record<string, string> = {
+      'ratiba': 'Ratiba (Standing Order)',
+      'stk_push': 'STK Push',
+      'c2b': 'Paybill (C2B)',
+    };
+    return methodMap[method] || method.toUpperCase();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -188,7 +198,7 @@ export default function SubscriptionDetailPage() {
                   <div>
                     <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Payment Method</dt>
                     <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                      {subscription.payment_method || 'Not set'}
+                      {formatPaymentMethod(subscription.preferred_payment_method || subscription.payment_method)}
                     </dd>
                   </div>
                   <div>
