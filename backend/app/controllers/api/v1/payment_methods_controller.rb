@@ -91,7 +91,7 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
     # Build callback URL
     callback_url = Rails.application.routes.url_helpers.webhooks_stk_push_callback_url(
       host: ENV.fetch('APP_HOST', 'localhost:3000'),
-      protocol: Rails.env.production? ? 'https' : 'http'
+      protocol: Rails.env.production? ? 'https' : 'https'
     )
     
     # Initiate STK Push

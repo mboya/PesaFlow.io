@@ -164,7 +164,13 @@ module Api
         otp_valid = user.verify_otp(otp_code) || user.verify_backup_code(otp_code)
 
         if otp_valid
-          sign_in(:user, user)
+          # Sign in the user and generate JWT token
+          sign_in(:api_v1_user, user)
+          
+          # Generate JWT token manually for the response header
+          token = Warden::JWTAuth::UserEncoder.new.call(user, :api_v1_user, nil).first
+          response.set_header("Authorization", "Bearer #{token}")
+          
           render json: {
             status: {
               code: 200,
