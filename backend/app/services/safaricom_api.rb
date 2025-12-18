@@ -237,21 +237,30 @@ class SafaricomApi
   end
 
   # Response wrapper for Ratiba (Standing Orders)
+  # Ratiba API returns: {"ResponseHeader"=>{"responseRefID"=>"...", "responseCode"=>"200", "responseDescription"=>"..."}, 
+  #                      "ResponseBody"=>{"responseDescription"=>"...", "responseCode"=>"200"}}
   class RatibaResponse
     attr_reader :raw_response
 
     def initialize(raw_response)
       @raw_response = raw_response || {}
+      Rails.logger.info("Ratiba raw response: #{@raw_response.inspect}")
     end
 
     def standing_order_id
-      raw_response['StandingOrderID'] || 
-      raw_response['ConversationID'] ||
-      raw_response.dig('Result', 'ConversationID')
+      # Ratiba doesn't return a standing_order_id immediately - it's async
+      # Use the responseRefID as a reference
+      raw_response.dig('ResponseHeader', 'responseRefID') ||
+        raw_response['StandingOrderID'] || 
+        raw_response['ConversationID'] ||
+        raw_response.dig('Result', 'ConversationID') ||
+        "RATIBA-#{SecureRandom.alphanumeric(10).upcase}"
     end
 
     def conversation_id
-      raw_response['ConversationID'] || raw_response.dig('Result', 'ConversationID')
+      raw_response.dig('ResponseHeader', 'responseRefID') ||
+        raw_response['ConversationID'] || 
+        raw_response.dig('Result', 'ConversationID')
     end
 
     def originator_conversation_id
@@ -259,20 +268,42 @@ class SafaricomApi
     end
 
     def response_code
-      raw_response['ResponseCode'] || raw_response.dig('Result', 'ResultCode')
+      # Check Ratiba-specific response structure first
+      raw_response.dig('ResponseHeader', 'responseCode') ||
+        raw_response.dig('ResponseBody', 'responseCode') ||
+        raw_response['ResponseCode'] || 
+        raw_response['responseCode'] ||
+        raw_response['errorCode'] ||
+        raw_response['ResultCode'] ||
+        raw_response.dig('Result', 'ResultCode')
     end
 
     def response_description
-      raw_response['ResponseDescription'] || raw_response.dig('Result', 'ResultDesc')
+      raw_response.dig('ResponseHeader', 'responseDescription') ||
+        raw_response.dig('ResponseBody', 'responseDescription') ||
+        raw_response['ResponseDescription'] || 
+        raw_response['responseDescription'] ||
+        raw_response['errorMessage'] ||
+        raw_response['ResultDesc'] ||
+        raw_response.dig('Result', 'ResultDesc')
     end
 
     def success?
-      code = response_code
-      code == '0' || code == 0
+      code = response_code.to_s
+      # Ratiba uses "200" for success, STK Push uses "0"
+      ['0', '200'].include?(code)
     end
 
     def error_message
-      response_description unless success?
+      return nil if success?
+      
+      # Try multiple possible error message fields
+      response_description.presence ||
+        raw_response['errorMessage'].presence ||
+        raw_response['error_message'].presence ||
+        raw_response['message'].presence ||
+        raw_response.dig('Fault', 'faultstring').presence ||
+        raw_response.to_s.truncate(200)
     end
   end
 

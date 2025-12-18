@@ -14,6 +14,7 @@ module Payments
       raise ArgumentError, "Subscription amount is required for Ratiba standing orders" if amount.blank? || amount.to_f <= 0
 
       Rails.logger.info("Creating standing order for #{phone}, amount: #{amount}")
+      Rails.logger.info("Webhook URL: #{webhook_url}")
       
       response = @client.mpesa.ratiba.create(
         standing_order_name: standing_order_name,
@@ -27,6 +28,10 @@ module Payments
         callback_url: webhook_url
       )
 
+      Rails.logger.info("Ratiba API response: #{response.inspect}")
+      Rails.logger.info("Ratiba API response class: #{response.class}")
+      Rails.logger.info("Ratiba API response methods: #{response.methods - Object.methods}")
+
       if response.success?
         @subscription.update!(
           standing_order_id: response.standing_order_id,
@@ -35,12 +40,20 @@ module Payments
         )
         @subscription.customer.update!(standing_order_enabled: true)
       else
-        raise "Standing order creation failed: #{response.error_message}"
+        # Try to extract error message from various possible response attributes
+        error_msg = response.try(:error_message).presence || 
+                    response.try(:response_description).presence ||
+                    response.try(:result_desc).presence ||
+                    response.try(:error_code).presence ||
+                    response.try(:body).to_s.presence ||
+                    "Unknown error from M-Pesa API (check logs for response.inspect)"
+        raise "Standing order creation failed: #{error_msg}"
       end
 
       response
     rescue StandardError => e
       Rails.logger.error("Error creating standing order: #{e.message}")
+      Rails.logger.error(e.backtrace.first(5).join("\n")) if e.backtrace
       raise
     end
 
@@ -99,9 +112,8 @@ module Payments
     def webhook_url
       Rails.application.routes.url_helpers.webhooks_ratiba_callback_url(
         host: ENV.fetch('APP_HOST', 'localhost:3000'),
-        protocol: Rails.env.production? ? 'https' : 'http'
+        protocol: Rails.env.production? ? 'https' : 'https'
       )
     end
   end
 end
-
