@@ -6,7 +6,13 @@ class Webhooks::C2bController < ActionController::API
     # M-Pesa sends validation request before processing payment
     # We should validate the transaction and return appropriate response
     payload = JSON.parse(request.body.read)
-    log_webhook('c2b', payload.merge(event_type: 'validation'), request.env)
+    
+    # Log webhook (don't let failures block validation)
+    begin
+      log_webhook('c2b', payload.merge(event_type: 'validation'), request.env)
+    rescue StandardError => e
+      Rails.logger.error("Failed to log C2B validation webhook: #{e.message}")
+    end
     
     Rails.logger.info("C2B Validation received: #{payload.inspect}")
     
@@ -28,7 +34,13 @@ class Webhooks::C2bController < ActionController::API
   def confirmation
     # M-Pesa sends confirmation after processing payment
     payload = JSON.parse(request.body.read)
-    log_webhook('c2b', payload.merge(event_type: 'confirmation'), request.env)
+    
+    # Log webhook (don't let failures block payment processing)
+    begin
+      log_webhook('c2b', payload.merge(event_type: 'confirmation'), request.env)
+    rescue StandardError => e
+      Rails.logger.error("Failed to log C2B webhook: #{e.message}")
+    end
     
     Rails.logger.info("C2B Confirmation received: #{payload.inspect}")
     
@@ -49,6 +61,7 @@ class Webhooks::C2bController < ActionController::API
     head :bad_request
   rescue StandardError => e
     Rails.logger.error("Error processing C2B confirmation: #{e.message}")
+    Rails.logger.error(e.backtrace.first(10).join("\n"))
     head :internal_server_error
   end
   
@@ -72,15 +85,14 @@ class Webhooks::C2bController < ActionController::API
       subscription.reset_failed_payment_count!
     end
     
-    # Extend subscription period
-    subscription.extend_period!
-    subscription.mark_as_paid!
+    # Update subscription status and clear outstanding amount
+    subscription.update!(
+      status: 'active',
+      outstanding_amount: [subscription.outstanding_amount - payment.amount.to_d, 0].max
+    )
     
-    # Generate invoice
-    Billing::InvoiceGenerator.new(subscription, payment).generate
-    
-    # Send receipt
-    NotificationService.send_payment_receipt(payment)
+    # Send receipt email
+    SubscriptionMailer.payment_receipt(subscription, payment).deliver_later if subscription.customer.email.present?
   end
 end
 
