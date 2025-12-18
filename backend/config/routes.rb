@@ -46,6 +46,8 @@ Rails.application.routes.draw do
           post :upgrade
           post :downgrade
         end
+        # Nested payments for a subscription
+        resources :payments, only: [:index], controller: 'subscription_payments'
       end
       
       resources :plans, only: [:index, :show]
