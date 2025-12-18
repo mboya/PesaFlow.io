@@ -23,7 +23,7 @@ class RetryFailedPaymentJob < ApplicationJob
       phone_number: subscription.customer.phone_number,
       amount: subscription.outstanding_amount,
       account_reference: subscription.reference_number,
-      transaction_desc: "Retry payment: #{subscription.plan.name}",
+      transaction_desc: "Retry payment: #{subscription.plan_name}",
       callback_url: callback_url
     )
     
@@ -35,7 +35,7 @@ class RetryFailedPaymentJob < ApplicationJob
     
     # Notify customer
     send_sms(subscription.customer.phone_number,
-             "Please complete your payment of KES #{subscription.outstanding_amount} for #{subscription.plan.name}")
+             "Please complete your payment of KES #{subscription.outstanding_amount} for #{subscription.plan_name}")
     
   rescue StandardError => e
     billing_attempt.update!(

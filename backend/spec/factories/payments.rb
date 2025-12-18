@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :payment do
     association :subscription
     association :billing_attempt, factory: :billing_attempt, status: 'completed'
-    amount { subscription.plan.amount }
+    amount { subscription.plan_amount || 1000.0 }
     payment_method { 'ratiba' }
     status { 'completed' }
     mpesa_transaction_id { "MPESA#{SecureRandom.alphanumeric(8).upcase}" }

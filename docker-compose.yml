@@ -37,6 +37,18 @@ services:
       timeout: 5s
       retries: 5
 
+  mailpit:
+    container_name: mP
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"   # Web UI
+      - "1025:1025"   # SMTP
+    networks:
+      - backend_network
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
   backend:
     container_name: bE
     build:
@@ -50,15 +62,22 @@ services:
     # All access (HTTP and WebSocket) goes through frontend proxy
     networks:
       - backend_network
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-subscription_billing_development}
       REDIS_URL: redis://redis:6379/0
       RAILS_ENV: development
+      # Mailpit SMTP settings
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   sidekiq:
     container_name: sK
@@ -71,15 +90,22 @@ services:
       - bundle_cache:/usr/local/bundle
     networks:
       - backend_network
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-subscription_billing_development}
       REDIS_URL: redis://redis:6379/0
       RAILS_ENV: development
+      # Mailpit SMTP settings
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   frontend:
     container_name: fE

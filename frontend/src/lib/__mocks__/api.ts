@@ -28,11 +28,6 @@ export const subscriptionsApi = {
   downgrade: vi.fn(),
 };
 
-export const plansApi = {
-  getAll: vi.fn(),
-  getById: vi.fn(),
-};
-
 export const paymentMethodsApi = {
   setupRatiba: vi.fn(),
   initiateStkPush: vi.fn(),

@@ -39,7 +39,9 @@ class User < ApplicationRecord
     return false unless otp_secret_key.present?
 
     totp = ROTP::TOTP.new(otp_secret_key)
-    totp.verify(code.to_s, drift_behind: 1, drift_ahead: 1)
+    # ROTP#verify returns timestamp on success, nil on failure - convert to boolean
+    result = totp.verify(code.to_s, drift_behind: 1, drift_ahead: 1)
+    result.present?
   end
 
   # Generate 10 backup codes (8-character alphanumeric)

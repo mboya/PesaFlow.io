@@ -2,18 +2,17 @@ require 'rails_helper'
 
 RSpec.describe 'Api::V1::Dashboard', type: :request do
   let(:user) { create(:user) }
-  let(:customer) { create(:customer, email: user.email) }
-  let(:plan) { create(:plan) }
+  let(:customer) { create(:customer, user: user, email: user.email) }
   let(:token) { login_user(user) }
   let(:headers) { auth_headers(token) }
 
   before do
-    customer.update(email: user.email)
+    customer # ensure customer exists
   end
 
   describe 'GET /api/v1/dashboard' do
-    let!(:active_subscription) { create(:subscription, customer: customer, plan: plan, status: 'active') }
-    let!(:suspended_subscription) { create(:subscription, customer: customer, plan: plan, status: 'suspended') }
+    let!(:active_subscription) { create(:subscription, customer: customer, plan_amount: 1000.0, status: 'active') }
+    let!(:suspended_subscription) { create(:subscription, customer: customer, plan_amount: 1000.0, status: 'suspended') }
     let!(:payment) { create(:payment, subscription: active_subscription, status: 'completed') }
 
     it 'returns dashboard data for the customer' do
@@ -56,4 +55,3 @@ RSpec.describe 'Api::V1::Dashboard', type: :request do
     end
   end
 end
-

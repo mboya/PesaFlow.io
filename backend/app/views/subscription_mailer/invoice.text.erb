@@ -1,0 +1,38 @@
+Invoice <%= @invoice.invoice_number %>
+
+Dear <%= @customer.name %>,
+
+Please find your invoice details below.
+
+Invoice Information:
+- Invoice Number: <%= @invoice.invoice_number %>
+- Subscription: <%= @subscription.reference_number %>
+- Service: <%= @subscription.plan_name %>
+- Amount: KES <%= @invoice.amount %>
+- Status: <%= @invoice.status.capitalize %>
+- Issue Date: <%= @invoice.attempted_at&.strftime('%B %d, %Y') || Date.current.strftime('%B %d, %Y') %>
+- Due Date: <%= @subscription.current_period_end&.strftime('%B %d, %Y') || (Date.current + 30.days).strftime('%B %d, %Y') %>
+<% if @invoice.status == 'completed' && @invoice.attempted_at.present? %>
+- Paid Date: <%= @invoice.attempted_at.strftime('%B %d, %Y at %I:%M %p') %>
+<% end %>
+<% if @invoice.mpesa_receipt_number.present? %>
+- M-Pesa Receipt: <%= @invoice.mpesa_receipt_number %>
+<% end %>
+
+Details:
+- <%= @subscription.plan_name %>: KES <%= @invoice.amount %>
+<% if @subscription.current_period_start && @subscription.current_period_end %>
+  Period: <%= @subscription.current_period_start.strftime('%b %d') %> - <%= @subscription.current_period_end.strftime('%b %d, %Y') %>
+<% end %>
+
+Total: KES <%= @invoice.amount %>
+
+<% if @invoice.status == 'pending' %>
+Payment is due by <%= @subscription.current_period_end&.strftime('%B %d, %Y') || (Date.current + 30.days).strftime('%B %d, %Y') %>.
+
+You can make a payment through your dashboard or by using M-Pesa.
+<% end %>
+
+If you have any questions about this invoice, please contact our support team.
+
+Thank you for your business!

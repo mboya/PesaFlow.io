@@ -4,13 +4,13 @@ Action Required - Trial Period Ended
 
 Dear <%= @customer.name %>,
 
-Your trial period for the <%= @plan.name %> plan has ended. Unfortunately, we were unable to automatically convert your trial to a paid subscription.
+Your trial period for the <%= @subscription.plan_name %> plan has ended. Unfortunately, we were unable to automatically convert your trial to a paid subscription.
 
 Subscription Details:
 Reference Number: <%= @subscription.reference_number %>
-Plan: <%= @plan.name %>
+Plan: <%= @subscription.plan_name %>
 Status: <%= @subscription.status.humanize %>
-Amount Due: KES <%= @plan.amount %>
+Amount Due: KES <%= @subscription.plan_amount %>
 
 What You Need to Do:
 To continue using the service, please complete the payment process:
@@ -23,7 +23,7 @@ Alternatively, you can make a payment via M-Pesa:
 - Go to M-Pesa menu → Pay Bill
 - Business Number: <%= ENV.fetch('MPESA_PAYBILL', ENV.fetch('business_short_code', 'N/A')) %>
 - Account Number: <%= @subscription.reference_number %>
-- Amount: KES <%= @plan.amount %>
+- Amount: KES <%= @subscription.plan_amount %>
 
 Complete payment: http://localhost:3001/dashboard
 

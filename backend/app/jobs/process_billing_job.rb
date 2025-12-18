@@ -27,7 +27,7 @@ class ProcessBillingJob < ApplicationJob
     # Create billing attempt
     billing_attempt = BillingAttempt.create!(
       subscription: subscription,
-      amount: subscription.plan.amount,
+      amount: subscription.plan_amount,
       invoice_number: generate_invoice_number(subscription),
       payment_method: subscription.preferred_payment_method || 'ratiba',
       status: 'pending',
@@ -57,7 +57,7 @@ class ProcessBillingJob < ApplicationJob
   
   def initiate_stk_push(subscription, billing_attempt)
     customer = subscription.customer
-    amount = subscription.plan.amount
+    amount = subscription.plan_amount
     
     # Build callback URL
     callback_url = Rails.application.routes.url_helpers.webhooks_stk_push_callback_url(
@@ -70,7 +70,7 @@ class ProcessBillingJob < ApplicationJob
       phone_number: customer.phone_number,
       amount: amount,
       account_reference: subscription.reference_number,
-      transaction_desc: "Subscription payment: #{subscription.plan.name}",
+      transaction_desc: "Subscription payment: #{subscription.plan_name}",
       callback_url: callback_url
     )
     
@@ -82,7 +82,7 @@ class ProcessBillingJob < ApplicationJob
     )
     
     send_sms(customer.phone_number,
-             "Please complete payment of KES #{amount} for your #{subscription.plan.name} subscription. Check your phone for M-Pesa prompt.")
+             "Please complete payment of KES #{amount} for your #{subscription.plan_name} subscription. Check your phone for M-Pesa prompt.")
   rescue StandardError => e
     Rails.logger.error("Failed to initiate STK Push for subscription #{subscription.id}: #{e.message}")
     billing_attempt.update!(
@@ -97,12 +97,12 @@ class ProcessBillingJob < ApplicationJob
   
   def send_pre_billing_notification(subscription)
     send_sms(subscription.customer.phone_number,
-             "Your #{subscription.plan.name} subscription will be charged KES #{subscription.plan.amount} today. Reference: #{subscription.reference_number}")
+             "Your #{subscription.plan_name} subscription will be charged KES #{subscription.plan_amount} today. Reference: #{subscription.reference_number}")
   end
   
   def send_c2b_reminder(subscription)
     send_sms(subscription.customer.phone_number,
-             "Please pay KES #{subscription.plan.amount} for your #{subscription.plan.name} subscription. Reference: #{subscription.reference_number}")
+             "Please pay KES #{subscription.plan_amount} for your #{subscription.plan_name} subscription. Reference: #{subscription.reference_number}")
   end
   
   def generate_invoice_number(subscription)

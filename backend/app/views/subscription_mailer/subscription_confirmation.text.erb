@@ -1,0 +1,35 @@
+Welcome! Your Subscription is Active
+
+Dear <%= @customer.name %>,
+
+Thank you for subscribing to <%= @subscription.plan_name %>! Your subscription is now active and ready to use.
+
+Subscription Details:
+- Plan: <%= @subscription.plan_name %>
+- Reference Number: <%= @subscription.reference_number %>
+- Amount: KES <%= @subscription.plan_amount %> per <%= billing_frequency_text(@subscription.plan_billing_frequency) %>
+- Status: <%= @subscription.status.capitalize %>
+<% if @subscription.current_period_start.present? %>
+- Current Period: <%= @subscription.current_period_start.strftime('%B %d, %Y') %> - <%= @subscription.current_period_end.strftime('%B %d, %Y') %>
+<% end %>
+<% if @subscription.next_billing_date.present? %>
+- Next Billing Date: <%= @subscription.next_billing_date.strftime('%B %d, %Y') %>
+<% end %>
+<% if @subscription.plan_trial_days.to_i > 0 && @subscription.is_trial? %>
+- Trial Period: <%= @subscription.plan_trial_days %> days (ends <%= @subscription.trial_ends_at&.strftime('%B %d, %Y') %>)
+<% end %>
+
+Plan Features:
+<% if @subscription.plan_features.present? %>
+<% @subscription.plan_features.each do |key, value| %>
+<% next if value == false %>
+- <%= key.to_s.humanize %>: <%= value %>
+<% end %>
+<% end %>
+
+You can manage your subscription, view invoices, and update payment methods from your dashboard.
+
+If you have any questions or need assistance, please don't hesitate to contact our support team.
+
+Welcome aboard!
+

@@ -1,0 +1,36 @@
+Upcoming Invoice - Payment Due Soon
+
+Dear <%= @customer.name %>,
+
+This is a friendly reminder that your next invoice is due soon.
+
+<% due_date = @subscription.current_period_end || (Date.current + 30.days) %>
+<% days_until_due = (due_date - Date.current).to_i %>
+
+Invoice Preview:
+- Invoice Number: <%= @invoice.invoice_number %>
+- Subscription: <%= @subscription.reference_number %>
+- Service: <%= @subscription.plan_name %>
+- Amount: KES <%= @invoice.amount %>
+- Due Date: <%= due_date.strftime('%B %d, %Y') %>
+- Days Until Due: <%= days_until_due %> days
+
+Details:
+- <%= @subscription.plan_name %>: KES <%= @invoice.amount %>
+<% if @subscription.current_period_start && @subscription.current_period_end %>
+  Period: <%= @subscription.current_period_start.strftime('%b %d') %> - <%= @subscription.current_period_end.strftime('%b %d, %Y') %>
+<% end %>
+
+Total: KES <%= @invoice.amount %>
+
+Payment is due on <%= due_date.strftime('%B %d, %Y') %>.
+
+<% if @subscription.preferred_payment_method == 'ratiba' %>
+Your payment will be automatically processed via your standing order (Ratiba) on the due date.
+<% else %>
+Please ensure your payment method is up to date. You can update your payment method or make a payment through your dashboard.
+<% end %>
+
+If you have any questions or need assistance, please contact our support team.
+
+Thank you for your continued business!

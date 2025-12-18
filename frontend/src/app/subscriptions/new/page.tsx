@@ -2,54 +2,50 @@
 
 import { AuthGuard } from '@/components/AuthGuard';
 import { Navigation } from '@/components/Navigation';
-import { subscriptionsApi, plansApi } from '@/lib/api';
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { subscriptionsApi } from '@/lib/api';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Plan } from '@/lib/types';
 
 export default function NewSubscriptionPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState<number | ''>('');
+  const [billingCycleDays, setBillingCycleDays] = useState<number | ''>(30);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'ratiba' | 'stk_push'>('ratiba');
 
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        setLoading(true);
-        const response = await plansApi.getAll();
-        const activePlans = response.data.filter((plan: Plan) => plan.is_active);
-        setPlans(activePlans);
-        
-        // Check if plan_id is in query params
-        const planIdParam = searchParams.get('plan_id');
-        if (planIdParam) {
-          const planId = parseInt(planIdParam);
-          const planExists = activePlans.find((p: Plan) => p.id === planId);
-          if (planExists) {
-            setSelectedPlanId(planId);
-          }
-        }
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to load plans');
-        console.error('Plans error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPlans();
-  }, [searchParams]);
+  // Format phone number to 254XXXXXXXXX format
+  const formatPhoneNumber = (phone: string): string => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) {
+      return `254${cleaned.slice(1)}`;
+    } else if (cleaned.startsWith('7')) {
+      return `254${cleaned}`;
+    } else if (cleaned.startsWith('254')) {
+      return cleaned;
+    }
+    return cleaned;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlanId) {
-      setError('Please select a plan');
+    if (!name.trim()) {
+      setError('Please enter a subscription name/description');
+      return;
+    }
+    if (!amount || Number(amount) <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+    
+    // Phone number required for Ratiba
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    if (paymentMethod === 'ratiba' && (!formattedPhone || formattedPhone.length < 12)) {
+      setError('Please enter a valid M-Pesa phone number (e.g., 0712345678)');
       return;
     }
 
@@ -57,7 +53,15 @@ export default function NewSubscriptionPage() {
       setSubmitting(true);
       setError(null);
       await subscriptionsApi.create({
-        plan_id: selectedPlanId,
+        subscription: {
+          name: name.trim(),
+          description: description.trim() || undefined,
+          amount: Number(amount),
+          billing_cycle_days: billingCycleDays ? Number(billingCycleDays) : 30,
+        },
+        customer: {
+          phone_number: formattedPhone || undefined,
+        },
         payment_method: paymentMethod,
       });
       router.push('/subscriptions');
@@ -67,13 +71,6 @@ export default function NewSubscriptionPage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const formatCurrency = (amount: number, currency: string = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency,
-    }).format(amount);
   };
 
   return (
@@ -94,82 +91,88 @@ export default function NewSubscriptionPage() {
             </h1>
           </div>
 
-          {loading && (
-            <div className="rounded-lg bg-white p-8 shadow dark:bg-zinc-900">
-              <p className="text-zinc-600 dark:text-zinc-400">Loading plans...</p>
-            </div>
-          )}
-
           {error && (
             <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
               <p className="text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
-          {!loading && (
-            <form onSubmit={handleSubmit} className="rounded-lg bg-white shadow dark:bg-zinc-900">
-              <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Select a Plan
-                </h2>
+          <form onSubmit={handleSubmit} className="rounded-lg bg-white shadow dark:bg-zinc-900">
+            <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                Subscription Details
+              </h2>
+            </div>
+            <div className="space-y-6 p-6">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Description / Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  placeholder="e.g. Monthly gym membership"
+                />
               </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {plans.map((plan) => (
-                    <label
-                      key={plan.id}
-                      className={`block cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                        selectedPlanId === plan.id
-                          ? 'border-zinc-900 bg-zinc-50 dark:border-zinc-50 dark:bg-zinc-800'
-                          : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="plan"
-                        value={plan.id}
-                        checked={selectedPlanId === plan.id}
-                        onChange={() => setSelectedPlanId(plan.id)}
-                        className="sr-only"
-                      />
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
-                            {plan.name}
-                          </h3>
-                          {plan.description && (
-                            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                              {plan.description}
-                            </p>
-                          )}
-                          {plan.trial_days && (
-                            <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">
-                              {plan.trial_days} day trial
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-                            {formatCurrency(plan.amount)}
-                          </p>
-                          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            / {plan.billing_frequency}
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-                  ))}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Additional Details (optional)
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  rows={3}
+                  placeholder="Describe what this subscription is for"
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Amount (KES)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  />
                 </div>
-
-                {plans.length === 0 && (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    No active plans available. Please contact support.
-                  </p>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Billing Cycle (days)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={billingCycleDays}
+                    onChange={(e) => setBillingCycleDays(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  />
+                </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  M-Pesa Phone Number {paymentMethod === 'ratiba' && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  placeholder="0712345678"
+                />
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Enter the phone number that will be charged for payments
+                </p>
+              </div>
+            </div>
 
-              {selectedPlanId && (
-                <>
+            <>
                   <div className="border-t border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
                       Payment Method
@@ -231,10 +234,8 @@ export default function NewSubscriptionPage() {
                       </button>
                     </div>
                   </div>
-                </>
-              )}
-            </form>
-          )}
+            </>
+          </form>
         </main>
       </div>
     </AuthGuard>

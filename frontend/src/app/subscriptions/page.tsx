@@ -46,6 +46,16 @@ export default function SubscriptionsPage() {
     });
   };
 
+  const formatPaymentMethod = (method: string | null | undefined) => {
+    if (!method) return 'Not set';
+    const methodMap: Record<string, string> = {
+      'ratiba': 'Ratiba',
+      'stk_push': 'STK Push',
+      'c2b': 'Paybill',
+    };
+    return methodMap[method] || method.toUpperCase();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -73,7 +83,7 @@ export default function SubscriptionsPage() {
                 Subscriptions
               </h1>
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                Manage your subscription plans
+                Manage your recurring payments and subscriptions
               </p>
             </div>
             <Link
@@ -104,10 +114,10 @@ export default function SubscriptionsPage() {
                     You don't have any subscriptions yet.
                   </p>
                   <Link
-                    href="/plans"
+                    href="/subscriptions/new"
                     className="inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                   >
-                    Browse Plans
+                    Create Subscription
                   </Link>
                 </div>
               ) : (
@@ -116,7 +126,7 @@ export default function SubscriptionsPage() {
                     <thead className="bg-zinc-50 dark:bg-zinc-900">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                          Plan
+                          Subscription
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                           Status
@@ -141,7 +151,7 @@ export default function SubscriptionsPage() {
                           <td className="whitespace-nowrap px-6 py-4">
                             <div>
                               <div className="font-medium text-zinc-900 dark:text-zinc-50">
-                                {subscription.plan?.name || 'Unknown Plan'}
+                                {subscription.name || subscription.reference_number}
                               </div>
                               <div className="text-sm text-zinc-500 dark:text-zinc-400">
                                 {subscription.reference_number}
@@ -154,14 +164,19 @@ export default function SubscriptionsPage() {
                             </span>
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-zinc-50">
-                            {formatCurrency(subscription.plan?.amount || 0)}
-                            <span className="text-zinc-500 dark:text-zinc-400"> / {subscription.billing_frequency}</span>
+                            {formatCurrency(subscription.amount || 0)}
+                            {subscription.billing_cycle_days && (
+                              <span className="text-zinc-500 dark:text-zinc-400">
+                                {' '}
+                                / every {subscription.billing_cycle_days} days
+                              </span>
+                            )}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-zinc-50">
                             {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-                            {subscription.payment_method || 'Not set'}
+                            {formatPaymentMethod(subscription.preferred_payment_method || subscription.payment_method)}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                             <Link

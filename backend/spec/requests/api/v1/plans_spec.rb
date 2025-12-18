@@ -16,8 +16,8 @@ RSpec.describe 'Api::V1::Plans', type: :request do
       expect(response).to have_http_status(:ok)
       json = JSON.parse(response.body)
       expect(json.length).to eq(3)
-      expect(json[0]['amount']).to eq(100)
-      expect(json[2]['amount']).to eq(300)
+      expect(json[0]['amount'].to_f).to eq(100.0)
+      expect(json[2]['amount'].to_f).to eq(300.0)
     end
 
     it 'requires authentication' do

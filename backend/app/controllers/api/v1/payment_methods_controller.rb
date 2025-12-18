@@ -75,7 +75,7 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
     
     return render json: { error: 'No active subscription found' }, status: :not_found unless subscription
     
-    amount = params[:amount] || subscription.outstanding_amount || subscription.plan.amount
+    amount = params[:amount] || subscription.outstanding_amount || subscription.plan_amount
     
     # Create billing attempt
     billing_attempt = BillingAttempt.create!(
@@ -91,7 +91,7 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
     # Build callback URL
     callback_url = Rails.application.routes.url_helpers.webhooks_stk_push_callback_url(
       host: ENV.fetch('APP_HOST', 'localhost:3000'),
-      protocol: Rails.env.production? ? 'https' : 'http'
+      protocol: Rails.env.production? ? 'https' : 'https'
     )
     
     # Initiate STK Push
@@ -99,7 +99,7 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
       phone_number: phone_number,
       amount: amount,
       account_reference: params[:reference] || subscription.reference_number,
-      transaction_desc: "Payment for #{subscription.plan.name}",
+      transaction_desc: "Payment for #{subscription.plan_name}",
       callback_url: callback_url
     )
     

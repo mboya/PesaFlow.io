@@ -10,42 +10,35 @@ export interface Customer {
   updated_at: string;
 }
 
-export interface Plan {
-  id: number;
-  name: string;
-  description: string | null;
-  amount: number;
-  currency: string;
-  billing_frequency: 'monthly' | 'quarterly' | 'yearly';
-  trial_days: number | null;
-  features: Record<string, any> | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Subscription {
   id: number;
   customer_id: number;
-  plan_id: number;
+  // Plan is no longer required; subscriptions are self-contained services
+  plan_id?: number | null;
+  name: string;
+  description?: string | null;
+  amount: number;
+  currency: string;
+  billing_cycle_days?: number | null;
   reference_number: string;
   status: 'active' | 'suspended' | 'cancelled' | 'trial' | 'expired';
-  billing_frequency: 'monthly' | 'quarterly' | 'yearly';
   current_period_start: string;
   current_period_end: string;
   next_billing_date: string | null;
-  trial_start: string | null;
-  trial_end: string | null;
+  trial_days?: number | null;
+  trial_ends_at?: string | null;
   outstanding_amount: number;
   failed_payment_count: number;
-  payment_method: 'ratiba' | 'stk_push' | 'manual' | null;
+  // preferred_payment_method is the field exposed by the backend
+  preferred_payment_method?: 'ratiba' | 'stk_push' | 'c2b' | null;
+  // Deprecated alias kept for backward compatibility
+  payment_method?: 'ratiba' | 'stk_push' | 'manual' | null;
   standing_order_id: string | null;
   cancelled_at: string | null;
   cancellation_reason: string | null;
   created_at: string;
   updated_at: string;
   customer?: Customer;
-  plan?: Plan;
 }
 
 export interface Payment {

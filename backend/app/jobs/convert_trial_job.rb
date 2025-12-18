@@ -16,7 +16,7 @@ class ConvertTrialJob < ApplicationJob
       # The Ratiba webhook will handle the actual payment
       billing_attempt = BillingAttempt.create!(
         subscription: subscription,
-        amount: subscription.plan.amount,
+        amount: subscription.plan_amount,
         invoice_number: generate_invoice_number(subscription),
         payment_method: 'ratiba',
         status: 'pending',
@@ -58,7 +58,7 @@ class ConvertTrialJob < ApplicationJob
   
   def initiate_stk_push_for_trial(subscription)
     customer = subscription.customer
-    amount = subscription.plan.amount
+    amount = subscription.plan_amount
     
     # Create billing attempt
     billing_attempt = BillingAttempt.create!(
@@ -82,7 +82,7 @@ class ConvertTrialJob < ApplicationJob
       phone_number: customer.phone_number,
       amount: amount,
       account_reference: subscription.reference_number,
-      transaction_desc: "Trial conversion: #{subscription.plan.name}",
+      transaction_desc: "Trial conversion: #{subscription.plan_name}",
       callback_url: callback_url
     )
     
@@ -95,7 +95,7 @@ class ConvertTrialJob < ApplicationJob
     
     # Notify customer
     send_sms(customer.phone_number,
-             "Your trial period has ended. Please complete payment of KES #{amount} to continue your #{subscription.plan.name} subscription. Check your phone for M-Pesa prompt.")
+             "Your trial period has ended. Please complete payment of KES #{amount} to continue your #{subscription.plan_name} subscription. Check your phone for M-Pesa prompt.")
   rescue StandardError => e
     Rails.logger.error("Failed to initiate STK Push for trial conversion #{subscription.id}: #{e.message}")
     billing_attempt&.update!(

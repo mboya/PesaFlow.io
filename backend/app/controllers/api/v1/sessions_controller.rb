@@ -1,7 +1,9 @@
 module Api
   module V1
     class SessionsController < Devise::SessionsController
+      skip_before_action :verify_signed_out_user, only: [ :destroy ]
       before_action :configure_sign_in_params, only: [ :create ]
+      prepend_before_action :verify_jwt_token, only: [ :destroy ]
 
       # POST /api/v1/login
       def create
@@ -50,23 +52,18 @@ module Api
 
       # DELETE /api/v1/logout
       def destroy
+        # Token validation is done in before_action :verify_jwt_token
+        # If verify_jwt_token already rendered, skip
+        return if performed?
+        
         signed_out = (Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name))
 
-        if signed_out
-          render json: {
-            status: {
-              code: 200,
-              message: "Logged out successfully"
-            }
-          }, status: :ok
-        else
-          render json: {
-            status: {
-              code: 401,
-              message: "User not authenticated"
-            }
-          }, status: :unauthorized
-        end
+        render json: {
+          status: {
+            code: 200,
+            message: "Logged out successfully"
+          }
+        }, status: :ok
       end
 
       protected
@@ -100,6 +97,46 @@ module Api
             message: "Logged out successfully"
           }
         }, status: :ok
+      end
+
+      def verify_jwt_token
+        # Check for valid JWT token before allowing logout
+        token = request.headers["Authorization"]&.split(" ")&.last
+        
+        unless token.present?
+          render json: {
+            status: {
+              code: 401,
+              message: "No token provided"
+            }
+          }, status: :unauthorized
+          return
+        end
+
+        # Check if token is in denylist (already revoked)
+        begin
+          jwt_secret = ENV.fetch("DEVISE_JWT_SECRET_KEY") { Rails.application.credentials.devise_jwt_secret_key || Rails.application.secret_key_base }
+          decoded = JWT.decode(token, jwt_secret, true, algorithm: 'HS256')
+          jti = decoded[0]["jti"]
+          
+          if JwtDenylist.exists?(jti: jti)
+            render json: {
+              status: {
+                code: 401,
+                message: "Token has been revoked"
+              }
+            }, status: :unauthorized
+            return
+          end
+        rescue JWT::DecodeError, JWT::ExpiredSignature => e
+          render json: {
+            status: {
+              code: 401,
+              message: "Invalid or expired token"
+            }
+          }, status: :unauthorized
+          return
+        end
       end
     end
   end

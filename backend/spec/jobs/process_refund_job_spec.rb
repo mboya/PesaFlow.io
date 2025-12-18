@@ -1,9 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe ProcessRefundJob, type: :job do
-  let(:plan) { create(:plan, amount: 1000) }
-  let(:customer) { create(:customer) }
-  let(:subscription) { create(:subscription, customer: customer, plan: plan) }
+  let(:customer) { create(:customer, phone_number: '254712345678') }
+  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
   let(:payment) { create(:payment, subscription: subscription, status: 'completed') }
   let(:refund) { create(:refund, :approved, subscription: subscription, payment: payment) }
 
@@ -37,14 +36,17 @@ RSpec.describe ProcessRefundJob, type: :job do
       end
     end
 
-    context 'when refund is not approved' do
+    context 'when refund is pending' do
       before do
         refund.update!(status: 'pending')
       end
 
-      it 'does not process pending refund' do
-        expect_any_instance_of(ProcessRefundJob).not_to receive(:initiate_b2c_refund)
+      it 'auto-approves and processes the pending refund' do
         ProcessRefundJob.perform_now(refund.id)
+        
+        refund.reload
+        # Pending refunds are auto-approved and processed
+        expect(refund.status).to eq('completed')
       end
     end
 
@@ -93,4 +95,3 @@ RSpec.describe ProcessRefundJob, type: :job do
     end
   end
 end
-

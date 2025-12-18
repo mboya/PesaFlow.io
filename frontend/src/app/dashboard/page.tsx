@@ -121,7 +121,7 @@ export default function DashboardPage() {
                 <div className="p-6">
                   {dashboardData.active_subscriptions.length === 0 ? (
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      No active subscriptions. <Link href="/plans" className="text-blue-600 hover:underline">Browse plans</Link>
+                      No active subscriptions. <Link href="/subscriptions/new" className="text-blue-600 hover:underline">Create one</Link>
                     </p>
                   ) : (
                     <div className="space-y-4">
@@ -133,15 +133,15 @@ export default function DashboardPage() {
                           <div className="flex items-center justify-between">
                             <div>
                               <h3 className="font-medium text-zinc-900 dark:text-zinc-50">
-                                {subscription.plan?.name || 'Plan'}
+                                {subscription.name || subscription.reference_number}
                               </h3>
                               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                {subscription.reference_number} • {subscription.billing_frequency}
+                                {subscription.reference_number}
                               </p>
                             </div>
                             <div className="text-right">
                               <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                                {formatCurrency(subscription.plan?.amount || 0)}
+                                {formatCurrency(subscription.amount || 0)}
                               </p>
                               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                                 Next billing: {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                         >
                           <div>
                             <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                              {payment.subscription?.plan?.name || 'Payment'}
+                              {payment.subscription?.name || 'Payment'}
                             </p>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
                               {payment.paid_at ? formatDate(payment.paid_at) : 'Pending'}
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                           <div className="flex items-center justify-between">
                             <div>
                               <h3 className="font-medium text-zinc-900 dark:text-zinc-50">
-                                {subscription.plan?.name || 'Plan'}
+                                {subscription.name || subscription.reference_number}
                               </h3>
                               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                                 {subscription.reference_number}
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="text-right">
                               <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                                {formatCurrency(subscription.plan?.amount || 0)}
+                                {formatCurrency(subscription.amount || 0)}
                               </p>
                               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                                 {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}

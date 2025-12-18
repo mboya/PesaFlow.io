@@ -1,13 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe ConvertTrialJob, type: :job do
-  let(:plan) { create(:plan, amount: 1000) }
-  let(:customer) { create(:customer) }
+  let(:customer) { create(:customer, phone_number: '254712345678') }
   let(:trial_subscription) do
     create(:subscription,
            :trial,
            customer: customer,
-           plan: plan,
+           plan_amount: 1000.0,
            trial_ends_at: 1.day.ago)
   end
 
@@ -110,4 +109,3 @@ RSpec.describe ConvertTrialJob, type: :job do
     end
   end
 end
-

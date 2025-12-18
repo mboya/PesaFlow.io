@@ -4,6 +4,9 @@ class Customer < ApplicationRecord
   has_many :subscriptions, dependent: :destroy
   has_many :plans, through: :subscriptions
 
+  # Callbacks
+  before_validation :format_phone_number
+
   # Validations
   validates :name, presence: true
   validates :phone_number, uniqueness: true, allow_nil: true

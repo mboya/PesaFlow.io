@@ -43,7 +43,7 @@ module Billing
 
     def schedule_retry(subscription, delay:)
       billing_attempt = subscription.billing_attempts.create!(
-        amount: subscription.plan.amount,
+        amount: subscription.plan_amount,
         invoice_number: generate_invoice_number(subscription),
         payment_method: 'stk_push',
         status: 'pending',
@@ -57,7 +57,7 @@ module Billing
 
     def send_manual_payment_instructions(subscription)
       paybill = ENV.fetch('business_short_code', '600000')
-      amount = subscription.outstanding_amount || subscription.plan.amount
+      amount = subscription.outstanding_amount || subscription.plan_amount
       account = subscription.reference_number
 
       message = <<~SMS

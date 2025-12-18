@@ -1,9 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe RetryFailedPaymentJob, type: :job do
-  let(:plan) { create(:plan, amount: 1000) }
-  let(:customer) { create(:customer) }
-  let(:subscription) { create(:subscription, customer: customer, plan: plan, status: 'active', outstanding_amount: 1000) }
+  let(:customer) { create(:customer, phone_number: '254712345678') }
+  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0, status: 'active', outstanding_amount: 1000) }
   let(:billing_attempt) { create(:billing_attempt, :failed, subscription: subscription, retry_count: 1) }
 
   describe '#perform' do

@@ -46,6 +46,8 @@ Rails.application.routes.draw do
           post :upgrade
           post :downgrade
         end
+        # Nested payments for a subscription
+        resources :payments, only: [:index], controller: 'subscription_payments'
       end
       
       resources :plans, only: [:index, :show]
@@ -60,6 +62,11 @@ Rails.application.routes.draw do
       get 'dashboard', to: 'dashboard#show'
       get 'invoices', to: 'invoices#index'
       get 'invoices/:id', to: 'invoices#show'
+      
+      # Profile management
+      get 'profile', to: 'profile#show'
+      patch 'profile', to: 'profile#update'
+      put 'profile', to: 'profile#update'
       
       # Refunds
       resources :refunds, only: [:index, :show, :create]

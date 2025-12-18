@@ -136,7 +136,7 @@ RSpec.describe "Authentication Integration", type: :request do
 
   describe "OTP disable flow" do
     let(:user) { create(:user, :with_otp, email: "disable@example.com", password: "password123") }
-    let(:token) { login_user(user) }
+    let(:token) { login_with_otp(user) }
 
     it "allows disable OTP with password and current OTP" do
       # Enable OTP (already enabled in factory)

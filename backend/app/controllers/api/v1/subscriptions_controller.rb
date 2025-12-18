@@ -13,16 +13,17 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   
   # GET /api/v1/subscriptions/:id
   def show
-    authorize_subscription!
+    return unless authorize_subscription!
     render json: @subscription, serializer: Api::V1::SubscriptionSerializer
   end
   
   # POST /api/v1/subscriptions
   def create
     result = ::Subscriptions::CreateService.new(
+      user: current_user,
       customer_params: customer_params,
-      plan_id: params[:plan_id],
-      payment_method: params[:payment_method] || 'ratiba'
+      subscription_params: create_subscription_params,
+      payment_method: params[:payment_method] || create_subscription_params[:preferred_payment_method] || 'ratiba'
     ).call
 
     if result.success?
@@ -34,7 +35,7 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   
   # PATCH/PUT /api/v1/subscriptions/:id
   def update
-    authorize_subscription!
+    return unless authorize_subscription!
     
     if @subscription.update(subscription_params)
       render json: Api::V1::SubscriptionSerializer.render(@subscription)
@@ -45,7 +46,7 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   
   # POST /api/v1/subscriptions/:id/cancel
   def cancel
-    authorize_subscription!
+    return unless authorize_subscription!
     
     ::Subscriptions::CancelService.new(@subscription).call(
       reason: params[:reason] || 'Customer requested',
@@ -59,7 +60,7 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   
   # POST /api/v1/subscriptions/:id/reactivate
   def reactivate
-    authorize_subscription!
+    return unless authorize_subscription!
     
     if @subscription.status == 'suspended' && @subscription.outstanding_amount.zero?
       @subscription.activate!
@@ -73,9 +74,10 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   
   # POST /api/v1/subscriptions/:id/upgrade
   def upgrade
-    authorize_subscription!
+    return unless authorize_subscription!
     
-    new_plan = Plan.find(params[:plan_id])
+    plan_id = params[:new_plan_id] || params[:plan_id]
+    new_plan = Plan.find(plan_id)
     ::Subscriptions::UpgradeService.new(@subscription).call(new_plan)
     
     render json: { message: 'Subscription upgraded successfully', subscription: Api::V1::SubscriptionSerializer.render(@subscription.reload) }
@@ -85,9 +87,10 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   
   # POST /api/v1/subscriptions/:id/downgrade
   def downgrade
-    authorize_subscription!
+    return unless authorize_subscription!
     
-    new_plan = Plan.find(params[:plan_id])
+    plan_id = params[:new_plan_id] || params[:plan_id]
+    new_plan = Plan.find(plan_id)
     ::Subscriptions::DowngradeService.new(@subscription).call(new_plan)
     
     render json: { message: 'Subscription will be downgraded at next billing cycle', subscription: Api::V1::SubscriptionSerializer.render(@subscription.reload) }
@@ -105,22 +108,38 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
     customer = current_user_customer
     unless customer && @subscription.customer == customer
       render json: { error: 'Unauthorized' }, status: :unauthorized
+      return false
     end
+    true
   end
   
   def subscription_params
     params.require(:subscription).permit(:preferred_payment_method, :is_trial, :trial_ends_at)
   end
 
+  # Strong params for creation (commercial fields)
+  def create_subscription_params
+    params.require(:subscription).permit(
+      :name,
+      :description,
+      :amount,
+      :currency,
+      :billing_cycle_days,
+      :trial_days,
+      :has_trial,
+      :preferred_payment_method
+    )
+  end
+
   def customer_params
-    params.require(:customer).permit(:phone_number, :email, :first_name, :last_name)
-  rescue ActionController::ParameterMissing
-    # Fallback if customer params not provided
+    customer_data = params[:customer] ? params.require(:customer).permit(:phone_number, :email, :first_name, :last_name) : {}
+    
+    # Merge with defaults from current user
     {
-      email: current_user.email,
-      phone_number: "254#{SecureRandom.rand(1000000000..9999999999)}",
-      first_name: current_user.email.split('@').first,
-      last_name: ''
+      email: customer_data[:email].presence || current_user.email,
+      phone_number: customer_data[:phone_number].presence || current_user.customer&.phone_number,
+      first_name: customer_data[:first_name].presence || current_user.email.split('@').first,
+      last_name: customer_data[:last_name].presence || ''
     }
   end
 end

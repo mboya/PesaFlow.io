@@ -16,7 +16,7 @@ class Api::V1::RefundsController < Api::V1::ApplicationController
   
   # GET /api/v1/refunds/:id
   def show
-    authorize_refund!
+    return unless authorize_refund!
     render json: Api::V1::RefundSerializer.render(@refund)
   end
   
@@ -38,19 +38,15 @@ class Api::V1::RefundsController < Api::V1::ApplicationController
     end
     
     @refund = Refund.create!(
+      subscription: payment.subscription,
       payment: payment,
       amount: params[:amount] || payment.amount,
       reason: params[:reason],
       status: 'pending'
     )
     
-    # Process refund using RefundService
-    Payments::RefundService.new.process(
-      subscription: payment.subscription,
-      amount: params[:amount] || payment.amount,
-      reason: params[:reason],
-      initiated_by: 'customer'
-    )
+    # Enqueue job to process refund asynchronously
+    ProcessRefundJob.perform_later(@refund.id)
     
     render json: Api::V1::RefundSerializer.render(@refund), status: :created
   rescue StandardError => e
@@ -68,7 +64,9 @@ class Api::V1::RefundsController < Api::V1::ApplicationController
     customer = current_user_customer
     unless customer && @refund.payment.subscription.customer == customer
       render json: { error: 'Unauthorized' }, status: :unauthorized
+      return false
     end
+    true
   end
 end
 

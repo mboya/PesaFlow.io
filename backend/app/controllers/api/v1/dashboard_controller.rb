@@ -13,10 +13,15 @@ class Api::V1::DashboardController < Api::V1::ApplicationController
                               .map { |s| s.payments.completed.order(paid_at: :desc).first }
                               .compact
     
+    # Only include outstanding from non-cancelled subscriptions
+    total_outstanding = customer.subscriptions
+                                .where.not(status: 'cancelled')
+                                .sum(:outstanding_amount)
+
     dashboard_data = {
       customer: JSON.parse(Api::V1::CustomerSerializer.render(customer)),
       active_subscriptions: JSON.parse(Api::V1::SubscriptionSerializer.render(customer.subscriptions.active)),
-      total_outstanding: customer.subscriptions.sum(:outstanding_amount),
+      total_outstanding: total_outstanding,
       recent_payments: recent_payments.any? ? JSON.parse(Api::V1::PaymentSerializer.render(recent_payments)) : [],
       upcoming_billing: JSON.parse(Api::V1::SubscriptionSerializer.render(
         customer.subscriptions.active

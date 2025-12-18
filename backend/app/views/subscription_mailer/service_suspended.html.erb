@@ -24,14 +24,14 @@
       
       <p>Dear <%= @customer.name %>,</p>
       
-      <p>We regret to inform you that your subscription to the <strong><%= @plan.name %></strong> plan has been suspended due to non-payment.</p>
+      <p>We regret to inform you that your subscription to the <strong><%= @subscription.plan_name %></strong> plan has been suspended due to non-payment.</p>
 
       <h3>Subscription Details:</h3>
       <ul>
         <li><strong>Reference Number:</strong> <%= @subscription.reference_number %></li>
-        <li><strong>Plan:</strong> <%= @plan.name %></li>
+        <li><strong>Plan:</strong> <%= @subscription.plan_name %></li>
         <li><strong>Outstanding Amount:</strong> KES <%= @subscription.outstanding_amount %></li>
-        <li><strong>Suspended At:</strong> <%= @subscription.suspended_at.strftime("%Y-%m-%d %H:%M:%S") %></li>
+        <li><strong>Suspended At:</strong> <%= @subscription.suspended_at&.strftime("%Y-%m-%d %H:%M:%S") || 'N/A' %></li>
       </ul>
 
       <h3>How to Reactivate:</h3>

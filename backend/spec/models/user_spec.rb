@@ -126,7 +126,8 @@ RSpec.describe User, type: :model do
         uri = user.provisioning_uri
         expect(uri).to be_present
         expect(uri).to start_with("otpauth://totp/")
-        expect(uri).to include(user.email)
+        # Email is URL-encoded in the URI, so check for encoded version
+        expect(uri).to include(ERB::Util.url_encode(user.email))
         expect(uri).to include("secret=")
       end
 

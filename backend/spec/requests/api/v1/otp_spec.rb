@@ -27,7 +27,7 @@ RSpec.describe "OTP API", type: :request do
 
     context "when OTP already enabled" do
       let(:user) { create(:user, :with_otp) }
-      let(:token) { login_user(user) }
+      let(:token) { login_with_otp(user) }
 
       it "returns 422" do
         post "/api/v1/otp/enable", headers: auth_headers(token), as: :json
@@ -103,7 +103,7 @@ RSpec.describe "OTP API", type: :request do
 
   describe "POST /api/v1/otp/disable" do
     let(:user) { create(:user, :with_otp) }
-    let(:token) { login_user(user) }
+    let(:token) { login_with_otp(user) }
     let(:otp_code) { generate_valid_otp_for(user) }
 
     context "with valid password and OTP" do
@@ -231,7 +231,7 @@ RSpec.describe "OTP API", type: :request do
 
   describe "POST /api/v1/otp/backup_codes" do
     let(:user) { create(:user, :with_otp) }
-    let(:token) { login_user(user) }
+    let(:token) { login_with_otp(user) }
 
     context "with valid password" do
       it "generates new codes" do
@@ -277,7 +277,7 @@ RSpec.describe "OTP API", type: :request do
 
   describe "GET /api/v1/otp/qr_code" do
     let(:user) { create(:user, :with_otp) }
-    let(:token) { login_user(user) }
+    let(:token) { login_with_otp(user) }
 
     context "with OTP secret" do
       it "returns QR code image data" do

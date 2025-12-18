@@ -1,12 +1,9 @@
-class Webhooks::StkPushController < ActionController::Base
+class Webhooks::StkPushController < ActionController::API
   include WebhookLoggable
-  
-  skip_before_action :verify_authenticity_token
-  protect_from_forgery with: :null_session
   
   def callback
     payload = JSON.parse(request.body.read)
-    log_webhook('stk_push', payload, request.headers.to_h)
+    log_webhook('stk_push', payload, request.env)
     
     result_code = payload.dig('Body', 'stkCallback', 'ResultCode')
     checkout_request_id = payload.dig('Body', 'stkCallback', 'CheckoutRequestID')
@@ -46,6 +43,9 @@ class Webhooks::StkPushController < ActionController::Base
     
     subscription = billing_attempt.subscription
     
+    # Parse M-Pesa transaction date (format: YYYYMMDDHHmmss, e.g., "20251217160028")
+    paid_at = parse_mpesa_timestamp(transaction_date) || Time.current
+    
     payment = Payment.create!(
       subscription: subscription,
       billing_attempt: billing_attempt,
@@ -55,7 +55,7 @@ class Webhooks::StkPushController < ActionController::Base
       mpesa_receipt_number: mpesa_receipt,
       phone_number: phone,
       status: 'completed',
-      paid_at: transaction_date ? Time.at(transaction_date.to_i) : Time.current
+      paid_at: paid_at
     )
     
     billing_attempt.update!(
@@ -120,6 +120,24 @@ class Webhooks::StkPushController < ActionController::Base
     # TODO: Implement SMS sending via M-Pesa or other provider
     # For now, just log it
     Rails.logger.info("SMS to #{phone_number}: #{message}")
+  end
+  
+  # Parse M-Pesa timestamp format (YYYYMMDDHHmmss) to Time object
+  def parse_mpesa_timestamp(timestamp)
+    return nil if timestamp.blank?
+    
+    timestamp_str = timestamp.to_s
+    
+    # M-Pesa format: YYYYMMDDHHmmss (e.g., "20251217160028")
+    if timestamp_str.match?(/^\d{14}$/)
+      Time.strptime(timestamp_str, '%Y%m%d%H%M%S')
+    else
+      # Try parsing as ISO format or other common formats
+      Time.parse(timestamp_str)
+    end
+  rescue ArgumentError => e
+    Rails.logger.warn("Failed to parse M-Pesa timestamp '#{timestamp}': #{e.message}")
+    nil
   end
 end
 
