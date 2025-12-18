@@ -31,6 +31,17 @@ module Subscriptions
         current_end   = billing_days.positive? ? current_start + billing_days.days : nil
         next_billing  = current_end
 
+        # For trial subscriptions, outstanding is 0 until trial ends
+        # For ratiba (standing orders), Safaricom handles the debit so outstanding starts at 0
+        # For stk_push and c2b, customer needs to pay first, so outstanding = amount
+        initial_outstanding = if has_trial
+                                0
+                              elsif @payment_method == 'ratiba'
+                                0 # Will be set if payment fails
+                              else
+                                amount # STK Push / C2B - customer owes until first payment
+                              end
+
         # Create subscription (no hard Plan dependency)
         @subscription = @customer.subscriptions.create!(
           # core commercial fields
@@ -45,6 +56,9 @@ module Subscriptions
           is_trial: has_trial,
           trial_days: trial_days,
           trial_ends_at: has_trial ? (current_start + trial_days.days) : nil,
+
+          # outstanding amount
+          outstanding_amount: initial_outstanding,
 
           preferred_payment_method: @payment_method,
           current_period_start: current_start,
