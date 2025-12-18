@@ -1,5 +1,6 @@
 class Webhooks::StkPushController < ActionController::API
   include WebhookLoggable
+  include Transactional
   
   def callback
     payload = JSON.parse(request.body.read)
@@ -34,60 +35,64 @@ class Webhooks::StkPushController < ActionController::API
   private
   
   def process_successful_stk_push(billing_attempt, metadata)
-    mpesa_receipt = metadata.find { |item| item['Name'] == 'MpesaReceiptNumber' }&.dig('Value')
-    amount = metadata.find { |item| item['Name'] == 'Amount' }&.dig('Value')
-    phone = metadata.find { |item| item['Name'] == 'PhoneNumber' }&.dig('Value')
-    transaction_date = metadata.find { |item| item['Name'] == 'TransactionDate' }&.dig('Value')
-    
-    return unless mpesa_receipt && amount && phone
-    
-    subscription = billing_attempt.subscription
-    
-    # Parse M-Pesa transaction date (format: YYYYMMDDHHmmss, e.g., "20251217160028")
-    paid_at = parse_mpesa_timestamp(transaction_date) || Time.current
-    
-    payment = Payment.create!(
-      subscription: subscription,
-      billing_attempt: billing_attempt,
-      amount: amount,
-      payment_method: 'stk_push',
-      mpesa_transaction_id: mpesa_receipt,
-      mpesa_receipt_number: mpesa_receipt,
-      phone_number: phone,
-      status: 'completed',
-      paid_at: paid_at
-    )
-    
-    billing_attempt.update!(
-      status: 'completed',
-      mpesa_receipt_number: mpesa_receipt,
-      mpesa_transaction_id: mpesa_receipt
-    )
-    
-    # Extend subscription period
-    subscription.extend_period!
-    subscription.mark_as_paid!
-    
-    # Generate invoice
-    Billing::InvoiceGenerator.new(subscription, payment).generate
-    
-    # Send receipt
-    NotificationService.send_payment_receipt(payment)
+    with_transaction do
+      mpesa_receipt = metadata.find { |item| item['Name'] == 'MpesaReceiptNumber' }&.dig('Value')
+      amount = metadata.find { |item| item['Name'] == 'Amount' }&.dig('Value')
+      phone = metadata.find { |item| item['Name'] == 'PhoneNumber' }&.dig('Value')
+      transaction_date = metadata.find { |item| item['Name'] == 'TransactionDate' }&.dig('Value')
+      
+      return unless mpesa_receipt && amount && phone
+      
+      subscription = billing_attempt.subscription
+      
+      # Parse M-Pesa transaction date (format: YYYYMMDDHHmmss, e.g., "20251217160028")
+      paid_at = parse_mpesa_timestamp(transaction_date) || Time.current
+      
+      payment = Payment.create!(
+        subscription: subscription,
+        billing_attempt: billing_attempt,
+        amount: amount,
+        payment_method: 'stk_push',
+        mpesa_transaction_id: mpesa_receipt,
+        mpesa_receipt_number: mpesa_receipt,
+        phone_number: phone,
+        status: 'completed',
+        paid_at: paid_at
+      )
+      
+      billing_attempt.update!(
+        status: 'completed',
+        mpesa_receipt_number: mpesa_receipt,
+        mpesa_transaction_id: mpesa_receipt
+      )
+      
+      # Extend subscription period
+      subscription.extend_period!
+      subscription.mark_as_paid!
+      
+      # Generate invoice (non-blocking - enqueued)
+      Billing::InvoiceGenerator.new(subscription, payment).generate
+      
+      # Send receipt (non-blocking - enqueued)
+      NotificationService.send_payment_receipt(payment)
+    end
   end
   
   def process_failed_stk_push(billing_attempt, result_desc)
-    billing_attempt.update!(
-      status: 'failed',
-      failure_reason: result_desc
-    )
-    
-    subscription = billing_attempt.subscription
-    
-    # Update subscription outstanding amount
-    subscription.update!(outstanding_amount: billing_attempt.amount)
-    
-    # Handle failed payment through dunning manager
-    Billing::DunningManager.new.handle_failed_payment(subscription)
+    with_transaction do
+      billing_attempt.update!(
+        status: 'failed',
+        failure_reason: result_desc
+      )
+      
+      subscription = billing_attempt.subscription
+      
+      # Update subscription outstanding amount
+      subscription.update!(outstanding_amount: billing_attempt.amount)
+      
+      # Handle failed payment through dunning manager
+      Billing::DunningManager.new.handle_failed_payment(subscription)
+    end
   end
   
   def calculate_next_retry_time(retry_count)

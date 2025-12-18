@@ -3,11 +3,11 @@ Dir[Rails.root.join('app/services/subscriptions/*.rb')].each { |f| require f }
 
 class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   before_action :authenticate_api_v1_user!
-  before_action :set_subscription, only: [:show, :update, :cancel, :reactivate, :upgrade, :downgrade]
+  before_action :set_subscription, only: [:show, :update, :cancel, :reactivate]
   
   # GET /api/v1/subscriptions
   def index
-    @subscriptions = current_user.customer&.subscriptions || Subscription.none
+    @subscriptions = current_user.customer&.subscriptions&.includes(:customer) || Subscription.none
     render json: @subscriptions, each_serializer: Api::V1::SubscriptionSerializer
   end
   
@@ -37,10 +37,12 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   def update
     return unless authorize_subscription!
     
-    if @subscription.update(subscription_params)
-      render json: Api::V1::SubscriptionSerializer.render(@subscription)
-    else
-      render json: { errors: @subscription.errors.full_messages }, status: :unprocessable_entity
+    with_transaction do
+      if @subscription.update(subscription_params)
+        render json: Api::V1::SubscriptionSerializer.render(@subscription)
+      else
+        render json: { errors: @subscription.errors.full_messages }, status: :unprocessable_entity
+      end
     end
   end
   
@@ -62,46 +64,24 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   def reactivate
     return unless authorize_subscription!
     
-    if @subscription.status == 'suspended' && @subscription.outstanding_amount.zero?
-      @subscription.activate!
-      render json: { message: 'Subscription reactivated successfully', subscription: Api::V1::SubscriptionSerializer.render(@subscription) }
-    elsif @subscription.outstanding_amount > 0
-      render json: { error: 'Please clear outstanding balance before reactivating' }, status: :unprocessable_entity
-    else
-      render json: { error: 'Subscription cannot be reactivated' }, status: :unprocessable_entity
+    with_transaction do
+      if @subscription.status == 'suspended' && @subscription.outstanding_amount.zero?
+        @subscription.activate!
+        render json: { message: 'Subscription reactivated successfully', subscription: Api::V1::SubscriptionSerializer.render(@subscription) }
+      elsif @subscription.outstanding_amount > 0
+        render json: { error: 'Please clear outstanding balance before reactivating' }, status: :unprocessable_entity
+      else
+        render json: { error: 'Subscription cannot be reactivated' }, status: :unprocessable_entity
+      end
     end
-  end
-  
-  # POST /api/v1/subscriptions/:id/upgrade
-  def upgrade
-    return unless authorize_subscription!
-    
-    plan_id = params[:new_plan_id] || params[:plan_id]
-    new_plan = Plan.find(plan_id)
-    ::Subscriptions::UpgradeService.new(@subscription).call(new_plan)
-    
-    render json: { message: 'Subscription upgraded successfully', subscription: Api::V1::SubscriptionSerializer.render(@subscription.reload) }
-  rescue StandardError => e
-    render json: { error: e.message }, status: :unprocessable_entity
-  end
-  
-  # POST /api/v1/subscriptions/:id/downgrade
-  def downgrade
-    return unless authorize_subscription!
-    
-    plan_id = params[:new_plan_id] || params[:plan_id]
-    new_plan = Plan.find(plan_id)
-    ::Subscriptions::DowngradeService.new(@subscription).call(new_plan)
-    
-    render json: { message: 'Subscription will be downgraded at next billing cycle', subscription: Api::V1::SubscriptionSerializer.render(@subscription.reload) }
-  rescue StandardError => e
-    render json: { error: e.message }, status: :unprocessable_entity
   end
   
   private
   
   def set_subscription
-    @subscription = Subscription.find(params[:id])
+    # Use find_by with includes - eager loading only happens if record exists
+    @subscription = Subscription.includes(:customer).find_by(id: params[:id])
+    raise ActiveRecord::RecordNotFound, "Subscription not found" unless @subscription
   end
   
   def authorize_subscription!

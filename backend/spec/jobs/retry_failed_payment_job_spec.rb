@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe RetryFailedPaymentJob, type: :job do
   let(:customer) { create(:customer, phone_number: '254712345678') }
-  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0, status: 'active', outstanding_amount: 1000) }
+  let(:subscription) { create(:subscription, customer: customer, amount: 1000.0, status: 'active', outstanding_amount: 1000) }
   let(:billing_attempt) { create(:billing_attempt, :failed, subscription: subscription, retry_count: 1) }
 
   describe '#perform' do
@@ -75,7 +75,9 @@ RSpec.describe RetryFailedPaymentJob, type: :job do
       end
 
       it 'updates billing attempt status to failed' do
-        RetryFailedPaymentJob.perform_now(billing_attempt.id)
+        expect {
+          RetryFailedPaymentJob.perform_now(billing_attempt.id)
+        }.to raise_error(StandardError, 'API Error')
 
         billing_attempt.reload
         expect(billing_attempt.status).to eq('failed')

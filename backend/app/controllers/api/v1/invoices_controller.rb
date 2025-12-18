@@ -8,7 +8,9 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
     return render json: { error: 'Customer not found' }, status: :not_found unless customer
     
     # Invoices are represented by billing attempts with invoice numbers
-    @invoices = BillingAttempt.joins(:subscription)
+    # Eager load associations to avoid N+1 queries
+    @invoices = BillingAttempt.includes(subscription: :customer)
+                              .joins(:subscription)
                               .where(subscriptions: { customer_id: customer.id })
                               .where.not(invoice_number: nil)
                               .order(attempted_at: :desc)
@@ -26,8 +28,11 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
   
   def set_invoice
     # Support lookup by either ID or invoice_number
-    @invoice = BillingAttempt.find_by(id: params[:id]) || 
-               BillingAttempt.find_by(invoice_number: params[:id])
+    # Use a single query with OR condition - eager loading only happens if record exists
+    base_relation = BillingAttempt.includes(subscription: :customer)
+    @invoice = base_relation.where(id: params[:id])
+                           .or(base_relation.where(invoice_number: params[:id]))
+                           .first
     
     raise ActiveRecord::RecordNotFound, "Invoice not found" unless @invoice
   end

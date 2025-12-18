@@ -1,5 +1,6 @@
 class Webhooks::RatibaController < ActionController::API
   include WebhookLoggable
+  include Transactional
   
   def callback
     payload = JSON.parse(request.body.read)
@@ -33,42 +34,46 @@ class Webhooks::RatibaController < ActionController::API
   private
   
   def process_successful_payment(subscription, payload)
-    payment = Payment.create!(
-      subscription: subscription,
-      amount: payload['TransAmount'],
-      payment_method: 'ratiba',
-      mpesa_transaction_id: payload['TransID'],
-      mpesa_receipt_number: payload['TransID'],
-      phone_number: payload['MSISDN'],
-      status: 'completed',
-      paid_at: Time.current
-    )
-    
-    # Extend subscription period
-    subscription.extend_period!
-    subscription.mark_as_paid!
-    
-    # Generate invoice
-    Billing::InvoiceGenerator.new(subscription, payment).generate
-    
-    # Send receipt
-    NotificationService.send_payment_receipt(payment)
+    with_transaction do
+      payment = Payment.create!(
+        subscription: subscription,
+        amount: payload['TransAmount'],
+        payment_method: 'ratiba',
+        mpesa_transaction_id: payload['TransID'],
+        mpesa_receipt_number: payload['TransID'],
+        phone_number: payload['MSISDN'],
+        status: 'completed',
+        paid_at: Time.current
+      )
+      
+      # Extend subscription period
+      subscription.extend_period!
+      subscription.mark_as_paid!
+      
+      # Generate invoice (non-blocking - enqueued)
+      Billing::InvoiceGenerator.new(subscription, payment).generate
+      
+      # Send receipt (non-blocking - enqueued)
+      NotificationService.send_payment_receipt(payment)
+    end
   end
   
   def process_failed_payment(subscription, payload)
-    billing_attempt = BillingAttempt.create!(
-      subscription: subscription,
-      amount: subscription.plan_amount,
-      invoice_number: generate_invoice_number(subscription),
-      payment_method: 'ratiba',
-      status: 'failed',
-      failure_reason: payload['ResultDesc'],
-      attempted_at: Time.current,
-      next_retry_at: 1.hour.from_now
-    )
-    
-    # Handle failed payment through dunning manager
-    Billing::DunningManager.new.handle_failed_payment(subscription)
+    with_transaction do
+      billing_attempt = BillingAttempt.create!(
+        subscription: subscription,
+        amount: subscription.amount,
+        invoice_number: generate_invoice_number(subscription),
+        payment_method: 'ratiba',
+        status: 'failed',
+        failure_reason: payload['ResultDesc'],
+        attempted_at: Time.current,
+        next_retry_at: 1.hour.from_now
+      )
+      
+      # Handle failed payment through dunning manager
+      Billing::DunningManager.new.handle_failed_payment(subscription)
+    end
   end
 
   def generate_invoice_number(subscription)

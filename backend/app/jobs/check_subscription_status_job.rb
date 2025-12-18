@@ -1,4 +1,6 @@
 class CheckSubscriptionStatusJob < ApplicationJob
+  include Transactional
+  
   queue_as :default
   
   def perform
@@ -35,22 +37,24 @@ class CheckSubscriptionStatusJob < ApplicationJob
   private
   
   def suspend_subscription(subscription)
-    # Skip if already suspended or cancelled
-    return if subscription.status == 'suspended' || subscription.status == 'cancelled'
-    
-    # Suspend service using the model method
-    subscription.suspend!
-    
-    # Notify customer via SMS
-    send_sms(
-      subscription.customer.phone_number,
-      "Your #{subscription.plan_name} subscription has been suspended due to non-payment. " \
-      "Pay KES #{subscription.outstanding_amount} to Paybill #{ENV.fetch('MPESA_PAYBILL', ENV.fetch('business_short_code', 'N/A'))}, " \
-      "Account: #{subscription.reference_number}"
-    )
-    
-    # Send email notification
-    SubscriptionMailer.service_suspended(subscription).deliver_later
+    with_transaction do
+      # Skip if already suspended or cancelled
+      return if subscription.status == 'suspended' || subscription.status == 'cancelled'
+      
+      # Suspend service using the model method
+      subscription.suspend!
+      
+      # Notify customer via SMS
+      send_sms(
+        subscription.customer.phone_number,
+        "Your #{subscription.name} subscription has been suspended due to non-payment. " \
+        "Pay KES #{subscription.outstanding_amount} to Paybill #{ENV.fetch('MPESA_PAYBILL', ENV.fetch('business_short_code', 'N/A'))}, " \
+        "Account: #{subscription.reference_number}"
+      )
+      
+      # Send email notification
+      SubscriptionMailer.service_suspended(subscription).deliver_later
+    end
   end
   
   def send_sms(phone_number, message)

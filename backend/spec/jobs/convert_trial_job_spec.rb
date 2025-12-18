@@ -6,7 +6,7 @@ RSpec.describe ConvertTrialJob, type: :job do
     create(:subscription,
            :trial,
            customer: customer,
-           plan_amount: 1000.0,
+           amount: 1000.0,
            trial_ends_at: 1.day.ago)
   end
 
@@ -95,7 +95,9 @@ RSpec.describe ConvertTrialJob, type: :job do
       end
 
       it 'suspends subscription' do
-        ConvertTrialJob.perform_now(trial_subscription.id)
+        expect {
+          ConvertTrialJob.perform_now(trial_subscription.id)
+        }.to raise_error(StandardError, 'API Error')
 
         trial_subscription.reload
         expect(trial_subscription.status).to eq('suspended')
@@ -103,7 +105,11 @@ RSpec.describe ConvertTrialJob, type: :job do
 
       it 'sends conversion failed email' do
         expect {
-          ConvertTrialJob.perform_now(trial_subscription.id)
+          begin
+            ConvertTrialJob.perform_now(trial_subscription.id)
+          rescue StandardError
+            # Expected error
+          end
         }.to have_enqueued_job(ActionMailer::MailDeliveryJob)
       end
     end

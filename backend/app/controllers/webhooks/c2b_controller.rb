@@ -1,5 +1,6 @@
 class Webhooks::C2bController < ActionController::API
   include WebhookLoggable
+  include Transactional
   
   # POST /webhooks/c2b/validation
   def validation
@@ -68,31 +69,33 @@ class Webhooks::C2bController < ActionController::API
   private
   
   def process_c2b_payment(subscription, payload)
-    payment = Payment.create!(
-      subscription: subscription,
-      amount: payload['TransAmount'],
-      payment_method: 'c2b',
-      mpesa_transaction_id: payload['TransID'],
-      mpesa_receipt_number: payload['TransID'],
-      phone_number: payload['MSISDN'],
-      status: 'completed',
-      paid_at: Time.current
-    )
-    
-    # Reactivate subscription if suspended
-    if subscription.suspended?
-      subscription.reactivate!
-      subscription.reset_failed_payment_count!
+    with_transaction do
+      payment = Payment.create!(
+        subscription: subscription,
+        amount: payload['TransAmount'],
+        payment_method: 'c2b',
+        mpesa_transaction_id: payload['TransID'],
+        mpesa_receipt_number: payload['TransID'],
+        phone_number: payload['MSISDN'],
+        status: 'completed',
+        paid_at: Time.current
+      )
+      
+      # Reactivate subscription if suspended
+      if subscription.suspended?
+        subscription.reactivate!
+        subscription.reset_failed_payment_count!
+      end
+      
+      # Update subscription status and clear outstanding amount
+      subscription.update!(
+        status: 'active',
+        outstanding_amount: [subscription.outstanding_amount - payment.amount.to_d, 0].max
+      )
+      
+      # Send receipt email (non-blocking - enqueued)
+      SubscriptionMailer.payment_receipt(subscription, payment).deliver_later if subscription.customer.email.present?
     end
-    
-    # Update subscription status and clear outstanding amount
-    subscription.update!(
-      status: 'active',
-      outstanding_amount: [subscription.outstanding_amount - payment.amount.to_d, 0].max
-    )
-    
-    # Send receipt email
-    SubscriptionMailer.payment_receipt(subscription, payment).deliver_later if subscription.customer.email.present?
   end
 end
 

@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe ProcessRefundJob, type: :job do
   let(:customer) { create(:customer, phone_number: '254712345678') }
-  let(:subscription) { create(:subscription, customer: customer, plan_amount: 1000.0) }
+  let(:subscription) { create(:subscription, customer: customer, amount: 1000.0) }
   let(:payment) { create(:payment, subscription: subscription, status: 'completed') }
   let(:refund) { create(:refund, :approved, subscription: subscription, payment: payment) }
 
@@ -86,7 +86,9 @@ RSpec.describe ProcessRefundJob, type: :job do
       end
 
       it 'marks refund as failed with error message' do
-        ProcessRefundJob.perform_now(refund.id)
+        expect {
+          ProcessRefundJob.perform_now(refund.id)
+        }.to raise_error(StandardError, 'API Error')
 
         refund.reload
         expect(refund.status).to eq('failed')

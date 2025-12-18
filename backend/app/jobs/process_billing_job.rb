@@ -1,11 +1,13 @@
 class ProcessBillingJob < ApplicationJob
+  include Transactional
+  
   queue_as :critical
   
   def perform
     # Find all subscriptions due for billing today
     subscriptions_due = Subscription.active
                                    .where(next_billing_date: Date.current)
-                                   .includes(:customer, :plan)
+                                   .includes(:customer)
     
     subscriptions_due.find_each do |subscription|
       begin
@@ -20,14 +22,15 @@ class ProcessBillingJob < ApplicationJob
   private
   
   def process_subscription_billing(subscription)
-    # Check if subscription is still active and valid
-    return unless subscription.is_active?
-    return if subscription.outstanding_amount > 0 # Skip if already has outstanding balance
-    
-    # Create billing attempt
-    billing_attempt = BillingAttempt.create!(
+    with_transaction do
+      # Check if subscription is still active and valid
+      return unless subscription.is_active?
+      return if subscription.outstanding_amount > 0 # Skip if already has outstanding balance
+      
+      # Create billing attempt
+      billing_attempt = BillingAttempt.create!(
       subscription: subscription,
-      amount: subscription.plan_amount,
+      amount: subscription.amount,
       invoice_number: generate_invoice_number(subscription),
       payment_method: subscription.preferred_payment_method || 'ratiba',
       status: 'pending',
@@ -35,29 +38,30 @@ class ProcessBillingJob < ApplicationJob
       attempt_number: 1
     )
     
-    # Process based on payment method
-    case subscription.preferred_payment_method
-    when 'ratiba'
-      # Standing orders are automatic, just track the attempt
-      # The Ratiba webhook will handle the actual payment
-      billing_attempt.update!(status: 'processing')
-      send_pre_billing_notification(subscription)
-    when 'stk_push'
-      # Initiate STK Push
-      initiate_stk_push(subscription, billing_attempt)
-    when 'c2b'
-      # C2B is customer-initiated, send reminder
-      send_c2b_reminder(subscription)
-    else
-      # Default to Ratiba if no preference
-      billing_attempt.update!(status: 'processing')
-      send_pre_billing_notification(subscription)
+      # Process based on payment method
+      case subscription.preferred_payment_method
+      when 'ratiba'
+        # Standing orders are automatic, just track the attempt
+        # The Ratiba webhook will handle the actual payment
+        billing_attempt.update!(status: 'processing')
+        send_pre_billing_notification(subscription)
+      when 'stk_push'
+        # Initiate STK Push
+        initiate_stk_push(subscription, billing_attempt)
+      when 'c2b'
+        # C2B is customer-initiated, send reminder
+        send_c2b_reminder(subscription)
+      else
+        # Default to Ratiba if no preference
+        billing_attempt.update!(status: 'processing')
+        send_pre_billing_notification(subscription)
+      end
     end
   end
   
   def initiate_stk_push(subscription, billing_attempt)
     customer = subscription.customer
-    amount = subscription.plan_amount
+    amount = subscription.amount
     
     # Build callback URL
     callback_url = Rails.application.routes.url_helpers.webhooks_stk_push_callback_url(
@@ -70,7 +74,7 @@ class ProcessBillingJob < ApplicationJob
       phone_number: customer.phone_number,
       amount: amount,
       account_reference: subscription.reference_number,
-      transaction_desc: "Subscription payment: #{subscription.plan_name}",
+      transaction_desc: "Subscription payment: #{subscription.name}",
       callback_url: callback_url
     )
     
@@ -82,7 +86,7 @@ class ProcessBillingJob < ApplicationJob
     )
     
     send_sms(customer.phone_number,
-             "Please complete payment of KES #{amount} for your #{subscription.plan_name} subscription. Check your phone for M-Pesa prompt.")
+             "Please complete payment of KES #{amount} for your #{subscription.name} subscription. Check your phone for M-Pesa prompt.")
   rescue StandardError => e
     Rails.logger.error("Failed to initiate STK Push for subscription #{subscription.id}: #{e.message}")
     billing_attempt.update!(
@@ -97,12 +101,12 @@ class ProcessBillingJob < ApplicationJob
   
   def send_pre_billing_notification(subscription)
     send_sms(subscription.customer.phone_number,
-             "Your #{subscription.plan_name} subscription will be charged KES #{subscription.plan_amount} today. Reference: #{subscription.reference_number}")
+             "Your #{subscription.name} subscription will be charged KES #{subscription.amount} today. Reference: #{subscription.reference_number}")
   end
   
   def send_c2b_reminder(subscription)
     send_sms(subscription.customer.phone_number,
-             "Please pay KES #{subscription.plan_amount} for your #{subscription.plan_name} subscription. Reference: #{subscription.reference_number}")
+             "Please pay KES #{subscription.amount} for your #{subscription.name} subscription. Reference: #{subscription.reference_number}")
   end
   
   def generate_invoice_number(subscription)

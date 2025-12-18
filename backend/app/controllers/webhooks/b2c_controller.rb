@@ -1,5 +1,6 @@
 class Webhooks::B2cController < ActionController::API
   include WebhookLoggable
+  include Transactional
   
   # POST /webhooks/b2c/result
   def result
@@ -65,29 +66,33 @@ class Webhooks::B2cController < ActionController::API
   end
   
   def process_successful_b2c(refund, payload)
-    result = payload.dig('Result', 'ResultParameters', 'ResultParameter') || []
-    
-    transaction_id = result.find { |p| p['Key'] == 'TransactionReceipt' }&.dig('Value') ||
-                     result.find { |p| p['Key'] == 'TransactionID' }&.dig('Value')
-    conversation_id = payload.dig('Result', 'ConversationID')
-    originator_conversation_id = payload.dig('Result', 'OriginatorConversationID')
-    
-    refund.mark_as_completed!(
-      mpesa_transaction_id: transaction_id,
-      conversation_id: conversation_id,
-      originator_conversation_id: originator_conversation_id
-    )
-    
-    # Update payment status
-    refund.payment&.mark_as_refunded!
-    
-    # Send confirmation
-    NotificationService.send_refund_confirmation(refund)
+    with_transaction do
+      result = payload.dig('Result', 'ResultParameters', 'ResultParameter') || []
+      
+      transaction_id = result.find { |p| p['Key'] == 'TransactionReceipt' }&.dig('Value') ||
+                       result.find { |p| p['Key'] == 'TransactionID' }&.dig('Value')
+      conversation_id = payload.dig('Result', 'ConversationID')
+      originator_conversation_id = payload.dig('Result', 'OriginatorConversationID')
+      
+      refund.mark_as_completed!(
+        mpesa_transaction_id: transaction_id,
+        conversation_id: conversation_id,
+        originator_conversation_id: originator_conversation_id
+      )
+      
+      # Update payment status
+      refund.payment&.mark_as_refunded!
+      
+      # Send confirmation (non-blocking - enqueued)
+      NotificationService.send_refund_confirmation(refund)
+    end
   end
   
   def process_failed_b2c(refund, payload)
-    result_desc = payload.dig('Result', 'ResultDesc') || 'Payment failed'
-    refund.mark_as_failed!(reason: result_desc)
+    with_transaction do
+      result_desc = payload.dig('Result', 'ResultDesc') || 'Payment failed'
+      refund.mark_as_failed!(reason: result_desc)
+    end
   end
 end
 

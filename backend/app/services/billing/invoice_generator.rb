@@ -2,14 +2,17 @@ module Billing
   # Service for generating invoice-related operations
   # Note: Invoices are represented by BillingAttempt records with invoice_number
   class InvoiceGenerator
+    include Transactional
+
     def initialize(subscription, payment = nil)
       @subscription = subscription
       @payment = payment
     end
 
     def generate
-      # Find or create a billing attempt to serve as the invoice
-      billing_attempt = find_or_create_billing_attempt
+      with_transaction do
+        # Find or create a billing attempt to serve as the invoice
+        billing_attempt = find_or_create_billing_attempt
       
       # Update with payment info if provided
       if @payment
@@ -20,12 +23,13 @@ module Billing
         )
       end
 
-      # Send invoice email
-      if @subscription.customer.email.present?
-        SubscriptionMailer.invoice(@subscription, billing_attempt).deliver_later
-      end
+        # Send invoice email (non-blocking - enqueued)
+        if @subscription.customer.email.present?
+          SubscriptionMailer.invoice(@subscription, billing_attempt).deliver_later
+        end
 
-      billing_attempt
+        billing_attempt
+      end
     end
 
     def generate_for_period
@@ -62,7 +66,7 @@ module Billing
       # Create new billing attempt as invoice
       @subscription.billing_attempts.create!(
         invoice_number: generate_invoice_number,
-        amount: @subscription.plan_amount,
+        amount: @subscription.amount,
         payment_method: @payment&.payment_method || @subscription.preferred_payment_method || 'stk_push',
         status: status || (@payment ? 'completed' : 'pending'),
         attempted_at: Time.current,
@@ -79,10 +83,10 @@ module Billing
     def build_line_items
       [
         {
-          description: @subscription.plan_name,
+          description: @subscription.name,
           quantity: 1,
-          unit_price: @subscription.plan_amount,
-          amount: @subscription.plan_amount,
+          unit_price: @subscription.amount,
+          amount: @subscription.amount,
           period_start: @subscription.current_period_start,
           period_end: @subscription.current_period_end
         }

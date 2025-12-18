@@ -1,13 +1,16 @@
 module Payments
   # Service for processing refunds via M-Pesa B2C
   class RefundService
+    include Transactional
+
     def initialize
       @client = SafaricomApi.client
     end
 
     def process(subscription:, amount:, reason:, initiated_by: 'system')
-      # Create refund record
-      refund = subscription.refunds.create!(
+      with_transaction do
+        # Create refund record
+        refund = subscription.refunds.create!(
         payment: subscription.payments.completed.last,
         amount: amount,
         reason: reason,
@@ -37,13 +40,13 @@ module Payments
           status: 'failed',
           failure_reason: response.error_message
         )
-        raise "Refund initiation failed: #{response.error_message}"
-      end
+          raise "Refund initiation failed: #{response.error_message}"
+        end
 
-      refund
+        refund
+      end
     rescue StandardError => e
       Rails.logger.error("Error processing refund: #{e.message}")
-      refund&.update!(status: 'failed', failure_reason: e.message)
       raise
     end
 
@@ -56,7 +59,7 @@ module Payments
 
       return 0 if days_remaining <= 0
 
-      refund_amount = (subscription.plan_amount.to_f / total_days) * days_remaining
+      refund_amount = (subscription.amount.to_f / total_days) * days_remaining
       refund_amount.round(2)
     end
 

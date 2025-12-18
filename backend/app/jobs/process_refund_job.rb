@@ -1,4 +1,6 @@
 class ProcessRefundJob < ApplicationJob
+  include Transactional
+  
   queue_as :default
   
   def perform(refund_id)
@@ -8,27 +10,35 @@ class ProcessRefundJob < ApplicationJob
     # Skip if already processed or not in processable state
     return if refund.status.in?(['completed', 'failed', 'rejected'])
     
-    # Auto-approve pending refunds
-    refund.update!(status: 'approved') if refund.status == 'pending'
-    
-    # Use M-Pesa B2C API to process refund
-    # This is a placeholder - actual implementation depends on M-Pesa B2C API
-    response = initiate_b2c_refund(refund)
-    
-    if response&.dig('ResponseCode') == '0'
-      # Refund initiated successfully - mark as completed
-      refund.mark_as_completed!(
-        conversation_id: response['ConversationID'],
-        originator_conversation_id: response['OriginatorConversationID']
-      )
-      Rails.logger.info("Refund #{refund.id} initiated successfully")
-    else
-      # Refund failed
-      refund.mark_as_failed!(reason: response&.dig('ResponseDescription') || 'Failed to initiate refund')
+    # Process refund atomically
+    begin
+      with_transaction do
+        # Auto-approve pending refunds
+        refund.update!(status: 'approved') if refund.status == 'pending'
+        
+        # Use M-Pesa B2C API to process refund
+        # This is a placeholder - actual implementation depends on M-Pesa B2C API
+        response = initiate_b2c_refund(refund)
+        
+        if response&.dig('ResponseCode') == '0'
+          # Refund initiated successfully - mark as completed
+          refund.mark_as_completed!(
+            conversation_id: response['ConversationID'],
+            originator_conversation_id: response['OriginatorConversationID']
+          )
+          Rails.logger.info("Refund #{refund.id} initiated successfully")
+        else
+          # Refund failed
+          refund.mark_as_failed!(reason: response&.dig('ResponseDescription') || 'Failed to initiate refund')
+        end
+      end
+    rescue StandardError => e
+      Rails.logger.error("Error processing refund #{refund_id}: #{e.message}")
+      # Update refund status outside transaction so it persists
+      refund = Refund.find_by(id: refund_id)
+      refund&.mark_as_failed!(reason: e.message) if refund
+      raise
     end
-  rescue StandardError => e
-    Rails.logger.error("Error processing refund #{refund_id}: #{e.message}")
-    refund&.mark_as_failed!(reason: e.message)
   end
   
   private

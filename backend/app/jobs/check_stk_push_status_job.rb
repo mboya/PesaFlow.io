@@ -1,6 +1,8 @@
 # Job to check pending STK Push transactions and process successful ones
 # This handles cases where the callback failed but the payment succeeded
 class CheckStkPushStatusJob < ApplicationJob
+  include Transactional
+  
   queue_as :default
 
   # Check a specific billing attempt
@@ -125,19 +127,21 @@ class CheckStkPushStatusJob < ApplicationJob
   end
 
   def process_failed_payment(billing_attempt, response)
-    result_desc = response.response_description || 'Payment failed or was cancelled by user'
-    
-    billing_attempt.update!(
-      status: 'failed',
-      failure_reason: result_desc
-    )
+    with_transaction do
+      result_desc = response.response_description || 'Payment failed or was cancelled by user'
+      
+      billing_attempt.update!(
+        status: 'failed',
+        failure_reason: result_desc
+      )
 
-    subscription = billing_attempt.subscription
-    
-    # Update subscription outstanding amount
-    subscription.update!(outstanding_amount: billing_attempt.amount)
+      subscription = billing_attempt.subscription
+      
+      # Update subscription outstanding amount
+      subscription.update!(outstanding_amount: billing_attempt.amount)
 
-    Rails.logger.info("STK Push payment failed for #{billing_attempt.stk_push_checkout_id}: #{result_desc}")
+      Rails.logger.info("STK Push payment failed for #{billing_attempt.stk_push_checkout_id}: #{result_desc}")
+    end
   end
 
   def extract_receipt_number(response)
