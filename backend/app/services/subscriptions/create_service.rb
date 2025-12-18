@@ -60,6 +60,7 @@ module Subscriptions
           # outstanding amount
           outstanding_amount: initial_outstanding,
 
+          # Payment method - always set during creation
           preferred_payment_method: @payment_method,
           current_period_start: current_start,
           current_period_end: current_end,
@@ -75,8 +76,12 @@ module Subscriptions
           plan_features: @subscription_params[:features] || {}
         )
 
-        # Setup payment method
+        # Setup payment method (e.g., create Ratiba standing order)
+        # Note: preferred_payment_method is already set above, this just configures the method
         setup_payment_method
+
+        # Reload to get latest state (in case Ratiba updated status/preferred_payment_method)
+        @subscription.reload
 
         # Send confirmation
         ::NotificationService.send_subscription_confirmation(@subscription)
@@ -127,13 +132,25 @@ module Subscriptions
     def setup_payment_method
       case @payment_method
       when 'ratiba'
-        ::Payments::StandingOrderService.new(@subscription).create
+        # Create Ratiba standing order
+        # Note: StandingOrderService will update preferred_payment_method and status on success
+        # If it fails, preferred_payment_method is already set during creation, so we keep it
+        begin
+          ::Payments::StandingOrderService.new(@subscription).create
+        rescue StandardError => e
+          # If Ratiba setup fails, log but don't fail the subscription creation
+          # The subscription is created with preferred_payment_method already set
+          Rails.logger.warn("Ratiba setup failed for subscription #{@subscription.id}: #{e.message}")
+          # Subscription remains with preferred_payment_method: 'ratiba' but no standing_order_id
+        end
       when 'stk_push'
-        # STK Push will be initiated on first billing
-        @subscription.update!(preferred_payment_method: 'stk_push')
+        # STK Push will be initiated on first billing or manually
+        # preferred_payment_method is already set during creation, no need to update
+        Rails.logger.info("STK Push subscription created - payment will be initiated on first billing")
       when 'c2b'
-        # C2B is customer-initiated
-        @subscription.update!(preferred_payment_method: 'c2b')
+        # C2B is customer-initiated (customer pays via Paybill)
+        # preferred_payment_method is already set during creation, no need to update
+        Rails.logger.info("C2B subscription created - customer will pay via Paybill")
       end
     end
 

@@ -9,6 +9,11 @@ class Api::V1::SubscriptionSerializer < Blueprinter::Base
          :plan_name, :plan_amount, :plan_currency, :plan_billing_frequency,
          :plan_billing_cycle_days, :plan_trial_days, :plan_has_trial, :plan_features
   
+  # Alias for frontend compatibility (deprecated, use preferred_payment_method)
+  field :payment_method do |subscription|
+    subscription.preferred_payment_method
+  end
+  
   # We no longer expose a nested Plan; subscription is self-contained.
   association :customer, blueprint: Api::V1::CustomerSerializer
   
