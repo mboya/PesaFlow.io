@@ -25,7 +25,11 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
   private
   
   def set_invoice
-    @invoice = BillingAttempt.find_by!(invoice_number: params[:id])
+    # Support lookup by either ID or invoice_number
+    @invoice = BillingAttempt.find_by(id: params[:id]) || 
+               BillingAttempt.find_by(invoice_number: params[:id])
+    
+    raise ActiveRecord::RecordNotFound, "Invoice not found" unless @invoice
   end
   
   def authorize_invoice!

@@ -18,13 +18,12 @@ module NotificationService
     def send_payment_receipt(payment)
       customer = payment.subscription.customer
 
-      EmailService.send(
-        to: customer.email,
-        subject: "Payment Receipt - #{payment.mpesa_receipt_number}",
-        template: 'payment_receipt',
-        data: { payment: payment }
-      ) if customer.email.present?
+      # Send email receipt
+      if customer.email.present?
+        SubscriptionMailer.payment_receipt(payment.subscription, payment).deliver_later
+      end
 
+      # Send SMS
       send_sms(
         customer.phone_number,
         "Payment received: #{payment.amount} KES. Receipt: #{payment.mpesa_receipt_number}. Thank you!"
