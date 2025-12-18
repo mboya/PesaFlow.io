@@ -10,7 +10,7 @@ module Api
         return if performed?
 
         @payments = @subscription.payments.order(paid_at: :desc, created_at: :desc)
-        
+
         render json: Api::V1::PaymentSerializer.render(@payments)
       end
 
@@ -23,11 +23,10 @@ module Api
       def authorize_subscription!
         customer = current_user_customer
         unless customer && @subscription.customer == customer
-          render json: { error: 'Unauthorized' }, status: :unauthorized
-          return
+          render json: { error: "Unauthorized" }, status: :unauthorized
+          nil
         end
       end
     end
   end
 end
-

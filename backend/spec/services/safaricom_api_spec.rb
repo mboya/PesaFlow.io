@@ -156,4 +156,3 @@ RSpec.describe SafaricomApi do
     end
   end
 end
-

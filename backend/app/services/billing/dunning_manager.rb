@@ -34,7 +34,7 @@ module Billing
           # Cancel after 30 days suspended
           if subscription.suspended? && subscription.suspended_at < 30.days.ago
             Subscriptions::CancelService.new(subscription).call(
-              reason: 'non_payment',
+              reason: "non_payment",
               refund_unused: false
             )
           end
@@ -48,8 +48,8 @@ module Billing
       billing_attempt = subscription.billing_attempts.create!(
         amount: subscription.amount,
         invoice_number: generate_invoice_number(subscription),
-        payment_method: 'stk_push',
-        status: 'pending',
+        payment_method: "stk_push",
+        status: "pending",
         attempt_number: subscription.customer.failed_payment_count,
         attempted_at: Time.current,
         next_retry_at: delay.from_now
@@ -59,7 +59,7 @@ module Billing
     end
 
     def send_manual_payment_instructions(subscription)
-      paybill = ENV.fetch('business_short_code', '600000')
+      paybill = ENV.fetch("business_short_code", "600000")
       amount = subscription.outstanding_amount || subscription.amount
       account = subscription.reference_number
 
@@ -76,8 +76,8 @@ module Billing
       if subscription.customer.email.present?
         NotificationService.send_email(
           subscription.customer.email,
-          'Payment Required - Manual Payment Instructions',
-          'manual_payment_instructions',
+          "Payment Required - Manual Payment Instructions",
+          "manual_payment_instructions",
           {
             paybill: paybill,
             account_number: account,
@@ -89,9 +89,8 @@ module Billing
     end
 
     def generate_invoice_number(subscription)
-      date_prefix = Date.current.strftime('%Y%m%d')
+      date_prefix = Date.current.strftime("%Y%m%d")
       "INV-#{date_prefix}-#{subscription.reference_number}"
     end
   end
 end
-

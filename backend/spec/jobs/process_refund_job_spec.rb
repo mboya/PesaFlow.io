@@ -43,7 +43,7 @@ RSpec.describe ProcessRefundJob, type: :job do
 
       it 'auto-approves and processes the pending refund' do
         ProcessRefundJob.perform_now(refund.id)
-        
+
         refund.reload
         # Pending refunds are auto-approved and processed
         expect(refund.status).to eq('completed')

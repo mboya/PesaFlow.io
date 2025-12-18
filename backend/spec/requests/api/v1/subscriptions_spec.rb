@@ -169,5 +169,4 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
       expect(json['error']).to include('outstanding balance')
     end
   end
-
 end

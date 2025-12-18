@@ -10,23 +10,23 @@ class BillingAttempt < ApplicationRecord
   validates :attempt_number, numericality: { greater_than: 0 }
 
   # Scopes
-  scope :pending, -> { where(status: 'pending') }
-  scope :processing, -> { where(status: 'processing') }
-  scope :completed, -> { where(status: 'completed') }
-  scope :failed, -> { where(status: 'failed') }
-  scope :due_for_retry, -> { where('next_retry_at <= ?', Time.current).where(status: 'failed') }
+  scope :pending, -> { where(status: "pending") }
+  scope :processing, -> { where(status: "processing") }
+  scope :completed, -> { where(status: "completed") }
+  scope :failed, -> { where(status: "failed") }
+  scope :due_for_retry, -> { where("next_retry_at <= ?", Time.current).where(status: "failed") }
 
   # Callbacks
   before_validation :set_attempted_at, on: :create
 
   # Instance methods
   def mark_as_processing!
-    update!(status: 'processing', attempted_at: Time.current)
+    update!(status: "processing", attempted_at: Time.current)
   end
 
   def mark_as_completed!(mpesa_transaction_id: nil, mpesa_receipt_number: nil)
     update!(
-      status: 'completed',
+      status: "completed",
       mpesa_transaction_id: mpesa_transaction_id,
       mpesa_receipt_number: mpesa_receipt_number
     )
@@ -35,14 +35,14 @@ class BillingAttempt < ApplicationRecord
   def mark_as_failed!(reason: nil)
     increment!(:retry_count)
     update!(
-      status: 'failed',
+      status: "failed",
       failure_reason: reason,
       next_retry_at: calculate_next_retry_at
     )
   end
 
   def completed?
-    status == 'completed'
+    status == "completed"
   end
 
   def can_retry?
@@ -61,8 +61,7 @@ class BillingAttempt < ApplicationRecord
 
   def calculate_next_retry_at
     # Exponential backoff: 1 hour, 4 hours, 24 hours
-    hours = [1, 4, 24][retry_count - 1] || 24
+    hours = [ 1, 4, 24 ][retry_count - 1] || 24
     hours.hours.from_now
   end
 end
-

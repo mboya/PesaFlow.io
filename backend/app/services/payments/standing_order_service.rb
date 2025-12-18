@@ -12,13 +12,13 @@ module Payments
       with_transaction do
         phone = @subscription.customer.phone_number
         raise ArgumentError, "Customer phone number is required for Ratiba standing orders" if phone.blank?
-        
+
         amount = @subscription.amount
         raise ArgumentError, "Subscription amount is required for Ratiba standing orders" if amount.blank? || amount.to_f <= 0
 
         Rails.logger.info("Creating standing order for #{phone}, amount: #{amount}")
         Rails.logger.info("Webhook URL: #{webhook_url}")
-        
+
         response = @client.mpesa.ratiba.create(
           standing_order_name: standing_order_name,
           phone_number: phone,
@@ -38,13 +38,13 @@ module Payments
         if response.success?
           @subscription.update!(
             standing_order_id: response.standing_order_id,
-            preferred_payment_method: 'ratiba',
-            status: 'active'
+            preferred_payment_method: "ratiba",
+            status: "active"
           )
           @subscription.customer.update!(standing_order_enabled: true)
         else
           # Try to extract error message from various possible response attributes
-          error_msg = response.try(:error_message).presence || 
+          error_msg = response.try(:error_message).presence ||
                       response.try(:response_description).presence ||
                       response.try(:result_desc).presence ||
                       response.try(:error_code).presence ||
@@ -117,8 +117,8 @@ module Payments
 
     def webhook_url
       Rails.application.routes.url_helpers.webhooks_ratiba_callback_url(
-        host: ENV.fetch('APP_HOST', 'localhost:3000'),
-        protocol: Rails.env.production? ? 'https' : 'https'
+        host: ENV.fetch("APP_HOST", "localhost:3000"),
+        protocol: Rails.env.production? ? "https" : "https"
       )
     end
   end

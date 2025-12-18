@@ -58,12 +58,12 @@ RSpec.describe 'Webhooks::C2b', type: :request do
     it 'processes successful C2B payment' do
       # Verify subscription exists before request
       expect(Subscription.find_by(reference_number: 'SUB-12345678')).to eq(subscription)
-      
+
       post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
 
       expect(response).to have_http_status(:ok)
       expect(Payment.count).to eq(1)
-      
+
       payment = Payment.last
       expect(payment.subscription).to eq(subscription)
       expect(payment.amount.to_f).to eq(100.0)
@@ -73,7 +73,7 @@ RSpec.describe 'Webhooks::C2b', type: :request do
 
     it 'marks subscription as paid' do
       subscription.update!(outstanding_amount: 100.0)
-      
+
       post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
 
       expect(response).to have_http_status(:ok)
@@ -86,9 +86,9 @@ RSpec.describe 'Webhooks::C2b', type: :request do
     it 'sends payment receipt email' do
       # Customer must have an email for the mailer to be called
       expect(customer.email).to be_present
-      
+
       post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
-      
+
       expect(response).to have_http_status(:ok)
       # Check that a mail delivery job was enqueued
       expect(ActionMailer::MailDeliveryJob).to have_been_enqueued
@@ -96,7 +96,7 @@ RSpec.describe 'Webhooks::C2b', type: :request do
 
     it 'returns ok even if subscription not found' do
       payload['BillRefNumber'] = 'SUB-NOTFOUND'
-      
+
       post '/webhooks/c2b/confirmation', params: payload.to_json, headers: { 'Content-Type' => 'application/json' }
 
       expect(response).to have_http_status(:ok)

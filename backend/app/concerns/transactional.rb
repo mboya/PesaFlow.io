@@ -34,4 +34,3 @@ module Transactional
     raise
   end
 end
-

@@ -58,9 +58,9 @@ RSpec.describe 'Api::V1::Refunds', type: :request do
 
     it 'returns unauthorized for other customer\'s payment' do
       other_payment = create(:payment, status: 'completed')
-      post '/api/v1/refunds', 
-           params: { payment_id: other_payment.id, amount: other_payment.amount, reason: 'Test' }, 
-           headers: headers, 
+      post '/api/v1/refunds',
+           params: { payment_id: other_payment.id, amount: other_payment.amount, reason: 'Test' },
+           headers: headers,
            as: :json
 
       expect(response).to have_http_status(:unauthorized)

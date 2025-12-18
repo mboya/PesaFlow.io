@@ -29,9 +29,9 @@ module Api
         # Create customer if doesn't exist
         Customer.create!(
           user: current_user,
-          name: current_user.email.split('@').first,
+          name: current_user.email.split("@").first,
           email: current_user.email,
-          status: 'active'
+          status: "active"
         )
       end
 
@@ -41,4 +41,3 @@ module Api
     end
   end
 end
-

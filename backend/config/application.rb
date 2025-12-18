@@ -45,8 +45,8 @@ module Backend
     # Use cookie store with minimal settings - sessions are only used temporarily
     # during authentication, JWT tokens handle actual authentication
     config.middleware.use ActionDispatch::Cookies
-    config.middleware.use ActionDispatch::Session::CookieStore, 
-      key: '_pesaflow_session',
+    config.middleware.use ActionDispatch::Session::CookieStore,
+      key: "_pesaflow_session",
       expire_after: nil, # Don't persist sessions
       httponly: true,
       secure: Rails.env.production?,

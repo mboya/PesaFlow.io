@@ -6,8 +6,8 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
   describe '#perform' do
     context 'when subscriptions are overdue' do
       let(:overdue_subscription) do
-        create(:subscription, 
-               customer: customer, 
+        create(:subscription,
+               customer: customer,
                amount: 1000.0,
                status: 'active',
                outstanding_amount: 1000,
@@ -143,10 +143,10 @@ RSpec.describe CheckSubscriptionStatusJob, type: :job do
                                status: 'active',
                                outstanding_amount: 1000,
                                next_billing_date: 4.days.ago)
-        
+
         # Reset the stub for the second subscription
         allow(other_overdue).to receive(:suspend!).and_call_original
-        
+
         CheckSubscriptionStatusJob.perform_now
 
         # The job should have attempted to process both - even with errors it continues

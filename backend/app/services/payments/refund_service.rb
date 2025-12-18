@@ -7,14 +7,14 @@ module Payments
       @client = SafaricomApi.client
     end
 
-    def process(subscription:, amount:, reason:, initiated_by: 'system')
+    def process(subscription:, amount:, reason:, initiated_by: "system")
       with_transaction do
         # Create refund record
         refund = subscription.refunds.create!(
         payment: subscription.payments.completed.last,
         amount: amount,
         reason: reason,
-        status: 'pending',
+        status: "pending",
         requested_at: Time.current
       )
 
@@ -22,7 +22,7 @@ module Payments
       response = @client.mpesa.b2c.pay(
         phone_number: subscription.customer.phone_number,
         amount: amount,
-        command_id: 'BusinessPayment',
+        command_id: "BusinessPayment",
         remarks: "Refund: #{reason}",
         occasion: refund.id.to_s,
         result_url: result_webhook_url,
@@ -31,17 +31,17 @@ module Payments
 
       if response.success?
         refund.update!(
-          status: 'processing',
+          status: "processing",
           conversation_id: response.conversation_id,
           originator_conversation_id: response.originator_conversation_id
         )
       else
         refund.update!(
-          status: 'failed',
+          status: "failed",
           failure_reason: response.error_message
         )
           raise "Refund initiation failed: #{response.error_message}"
-        end
+      end
 
         refund
       end
@@ -67,17 +67,16 @@ module Payments
 
     def result_webhook_url
       Rails.application.routes.url_helpers.webhooks_b2c_result_url(
-        host: ENV.fetch('APP_HOST', 'localhost:3000'),
-        protocol: Rails.env.production? ? 'https' : 'http'
+        host: ENV.fetch("APP_HOST", "localhost:3000"),
+        protocol: Rails.env.production? ? "https" : "http"
       )
     end
 
     def timeout_webhook_url
       Rails.application.routes.url_helpers.webhooks_b2c_timeout_url(
-        host: ENV.fetch('APP_HOST', 'localhost:3000'),
-        protocol: Rails.env.production? ? 'https' : 'http'
+        host: ENV.fetch("APP_HOST", "localhost:3000"),
+        protocol: Rails.env.production? ? "https" : "http"
       )
     end
   end
 end
-

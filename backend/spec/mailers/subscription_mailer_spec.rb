@@ -10,7 +10,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
     it "renders the headers" do
       expect(mail.subject).to eq("Payment Receipt - #{subscription.reference_number}")
-      expect(mail.to).to eq([customer.email])
+      expect(mail.to).to eq([ customer.email ])
       # Check from address exists (may vary by environment)
       expect(mail.from).to be_present
     end
@@ -25,7 +25,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
     it "renders the headers" do
       expect(mail.subject).to eq("Welcome! Your #{subscription.name} Subscription is Active")
-      expect(mail.to).to eq([customer.email])
+      expect(mail.to).to eq([ customer.email ])
     end
 
     it "renders the body" do
@@ -38,7 +38,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
     it "renders the headers" do
       expect(mail.subject).to eq("Service Suspended - #{subscription.reference_number}")
-      expect(mail.to).to eq([customer.email])
+      expect(mail.to).to eq([ customer.email ])
     end
 
     it "renders the body" do
@@ -51,7 +51,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
     it "renders the headers" do
       expect(mail.subject).to eq("Trial Period Ended - #{subscription.reference_number}")
-      expect(mail.to).to eq([customer.email])
+      expect(mail.to).to eq([ customer.email ])
     end
   end
 
@@ -60,7 +60,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
     it "renders the headers" do
       expect(mail.subject).to include("Action Required")
-      expect(mail.to).to eq([customer.email])
+      expect(mail.to).to eq([ customer.email ])
     end
   end
 end

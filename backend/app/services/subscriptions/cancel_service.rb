@@ -10,13 +10,13 @@ module Subscriptions
         # Calculate prorated refund if mid-cycle
         if refund_unused && @subscription.active?
           refund_amount = ::Payments::RefundService.new.process_proration(@subscription)
-          
+
           if refund_amount > 0
             ::Payments::RefundService.new.process(
               subscription: @subscription,
               amount: refund_amount,
               reason: "Prorated refund: #{reason}",
-              initiated_by: 'system'
+              initiated_by: "system"
             )
           end
         end
@@ -28,7 +28,7 @@ module Subscriptions
 
         # Update subscription
         @subscription.update!(
-          status: 'cancelled',
+          status: "cancelled",
           cancelled_at: Time.current
         )
 
@@ -43,4 +43,3 @@ module Subscriptions
     end
   end
 end
-

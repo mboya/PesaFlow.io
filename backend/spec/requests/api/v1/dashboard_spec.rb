@@ -15,7 +15,7 @@ RSpec.describe 'Api::V1::Dashboard', type: :request do
     let(:active_subscription) { create(:subscription, customer: customer, amount: 1000.0, status: 'active') }
     let(:suspended_subscription) { create(:subscription, customer: customer, amount: 1000.0, status: 'suspended') }
     let(:payment) { create(:payment, subscription: active_subscription, status: 'completed') }
-    
+
     before do
       active_subscription
       suspended_subscription

@@ -13,7 +13,7 @@ class SubscriptionMailer < ApplicationMailer
   def service_suspended(subscription)
     @subscription = subscription
     @customer = subscription.customer
-    @paybill = ENV.fetch('MPESA_PAYBILL', ENV.fetch('business_short_code', 'N/A'))
+    @paybill = ENV.fetch("MPESA_PAYBILL", ENV.fetch("business_short_code", "N/A"))
 
     mail(
       to: @customer.email,
@@ -79,11 +79,11 @@ class SubscriptionMailer < ApplicationMailer
   # Helper method for email templates
   def billing_frequency_text(frequency)
     case frequency
-    when 1 then 'day'
-    when 2 then 'week'
-    when 3 then 'month'
-    when 4 then 'year'
-    else 'period'
+    when 1 then "day"
+    when 2 then "week"
+    when 3 then "month"
+    when 4 then "year"
+    else "period"
     end
   end
   helper_method :billing_frequency_text

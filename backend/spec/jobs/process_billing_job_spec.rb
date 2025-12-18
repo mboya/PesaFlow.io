@@ -3,10 +3,10 @@ require 'rails_helper'
 RSpec.describe ProcessBillingJob, type: :job do
   let(:customer) { create(:customer) }
   let(:subscription) do
-    create(:subscription, 
-           customer: customer, 
+    create(:subscription,
+           customer: customer,
            amount: 1000.0,
-           status: 'active', 
+           status: 'active',
            next_billing_date: Date.current)
   end
 
@@ -33,7 +33,7 @@ RSpec.describe ProcessBillingJob, type: :job do
       it 'handles subscriptions with different payment methods' do
         subscription # ensure base subscription exists
         stk_subscription = create(:subscription, :with_stk_push, customer: customer, amount: 1000.0, next_billing_date: Date.current)
-        
+
         allow(SafaricomApi.client.mpesa.stk_push).to receive(:initiate).and_return(
           double(checkout_request_id: 'CHECKOUT123')
         )
@@ -85,13 +85,13 @@ RSpec.describe ProcessBillingJob, type: :job do
         # Create first subscription that will error
         error_subscription = create(:subscription, customer: customer, amount: 1000.0, next_billing_date: Date.current)
         allow_any_instance_of(Subscription).to receive(:amount).and_call_original
-        
+
         # Create second subscription that should process normally
         other_subscription = create(:subscription, customer: customer, amount: 1000.0, next_billing_date: Date.current)
-        
+
         # Mock the first subscription to raise an error
         allow(error_subscription).to receive(:amount).and_raise(StandardError.new('Database error'))
-        
+
         # The job should still create at least one billing attempt for the other subscription
         expect {
           ProcessBillingJob.perform_now

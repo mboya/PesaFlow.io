@@ -37,9 +37,9 @@ RSpec.describe 'Api::V1::PaymentMethods', type: :request do
     end
 
     it 'returns error if subscription not found' do
-      post '/api/v1/payment_methods/setup_standing_order', 
-           params: { subscription_id: 99999 }, 
-           headers: headers, 
+      post '/api/v1/payment_methods/setup_standing_order',
+           params: { subscription_id: 99999 },
+           headers: headers,
            as: :json
 
       # ActiveRecord::RecordNotFound is rescued and returns 422 with error message

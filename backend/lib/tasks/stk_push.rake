@@ -7,7 +7,7 @@ namespace :stk_push do
   end
 
   desc "Check a specific billing attempt by ID"
-  task :check_attempt, [:attempt_id] => :environment do |_t, args|
+  task :check_attempt, [ :attempt_id ] => :environment do |_t, args|
     attempt_id = args[:attempt_id]
     if attempt_id.blank?
       puts "Usage: rake stk_push:check_attempt[123]"
@@ -20,7 +20,7 @@ namespace :stk_push do
   end
 
   desc "Check STK Push by checkout request ID"
-  task :query, [:checkout_id] => :environment do |_t, args|
+  task :query, [ :checkout_id ] => :environment do |_t, args|
     checkout_id = args[:checkout_id]
     if checkout_id.blank?
       puts "Usage: rake stk_push:query[ws_CO_DMZ_123456...]"
@@ -28,7 +28,7 @@ namespace :stk_push do
     end
 
     puts "Querying STK Push status for checkout ID: #{checkout_id}"
-    
+
     response = SafaricomApi.client.mpesa.stk_push_query.query(
       checkout_request_id: checkout_id
     )
@@ -40,4 +40,3 @@ namespace :stk_push do
     puts "  Raw Response: #{response.raw_response.inspect}"
   end
 end
-

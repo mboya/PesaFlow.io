@@ -13,12 +13,12 @@ class Subscription < ApplicationRecord
   validates :outstanding_amount, numericality: { greater_than_or_equal_to: 0 }
 
   # Scopes
-  scope :active, -> { where(status: 'active') }
-  scope :pending, -> { where(status: 'pending') }
-  scope :suspended, -> { where(status: 'suspended') }
-  scope :cancelled, -> { where(status: 'cancelled') }
-  scope :expired, -> { where(status: 'expired') }
-  scope :due_for_billing, -> { where('next_billing_date <= ?', Date.current) }
+  scope :active, -> { where(status: "active") }
+  scope :pending, -> { where(status: "pending") }
+  scope :suspended, -> { where(status: "suspended") }
+  scope :cancelled, -> { where(status: "cancelled") }
+  scope :expired, -> { where(status: "expired") }
+  scope :due_for_billing, -> { where("next_billing_date <= ?", Date.current) }
   scope :trial, -> { where(is_trial: true) }
 
   # Callbacks
@@ -28,7 +28,7 @@ class Subscription < ApplicationRecord
 
   def activate!
     update!(
-      status: 'active',
+      status: "active",
       activated_at: Time.current,
       current_period_start: Date.current
     )
@@ -36,32 +36,32 @@ class Subscription < ApplicationRecord
 
   def suspend!
     update!(
-      status: 'suspended',
+      status: "suspended",
       suspended_at: Time.current
     )
   end
 
   def cancel!
     update!(
-      status: 'cancelled',
+      status: "cancelled",
       cancelled_at: Time.current
     )
   end
 
   def expire!
-    update!(status: 'expired')
+    update!(status: "expired")
   end
 
   def is_active?
-    status == 'active'
+    status == "active"
   end
 
   def cancelled?
-    status == 'cancelled'
+    status == "cancelled"
   end
 
   def suspended?
-    status == 'suspended'
+    status == "suspended"
   end
 
   def is_trial_active?
@@ -69,7 +69,7 @@ class Subscription < ApplicationRecord
   end
 
   def total_paid
-    payments.where(status: 'completed').sum(:amount)
+    payments.where(status: "completed").sum(:amount)
   end
 
   def last_payment
@@ -104,20 +104,20 @@ class Subscription < ApplicationRecord
 
   def mark_as_paid!
     update!(
-      status: 'active',
+      status: "active",
       outstanding_amount: 0,
       current_period_start: Date.current,
       current_period_end: calculate_period_end,
       next_billing_date: calculate_next_billing_date
     )
-    
+
     # Reset customer failed payment count on successful payment
     customer.reset_failed_payment_count! if customer.failed_payment_count > 0
   end
 
   def extend_period!
     billing_interval = billing_cycle_days || 30
-    
+
     self.current_period_start = current_period_end || Date.current
     self.current_period_end = current_period_start + billing_interval.days
     self.next_billing_date = calculate_next_billing_date
@@ -125,7 +125,7 @@ class Subscription < ApplicationRecord
   end
 
   def reactivate!
-    update!(status: 'active', suspended_at: nil)
+    update!(status: "active", suspended_at: nil)
   end
 
   def reset_failed_payment_count!

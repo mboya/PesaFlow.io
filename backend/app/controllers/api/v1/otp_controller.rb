@@ -166,11 +166,11 @@ module Api
         if otp_valid
           # Sign in the user and generate JWT token
           sign_in(:api_v1_user, user)
-          
+
           # Generate JWT token manually for the response header
           token = Warden::JWTAuth::UserEncoder.new.call(user, :api_v1_user, nil).first
           response.set_header("Authorization", "Bearer #{token}")
-          
+
           render json: {
             status: {
               code: 200,

@@ -6,7 +6,7 @@ module Subscriptions
 
     # subscription_params is expected to include:
     # :name, :description, :amount, :currency, :billing_cycle_days, :trial_days, :has_trial
-    def initialize(user:, customer_params:, subscription_params:, payment_method: 'ratiba')
+    def initialize(user:, customer_params:, subscription_params:, payment_method: "ratiba")
       @user                = user
       @customer_params     = customer_params
       @subscription_params = subscription_params || {}
@@ -68,14 +68,14 @@ module Subscriptions
         customer.update!(user_id: @user.id) if customer.user_id.nil?
       else
         name = "#{@customer_params[:first_name]} #{@customer_params[:last_name]}".strip
-        name = @user.email.split('@').first if name.blank?
-        
+        name = @user.email.split("@").first if name.blank?
+
         customer = Customer.create!(
           user: @user,
           name: name,
           email: @customer_params[:email] || @user.email,
           phone_number: @customer_params[:phone_number],
-          status: 'active'
+          status: "active"
         )
       end
 
@@ -84,13 +84,13 @@ module Subscriptions
 
     def validate_subscription_params!
       name = @subscription_params[:name].to_s.strip
-      amount = BigDecimal(@subscription_params[:amount].to_s.presence || '0')
+      amount = BigDecimal(@subscription_params[:amount].to_s.presence || "0")
 
       raise ArgumentError, "Subscription name is required" if name.blank?
       raise ArgumentError, "Subscription amount must be greater than 0" if amount <= 0
 
       # Validate phone number for Ratiba (check both params and existing customer)
-      if @payment_method == 'ratiba'
+      if @payment_method == "ratiba"
         phone = @customer_params[:phone_number]
         # If no phone in params, check if customer exists and has phone
         if phone.blank?
@@ -109,7 +109,7 @@ module Subscriptions
       end
 
       # For Ratiba, ensure standing_order_id is set
-      if @payment_method == 'ratiba' && @subscription.standing_order_id.blank?
+      if @payment_method == "ratiba" && @subscription.standing_order_id.blank?
         raise "Ratiba standing order was not created - standing_order_id is missing"
       end
 
@@ -122,8 +122,8 @@ module Subscriptions
     def create_subscription_record
       name         = @subscription_params[:name].to_s.strip
       description  = @subscription_params[:description]
-      amount       = BigDecimal(@subscription_params[:amount].to_s.presence || '0')
-      currency     = (@subscription_params[:currency].presence || 'KES')
+      amount       = BigDecimal(@subscription_params[:amount].to_s.presence || "0")
+      currency     = (@subscription_params[:currency].presence || "KES")
       billing_days = (@subscription_params[:billing_cycle_days].presence || 30).to_i
       trial_days   = (@subscription_params[:trial_days].presence || 0).to_i
       has_trial    = ActiveModel::Type::Boolean.new.cast(@subscription_params[:has_trial]) || trial_days.positive?
@@ -137,11 +137,11 @@ module Subscriptions
       # For stk_push and c2b, customer needs to pay first, so outstanding = amount
       initial_outstanding = if has_trial
                               0
-                            elsif @payment_method == 'ratiba'
+      elsif @payment_method == "ratiba"
                               0 # Will be set if payment fails
-                            else
+      else
                               amount # STK Push / C2B - customer owes until first payment
-                            end
+      end
 
       @customer.subscriptions.create!(
         # core commercial fields
@@ -152,7 +152,7 @@ module Subscriptions
         billing_cycle_days: billing_days,
 
         # status / trial
-        status: has_trial ? 'trial' : 'pending',
+        status: has_trial ? "trial" : "pending",
         is_trial: has_trial,
         trial_days: trial_days,
         trial_ends_at: has_trial ? (current_start + trial_days.days) : nil,
@@ -170,7 +170,7 @@ module Subscriptions
 
     def setup_payment_method!
       case @payment_method
-      when 'ratiba'
+      when "ratiba"
         # Ratiba setup is REQUIRED - if it fails, the entire transaction rolls back
         # This ensures we don't have subscriptions without standing orders
         # Note: External API calls can't be rolled back, so we do this last in the transaction
@@ -178,28 +178,28 @@ module Subscriptions
         # but the standing order will remain (edge case that should be rare)
         standing_order_service = ::Payments::StandingOrderService.new(@subscription)
         response = standing_order_service.create
-        
+
         unless response.success?
-          error_msg = response.error_message || 'Ratiba standing order creation failed'
+          error_msg = response.error_message || "Ratiba standing order creation failed"
           raise "Failed to create Ratiba standing order: #{error_msg}"
         end
 
         # Verify standing_order_id was set
         @subscription.reload
         standing_order_id = @subscription.standing_order_id
-        
+
         if standing_order_id.blank?
           raise "Ratiba standing order created but standing_order_id not set"
         end
 
         Rails.logger.info("Ratiba standing order created successfully: #{standing_order_id}")
 
-      when 'stk_push'
+      when "stk_push"
         # STK Push will be initiated on first billing or manually
         # No external API call needed at creation time
         Rails.logger.info("STK Push subscription created - payment will be initiated on first billing")
 
-      when 'c2b'
+      when "c2b"
         # C2B is customer-initiated (customer pays via Paybill)
         # No external API call needed at creation time
         Rails.logger.info("C2B subscription created - customer will pay via Paybill")

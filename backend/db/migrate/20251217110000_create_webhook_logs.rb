@@ -16,4 +16,3 @@ class CreateWebhookLogs < ActiveRecord::Migration[7.2]
     add_index :webhook_logs, :created_at
   end
 end
-

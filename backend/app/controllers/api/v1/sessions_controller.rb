@@ -13,11 +13,11 @@ module Api
 
         # Find user by email
         user = User.find_by(email: email)
-        
+
         # Authenticate user
         if user && user.valid_password?(password)
           self.resource = user
-          
+
           if resource.otp_enabled?
             # User has OTP enabled, require OTP verification before issuing JWT
             render json: {
@@ -55,7 +55,7 @@ module Api
         # Token validation is done in before_action :verify_jwt_token
         # If verify_jwt_token already rendered, skip
         return if performed?
-        
+
         signed_out = (Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name))
 
         render json: {
@@ -102,7 +102,7 @@ module Api
       def verify_jwt_token
         # Check for valid JWT token before allowing logout
         token = request.headers["Authorization"]&.split(" ")&.last
-        
+
         unless token.present?
           render json: {
             status: {
@@ -116,9 +116,9 @@ module Api
         # Check if token is in denylist (already revoked)
         begin
           jwt_secret = ENV.fetch("DEVISE_JWT_SECRET_KEY") { Rails.application.credentials.devise_jwt_secret_key || Rails.application.secret_key_base }
-          decoded = JWT.decode(token, jwt_secret, true, algorithm: 'HS256')
+          decoded = JWT.decode(token, jwt_secret, true, algorithm: "HS256")
           jti = decoded[0]["jti"]
-          
+
           if JwtDenylist.exists?(jti: jti)
             render json: {
               status: {
@@ -126,7 +126,7 @@ module Api
                 message: "Token has been revoked"
               }
             }, status: :unauthorized
-            return
+            nil
           end
         rescue JWT::DecodeError, JWT::ExpiredSignature => e
           render json: {
@@ -135,7 +135,7 @@ module Api
               message: "Invalid or expired token"
             }
           }, status: :unauthorized
-          return
+          nil
         end
       end
     end

@@ -45,38 +45,38 @@ Rails.application.routes.draw do
           post :reactivate
         end
         # Nested payments for a subscription
-        resources :payments, only: [:index], controller: 'subscription_payments'
+        resources :payments, only: [ :index ], controller: "subscription_payments"
       end
-      
+
       # Payment methods
-      post 'payment_methods/ratiba', to: 'payment_methods#setup_ratiba'
-      post 'payment_methods/stk_push', to: 'payment_methods#initiate_stk_push'
+      post "payment_methods/ratiba", to: "payment_methods#setup_ratiba"
+      post "payment_methods/stk_push", to: "payment_methods#initiate_stk_push"
       # Legacy routes (for backward compatibility)
-      post 'payment_methods/setup_standing_order', to: 'payment_methods#setup_standing_order'
-      
+      post "payment_methods/setup_standing_order", to: "payment_methods#setup_standing_order"
+
       # Customer portal
-      get 'dashboard', to: 'dashboard#show'
-      get 'invoices', to: 'invoices#index'
-      get 'invoices/:id', to: 'invoices#show'
-      
+      get "dashboard", to: "dashboard#show"
+      get "invoices", to: "invoices#index"
+      get "invoices/:id", to: "invoices#show"
+
       # Profile management
-      get 'profile', to: 'profile#show'
-      patch 'profile', to: 'profile#update'
-      put 'profile', to: 'profile#update'
-      
+      get "profile", to: "profile#show"
+      patch "profile", to: "profile#update"
+      put "profile", to: "profile#update"
+
       # Refunds
-      resources :refunds, only: [:index, :show, :create]
+      resources :refunds, only: [ :index, :show, :create ]
     end
   end
 
   # Webhooks
   namespace :webhooks do
-    post 'ratiba/callback', to: 'ratiba#callback'
-    post 'stk_push/callback', to: 'stk_push#callback'
-    post 'c2b/validation', to: 'c2b#validation'
-    post 'c2b/confirmation', to: 'c2b#confirmation'
-    post 'b2c/result', to: 'b2c#result'
-    post 'b2c/timeout', to: 'b2c#timeout'
+    post "ratiba/callback", to: "ratiba#callback"
+    post "stk_push/callback", to: "stk_push#callback"
+    post "c2b/validation", to: "c2b#validation"
+    post "c2b/confirmation", to: "c2b#confirmation"
+    post "b2c/result", to: "b2c#result"
+    post "b2c/timeout", to: "b2c#timeout"
   end
 
   # Defines the root path route ("/")

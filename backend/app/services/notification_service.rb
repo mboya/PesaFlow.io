@@ -38,7 +38,7 @@ module NotificationService
     end
 
     def send_suspension_notice(subscription)
-      paybill = ENV.fetch('business_short_code', '600000')
+      paybill = ENV.fetch("business_short_code", "600000")
       message = <<~SMS
         Your subscription is suspended due to payment failure.
         Pay manually: Paybill #{paybill},
@@ -94,12 +94,11 @@ module NotificationService
 
     def billing_frequency_text(frequency)
       {
-        1 => 'daily',
-        2 => 'weekly',
-        3 => 'monthly',
-        4 => 'yearly'
-      }[frequency] || 'monthly'
+        1 => "daily",
+        2 => "weekly",
+        3 => "monthly",
+        4 => "yearly"
+      }[frequency] || "monthly"
     end
   end
 end
-

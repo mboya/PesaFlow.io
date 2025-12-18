@@ -12,9 +12,9 @@ class Payment < ApplicationRecord
   validates :phone_number, presence: true
 
   # Scopes
-  scope :completed, -> { where(status: 'completed') }
-  scope :refunded, -> { where(status: 'refunded') }
-  scope :disputed, -> { where(status: 'disputed') }
+  scope :completed, -> { where(status: "completed") }
+  scope :refunded, -> { where(status: "refunded") }
+  scope :disputed, -> { where(status: "disputed") }
   scope :unreconciled, -> { where(reconciled: false) }
   scope :reconciled, -> { where(reconciled: true) }
 
@@ -23,11 +23,11 @@ class Payment < ApplicationRecord
 
   # Instance methods
   def mark_as_refunded!
-    update!(status: 'refunded')
+    update!(status: "refunded")
   end
 
   def mark_as_disputed!
-    update!(status: 'disputed')
+    update!(status: "disputed")
   end
 
   def reconcile!
@@ -35,11 +35,11 @@ class Payment < ApplicationRecord
   end
 
   def can_be_refunded?
-    status == 'completed' && refunds.where(status: %w[pending approved completed]).empty?
+    status == "completed" && refunds.where(status: %w[pending approved completed]).empty?
   end
 
   def total_refunded
-    refunds.where(status: 'completed').sum(:amount)
+    refunds.where(status: "completed").sum(:amount)
   end
 
   private
@@ -48,4 +48,3 @@ class Payment < ApplicationRecord
     self.paid_at ||= Time.current
   end
 end
-
