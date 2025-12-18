@@ -66,10 +66,11 @@ class SubscriptionMailer < ApplicationMailer
     @subscription = subscription
     @customer = subscription.customer
     @invoice = invoice
+    due_date = subscription.current_period_end || (Date.current + 30.days)
 
     mail(
       to: @customer.email,
-      subject: "Upcoming Invoice - #{@invoice.invoice_number} - Due #{@invoice.due_date.strftime('%B %d, %Y')}"
+      subject: "Upcoming Invoice - #{@invoice.invoice_number} - Due #{due_date.strftime('%B %d, %Y')}"
     )
   end
 

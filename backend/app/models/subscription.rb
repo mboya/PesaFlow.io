@@ -5,6 +5,7 @@ class Subscription < ApplicationRecord
   has_many :billing_attempts, dependent: :destroy
   has_many :payments, dependent: :destroy
   has_many :refunds, dependent: :destroy
+  # Note: Invoices are represented by billing_attempts with invoice_number
 
   # Validations
   validates :reference_number, presence: true, uniqueness: true
@@ -100,6 +101,10 @@ class Subscription < ApplicationRecord
 
   def cancelled?
     status == 'cancelled'
+  end
+
+  def suspended?
+    status == 'suspended'
   end
 
   def is_trial_active?

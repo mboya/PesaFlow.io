@@ -4,26 +4,26 @@ Dear <%= @customer.name %>,
 
 This is a friendly reminder that your next invoice is due soon.
 
+<% due_date = @subscription.current_period_end || (Date.current + 30.days) %>
+<% days_until_due = (due_date - Date.current).to_i %>
+
 Invoice Preview:
 - Invoice Number: <%= @invoice.invoice_number %>
 - Subscription: <%= @subscription.reference_number %>
-- Plan: <%= @subscription.plan_name %>
+- Service: <%= @subscription.plan_name %>
 - Amount: KES <%= @invoice.amount %>
-- Due Date: <%= @invoice.due_date.strftime('%B %d, %Y') %>
-- Days Until Due: <%= (@invoice.due_date - Date.current).to_i %> days
+- Due Date: <%= due_date.strftime('%B %d, %Y') %>
+- Days Until Due: <%= days_until_due %> days
 
-Line Items:
-<% if @invoice.line_items.present? %>
-<% @invoice.line_items.each do |item| %>
-- <%= item['description'] %>: <%= item['quantity'] %> x KES <%= item['unit_price'] %> = KES <%= item['amount'] %>
-<% end %>
-<% else %>
+Details:
 - <%= @subscription.plan_name %>: KES <%= @invoice.amount %>
+<% if @subscription.current_period_start && @subscription.current_period_end %>
+  Period: <%= @subscription.current_period_start.strftime('%b %d') %> - <%= @subscription.current_period_end.strftime('%b %d, %Y') %>
 <% end %>
 
 Total: KES <%= @invoice.amount %>
 
-Payment is due on <%= @invoice.due_date.strftime('%B %d, %Y') %>.
+Payment is due on <%= due_date.strftime('%B %d, %Y') %>.
 
 <% if @subscription.preferred_payment_method == 'ratiba' %>
 Your payment will be automatically processed via your standing order (Ratiba) on the due date.
@@ -34,4 +34,3 @@ Please ensure your payment method is up to date. You can update your payment met
 If you have any questions or need assistance, please contact our support team.
 
 Thank you for your continued business!
-

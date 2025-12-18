@@ -10,49 +10,47 @@
     
     <p>This is a friendly reminder that your next invoice is due soon.</p>
     
+    <% due_date = @subscription.current_period_end || (Date.current + 30.days) %>
+    <% days_until_due = (due_date - Date.current).to_i %>
+    
     <h2>Invoice Preview</h2>
     <ul>
       <li><strong>Invoice Number:</strong> <%= @invoice.invoice_number %></li>
       <li><strong>Subscription:</strong> <%= @subscription.reference_number %></li>
-      <li><strong>Plan:</strong> <%= @subscription.plan_name %></li>
-      <li><strong>Amount:</strong> KES <%= @invoice.amount %></li>
-      <li><strong>Due Date:</strong> <%= @invoice.due_date.strftime('%B %d, %Y') %></li>
-      <li><strong>Days Until Due:</strong> <%= (@invoice.due_date - Date.current).to_i %> days</li>
+      <li><strong>Service:</strong> <%= @subscription.plan_name %></li>
+      <li><strong>Amount:</strong> KES <%= number_with_precision(@invoice.amount, precision: 2) %></li>
+      <li><strong>Due Date:</strong> <%= due_date.strftime('%B %d, %Y') %></li>
+      <li><strong>Days Until Due:</strong> <%= days_until_due %> days</li>
     </ul>
     
-    <h2>Line Items</h2>
-    <% if @invoice.line_items.present? %>
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr style="background-color: #f5f5f5;">
-            <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Description</th>
-            <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Quantity</th>
-            <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Unit Price</th>
-            <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @invoice.line_items.each do |item| %>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd;"><%= item['description'] %></td>
-              <td style="padding: 8px; text-align: right; border: 1px solid #ddd;"><%= item['quantity'] %></td>
-              <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">KES <%= item['unit_price'] %></td>
-              <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">KES <%= item['amount'] %></td>
-            </tr>
-          <% end %>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="3" style="padding: 8px; text-align: right; border: 1px solid #ddd;"><strong>Total:</strong></td>
-            <td style="padding: 8px; text-align: right; border: 1px solid #ddd;"><strong>KES <%= @invoice.amount %></strong></td>
-          </tr>
-        </tfoot>
-      </table>
-    <% else %>
-      <p><%= @subscription.plan_name %> - KES <%= @invoice.amount %></p>
-    <% end %>
+    <h2>Details</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background-color: #f5f5f5;">
+          <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Description</th>
+          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd;">
+            <%= @subscription.plan_name %>
+            <% if @subscription.current_period_start && @subscription.current_period_end %>
+              <br><small>Period: <%= @subscription.current_period_start.strftime('%b %d') %> - <%= @subscription.current_period_end.strftime('%b %d, %Y') %></small>
+            <% end %>
+          </td>
+          <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">KES <%= number_with_precision(@invoice.amount, precision: 2) %></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td style="padding: 8px; text-align: right; border: 1px solid #ddd;"><strong>Total:</strong></td>
+          <td style="padding: 8px; text-align: right; border: 1px solid #ddd;"><strong>KES <%= number_with_precision(@invoice.amount, precision: 2) %></strong></td>
+        </tr>
+      </tfoot>
+    </table>
     
-    <p><strong>Payment is due on <%= @invoice.due_date.strftime('%B %d, %Y') %>.</strong></p>
+    <p><strong>Payment is due on <%= due_date.strftime('%B %d, %Y') %>.</strong></p>
     
     <% if @subscription.preferred_payment_method == 'ratiba' %>
       <p>Your payment will be automatically processed via your standing order (Ratiba) on the due date.</p>
@@ -65,4 +63,3 @@
     <p>Thank you for your continued business!</p>
   </body>
 </html>
-
