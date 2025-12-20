@@ -12,6 +12,9 @@ class Webhooks::StkPushController < ActionController::API
     billing_attempt = BillingAttempt.find_by(stk_push_checkout_id: checkout_request_id)
     return head :ok unless billing_attempt
 
+    # Set tenant from billing attempt's subscription
+    ActsAsTenant.current_tenant = billing_attempt.subscription.tenant if billing_attempt.subscription&.tenant.present?
+
     if result_code == 0
       # Payment successful
       callback_metadata = payload.dig("Body", "stkCallback", "CallbackMetadata", "Item")

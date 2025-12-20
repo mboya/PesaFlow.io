@@ -1,15 +1,21 @@
 class Customer < ApplicationRecord
+  # Multi-tenancy
+  acts_as_tenant :tenant
+  belongs_to :tenant
+
   # Associations
   belongs_to :user
   has_many :subscriptions, dependent: :destroy
 
   # Callbacks
   before_validation :format_phone_number
+  before_validation :set_tenant_from_user, on: :create
+  before_save :set_tenant_from_user
 
   # Validations
   validates :name, presence: true
-  validates :phone_number, uniqueness: true, allow_nil: true
-  validates :email, uniqueness: true, allow_nil: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :phone_number, uniqueness: { scope: :tenant_id }, allow_nil: true
+  validates :email, uniqueness: { scope: :tenant_id }, allow_nil: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :status, inclusion: { in: %w[active suspended churned] }
   validates :preferred_payment_day, inclusion: { in: (1..28).map(&:to_s) }, allow_nil: true
 
@@ -50,6 +56,16 @@ class Customer < ApplicationRecord
       self.phone_number = "254#{cleaned}"
     elsif cleaned.start_with?("254")
       self.phone_number = cleaned
+    end
+  end
+
+  def set_tenant_from_user
+    return unless user.present? && tenant_id.nil?
+    
+    # Use without_tenant to avoid scoping issues when accessing user.tenant_id
+    ActsAsTenant.without_tenant do
+      user_tenant_id = user.tenant_id
+      self.tenant_id = user_tenant_id if user_tenant_id.present?
     end
   end
 end

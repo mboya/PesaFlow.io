@@ -1,4 +1,8 @@
 class WebhookLog < ApplicationRecord
+  # Multi-tenancy
+  acts_as_tenant :tenant
+  belongs_to :tenant
+
   # Validations
   validates :source, presence: true, inclusion: { in: %w[ratiba stk_push c2b b2c] }
   validates :status, inclusion: { in: %w[received processed failed] }

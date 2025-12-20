@@ -19,26 +19,27 @@ export default function SubscriptionDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [subResponse, paymentsResponse] = await Promise.all([
-          subscriptionsApi.getById(subscriptionId),
-          paymentsApi.getBySubscription(subscriptionId).catch(() => ({ data: [] })),
-        ]);
-        setSubscription(subResponse.data);
-        setPayments(paymentsResponse.data);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to load subscription');
-        console.error('Subscription error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchSubscription = async () => {
+    try {
+      setLoading(true);
+      const [subResponse, paymentsResponse] = await Promise.all([
+        subscriptionsApi.getById(subscriptionId),
+        paymentsApi.getBySubscription(subscriptionId).catch(() => ({ data: [] })),
+      ]);
+      setSubscription(subResponse.data);
+      setPayments(paymentsResponse.data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to load subscription');
+      console.error('Subscription error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (subscriptionId) {
-      fetchData();
+      fetchSubscription();
     }
   }, [subscriptionId]);
 
@@ -62,7 +63,8 @@ export default function SubscriptionDetailPage() {
     try {
       setActionLoading('reactivate');
       await subscriptionsApi.reactivate(subscription.id);
-      window.location.reload();
+      // Refresh subscription data instead of full page reload
+      fetchSubscription();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to reactivate subscription');
     } finally {

@@ -3,7 +3,7 @@ FactoryBot.define do
     association :user
     name { Faker::Name.name }
     email { user&.email || Faker::Internet.email }
-    phone_number { "254#{rand(700000000..799999999)}" }
+    sequence(:phone_number) { |n| "254#{700000000 + n}" }
     status { 'active' }
     standing_order_enabled { false }
     preferred_payment_day { nil }

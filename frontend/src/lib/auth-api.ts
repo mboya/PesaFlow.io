@@ -6,11 +6,14 @@ export interface User {
   email: string;
   created_at: string;
   otp_enabled: boolean;
+  tenant_id?: number; // Tenant ID if available from backend
+  tenant_subdomain?: string; // Tenant subdomain if available from backend (returned on signup)
 }
 
 export interface SignupData {
   email: string;
   password: string;
+  tenantSubdomain?: string; // Optional tenant subdomain (backend will auto-generate if not provided)
 }
 
 export interface LoginData {
@@ -57,8 +60,23 @@ export interface OtpVerifyResponse {
 // Axios response headers are in response.headers object
 const extractToken = (response: any): string | null => {
   // Axios normalizes headers to lowercase
-  const authHeader = response.headers?.['authorization'] || 
-                     response.headers?.['Authorization'];
+  // Try multiple ways to access headers
+  let authHeader: string | undefined;
+  
+  if (response.headers) {
+    // Try lowercase first (Axios default)
+    authHeader = response.headers['authorization'] || 
+                 response.headers['Authorization'];
+    
+    // If not found, try getting all header keys and checking manually
+    if (!authHeader && typeof response.headers === 'object') {
+      const headerKeys = Object.keys(response.headers);
+      const authKey = headerKeys.find(key => key.toLowerCase() === 'authorization');
+      if (authKey) {
+        authHeader = response.headers[authKey];
+      }
+    }
+  }
   
   if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
@@ -70,13 +88,41 @@ const extractToken = (response: any): string | null => {
 export const authApi = {
   // Sign up new user
   signup: async (data: SignupData): Promise<{ user: User; token: string }> => {
-    const response = await apiClient.post('/signup', { user: data });
+    // Build headers - only include tenant subdomain if explicitly provided
+    // Otherwise, backend will auto-generate a unique tenant from the email
+    const config: any = {};
+    
+    if (data.tenantSubdomain && data.tenantSubdomain.trim().length > 0) {
+      // Use exact header name that backend expects: X-Tenant-Subdomain
+      config.headers = {
+        'X-Tenant-Subdomain': data.tenantSubdomain.toLowerCase().trim()
+      };
+      console.log('[Auth API] Signup with explicit tenant subdomain:', data.tenantSubdomain);
+    } else {
+      console.log('[Auth API] Signup without tenant subdomain - backend will auto-generate from email');
+    }
+
+    const response = await apiClient.post(
+      '/signup', 
+      { user: { email: data.email, password: data.password } },
+      config
+    );
+    
     const token = extractToken(response);
     if (!token) {
       throw new Error('No token received from server');
     }
+
+    const user = response.data.data;
+    
+    // Store tenant subdomain from response (backend includes it after creating tenant)
+    if (user?.tenant_subdomain) {
+      localStorage.setItem('tenantSubdomain', user.tenant_subdomain);
+      console.log('[Auth API] Stored tenant subdomain from signup response:', user.tenant_subdomain);
+    }
+
     return {
-      user: response.data.data,
+      user: user,
       token,
     };
   },
@@ -87,9 +133,19 @@ export const authApi = {
     const token = extractToken(response);
     const loginData: LoginResponse = response.data;
     
-    if (token && !loginData.otp_required) {
-      // Store token if login is complete (no OTP required)
+    // The response interceptor should have already stored the token,
+    // but store it here as well to ensure it's saved
+    if (token && typeof window !== 'undefined') {
       localStorage.setItem('authToken', token);
+      console.log('[Auth API] Stored auth token after login');
+    } else if (!token && typeof window !== 'undefined') {
+      console.warn('[Auth API] No token extracted from login response. Headers:', Object.keys(response.headers || {}));
+    }
+    
+    // Store tenant subdomain from user data if available
+    if (loginData.data?.tenant_subdomain && typeof window !== 'undefined') {
+      localStorage.setItem('tenantSubdomain', loginData.data.tenant_subdomain);
+      console.log('[Auth API] Stored tenant subdomain from login response:', loginData.data.tenant_subdomain);
     }
     
     return loginData;
@@ -102,7 +158,16 @@ export const authApi = {
     if (!token) {
       throw new Error('No token received from server');
     }
-    localStorage.setItem('authToken', token);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', token);
+      
+      // Store tenant subdomain from user data if available
+      const user = response.data.data;
+      if (user?.tenant_subdomain) {
+        localStorage.setItem('tenantSubdomain', user.tenant_subdomain);
+        console.log('[Auth API] Stored tenant subdomain from OTP login response:', user.tenant_subdomain);
+      }
+    }
     return {
       user: response.data.data,
       token,
@@ -123,7 +188,18 @@ export const authApi = {
   // Get current user
   getCurrentUser: async (): Promise<User> => {
     const response = await apiClient.get('/current_user');
-    return response.data.data;
+    const user = response.data.data;
+    
+    // Store tenant subdomain if available and not already stored
+    if (user?.tenant_subdomain && typeof window !== 'undefined') {
+      const currentTenantSubdomain = localStorage.getItem('tenantSubdomain');
+      if (!currentTenantSubdomain || currentTenantSubdomain !== user.tenant_subdomain) {
+        localStorage.setItem('tenantSubdomain', user.tenant_subdomain);
+        console.log('[Auth API] Stored tenant subdomain from current_user response:', user.tenant_subdomain);
+      }
+    }
+    
+    return user;
   },
 
   // Enable OTP

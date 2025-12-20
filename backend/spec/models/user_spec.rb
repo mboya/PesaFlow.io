@@ -11,7 +11,16 @@ RSpec.describe User, type: :model do
     subject { build(:user) }
 
     it { should validate_presence_of(:email) }
-    it { should validate_uniqueness_of(:email).case_insensitive }
+    # Email uniqueness is scoped by tenant_id
+    it "validates email uniqueness scoped by tenant_id" do
+      ActsAsTenant.without_tenant do
+        tenant = create(:tenant)
+        user1 = create(:user, email: "test@example.com", tenant: tenant)
+        user2 = build(:user, email: "test@example.com", tenant: tenant)
+        expect(user2).not_to be_valid
+        expect(user2.errors[:email]).to be_present
+      end
+    end
 
     it "validates email format" do
       user = build(:user, email: "invalid-email")
@@ -20,8 +29,15 @@ RSpec.describe User, type: :model do
     end
 
     it "accepts valid email format" do
-      user = build(:user, email: "valid@example.com")
-      expect(user).to be_valid
+      ActsAsTenant.without_tenant do
+        default_tenant = Tenant.find_or_create_by!(subdomain: 'default') do |t|
+          t.name = 'Default Tenant'
+          t.status = 'active'
+          t.settings = {}
+        end
+        user = build(:user, email: "valid@example.com", tenant: default_tenant)
+        expect(user).to be_valid
+      end
     end
   end
 

@@ -17,6 +17,9 @@ export default function SignupPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
+    // Only check localStorage on client side
+    if (typeof window === 'undefined') return;
+    
     const token = localStorage.getItem('authToken');
     if (token) {
       router.push('/dashboard');
@@ -40,11 +43,16 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      // No tenant subdomain needed - backend will auto-generate from email
       await signup(email, password);
       router.push('/dashboard');
     } catch (err: any) {
-      const errors = err.response?.data?.errors || [];
-      setError(errors[0] || err.message || 'Signup failed');
+      const errorMessage = err.response?.data?.status?.message || 
+                          err.response?.data?.message ||
+                          err.response?.data?.errors?.[0] || 
+                          err.message || 
+                          'Signup failed';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

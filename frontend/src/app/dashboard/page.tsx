@@ -9,27 +9,71 @@ import Link from 'next/link';
 import type { DashboardData, Subscription, Payment } from '@/lib/types';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for auth to finish loading before fetching dashboard data
+    if (authLoading) {
+      return;
+    }
+
+    // Only fetch if user is authenticated
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await dashboardApi.getData();
         setDashboardData(response.data);
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to load dashboard data');
         console.error('Dashboard error:', err);
+        console.error('Error response:', err.response?.data);
+        console.error('Error status:', err.response?.status);
+        
+        // Extract error message from various possible response formats
+        let errorMessage = 'Failed to load dashboard data';
+        if (err.response?.data) {
+          if (typeof err.response.data === 'string') {
+            errorMessage = err.response.data;
+          } else if (err.response.data.error) {
+            errorMessage = err.response.data.error;
+          } else if (err.response.data.message) {
+            errorMessage = err.response.data.message;
+          } else if (err.response.data.status?.message) {
+            errorMessage = err.response.data.status.message;
+          }
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        
+        // Add status code context
+        if (err.response?.status) {
+          if (err.response.status === 401) {
+            errorMessage = 'Authentication failed. Please log in again.';
+          } else if (err.response.status === 403) {
+            errorMessage = 'Access forbidden. You may not have permission to view this data.';
+          } else if (err.response.status === 404) {
+            errorMessage = 'Customer not found. Please contact support.';
+          } else {
+            errorMessage = `${errorMessage} (Status: ${err.response.status})`;
+          }
+        }
+        
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []);
+  }, [user, authLoading]);
 
   const formatCurrency = (amount: number, currency: string = 'KES') => {
     return new Intl.NumberFormat('en-KE', {

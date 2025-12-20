@@ -38,6 +38,9 @@ gem "rotp" # Time-based OTP generation and verification
 gem "rqrcode" # QR code generation for authenticator apps
 gem "chunky_png" # Required by rqrcode for PNG generation
 
+# Multi-tenancy
+gem "acts_as_tenant"
+
 # Environment variables
 gem "dotenv-rails", groups: [ :development, :test ]
 

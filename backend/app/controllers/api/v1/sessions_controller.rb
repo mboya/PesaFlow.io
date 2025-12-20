@@ -11,8 +11,8 @@ module Api
         email = user_params[:email]
         password = user_params[:password]
 
-        # Find user by email
-        user = User.find_by(email: email)
+        # Find user by email - use without_tenant to avoid scoping issues
+        user = ActsAsTenant.without_tenant { User.find_by(email: email) }
 
         # Authenticate user
         if user && user.valid_password?(password)
@@ -31,6 +31,12 @@ module Api
           else
             # User doesn't have OTP, issue JWT token immediately
             sign_in(resource_name, resource)
+            
+            # Generate JWT token manually for the response header
+            # This ensures the token is always set, even if middleware doesn't run in time
+            token = Warden::JWTAuth::UserEncoder.new.call(resource, :api_v1_user, nil).first
+            response.set_header("Authorization", "Bearer #{token}")
+            
             render json: {
               status: {
                 code: 200,
@@ -53,9 +59,14 @@ module Api
       # DELETE /api/v1/logout
       def destroy
         # Token validation is done in before_action :verify_jwt_token
-        # If verify_jwt_token already rendered, skip
-        return if performed?
+        # If verify_jwt_token already rendered (401/unauthorized), the response is already set
+        # In that case, we should not continue with logout
+        if performed?
+          # Response already rendered by verify_jwt_token (likely 401)
+          return
+        end
 
+        # Only proceed if token is valid and not revoked
         signed_out = (Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name))
 
         render json: {
@@ -110,23 +121,27 @@ module Api
               message: "No token provided"
             }
           }, status: :unauthorized
-          return
+          return false
         end
 
         # Check if token is in denylist (already revoked)
+        # This runs before Devise JWT's revocation middleware
         begin
           jwt_secret = ENV.fetch("DEVISE_JWT_SECRET_KEY") { Rails.application.credentials.devise_jwt_secret_key || Rails.application.secret_key_base }
           decoded = JWT.decode(token, jwt_secret, true, algorithm: "HS256")
           jti = decoded[0]["jti"]
 
-          if JwtDenylist.exists?(jti: jti)
+          # JwtDenylist is not tenant-scoped, so query without tenant context
+          if ActsAsTenant.without_tenant { JwtDenylist.exists?(jti: jti) }
+            # Token is already revoked - return 401 and stop processing
+            # This prevents Devise JWT's revocation middleware from trying to revoke it again
             render json: {
               status: {
                 code: 401,
                 message: "Token has been revoked"
               }
             }, status: :unauthorized
-            nil
+            return false
           end
         rescue JWT::DecodeError, JWT::ExpiredSignature => e
           render json: {
@@ -135,8 +150,19 @@ module Api
               message: "Invalid or expired token"
             }
           }, status: :unauthorized
-          nil
+          return false
+        rescue => e
+          # If token decode fails for any reason, return 401
+          render json: {
+            status: {
+              code: 401,
+              message: "Invalid token"
+            }
+          }, status: :unauthorized
+          return false
         end
+        
+        true
       end
     end
   end

@@ -1,4 +1,8 @@
 class BillingAttempt < ApplicationRecord
+  # Multi-tenancy
+  acts_as_tenant :tenant
+  belongs_to :tenant
+
   # Associations
   belongs_to :subscription
   has_many :payments, dependent: :nullify
@@ -18,6 +22,8 @@ class BillingAttempt < ApplicationRecord
 
   # Callbacks
   before_validation :set_attempted_at, on: :create
+  before_validation :set_tenant_from_subscription, on: :create
+  before_save :set_tenant_from_subscription
 
   # Instance methods
   def mark_as_processing!
@@ -63,5 +69,9 @@ class BillingAttempt < ApplicationRecord
     # Exponential backoff: 1 hour, 4 hours, 24 hours
     hours = [ 1, 4, 24 ][retry_count - 1] || 24
     hours.hours.from_now
+  end
+
+  def set_tenant_from_subscription
+    self.tenant_id = subscription.tenant_id if subscription.present? && subscription.tenant_id.present? && tenant_id.nil?
   end
 end
