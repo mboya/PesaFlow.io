@@ -74,7 +74,7 @@ class User < ApplicationRecord
   # Generate a new OTP secret key
   def generate_otp_secret
     self.otp_secret_key = ROTP::Base32.random
-    save
+    save!
     otp_secret_key
   end
 

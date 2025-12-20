@@ -18,6 +18,8 @@ module Api
         end
 
         current_api_v1_user.generate_otp_secret
+        # Reload user to ensure we have the latest otp_secret_key
+        current_api_v1_user.reload
         render json: {
           status: {
             code: 200,
@@ -29,6 +31,9 @@ module Api
 
       # POST /api/v1/otp/verify
       def verify
+        # Reload user to ensure we have the latest otp_secret_key from database
+        current_api_v1_user.reload
+        
         unless current_api_v1_user.otp_secret_key.present?
           render json: {
             status: {

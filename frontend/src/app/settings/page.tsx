@@ -140,8 +140,10 @@ export default function SettingsPage() {
       // Refresh user data to update otp_enabled status
       await checkAuth();
     } catch (err: any) {
-      setError(err.response?.data?.status?.message || 'Invalid OTP code');
       console.error('Verify OTP error:', err);
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.status?.message || err.response?.data?.message || err.message || 'Invalid OTP code';
+      setError(errorMessage);
     } finally {
       setOtpVerifying(false);
     }
