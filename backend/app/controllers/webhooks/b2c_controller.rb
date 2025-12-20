@@ -15,6 +15,9 @@ class Webhooks::B2cController < ActionController::API
 
     return head :ok unless refund
 
+    # Set tenant from refund's subscription
+    ActsAsTenant.current_tenant = refund.subscription.tenant if refund.subscription&.tenant.present?
+
     if payload.dig("Result", "ResultCode") == 0
       # Payment successful
       process_successful_b2c(refund, payload)
@@ -43,6 +46,8 @@ class Webhooks::B2cController < ActionController::API
     refund = find_refund_by_payload(payload)
 
     if refund
+      # Set tenant from refund's subscription
+      ActsAsTenant.current_tenant = refund.subscription.tenant if refund.subscription&.tenant.present?
       refund.mark_as_failed!(reason: "Payment timeout")
     end
 

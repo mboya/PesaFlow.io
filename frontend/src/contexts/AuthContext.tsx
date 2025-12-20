@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, tenantSubdomain?: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   otpRequired: boolean;
@@ -26,6 +26,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [otpUserId, setOtpUserId] = useState<number | null>(null);
 
   const checkAuth = async () => {
+    // Only access localStorage on client side
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem('authToken');
     if (!token) {
       setLoading(false);
@@ -35,10 +41,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const currentUser = await authApi.getCurrentUser();
       setUser(currentUser);
+      
+      // Store tenant information if available from user data
+      // The backend will set the tenant from the user's tenant_id
+      // We rely on the tenant subdomain being set via localStorage from signup
     } catch (error) {
-      console.error('Auth check failed:', error);
-      localStorage.removeItem('authToken');
-      setUser(null);
+      // Only log error, don't clear token on 500 errors (might be temporary backend issue)
+      const err = error as any;
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        // Only clear token on auth errors
+        console.error('Auth check failed:', error);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken');
+        }
+        setUser(null);
+      } else {
+        // For other errors (500, network, etc.), keep token but log error
+        console.error('Auth check error (non-auth):', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -81,8 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOtpUserId(null);
   };
 
-  const signup = async (email: string, password: string) => {
-    const { user: newUser } = await authApi.signup({ email, password });
+  const signup = async (email: string, password: string, tenantSubdomain?: string) => {
+    const { user: newUser } = await authApi.signup({ email, password, tenantSubdomain });
     setUser(newUser);
   };
 

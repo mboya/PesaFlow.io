@@ -51,6 +51,9 @@ class Webhooks::C2bController < ActionController::API
 
     return head :ok unless subscription
 
+    # Set tenant from subscription
+    ActsAsTenant.current_tenant = subscription.tenant if subscription.tenant.present?
+
     if payload["TransAmount"] && payload["TransID"]
       # Process successful payment
       process_c2b_payment(subscription, payload)

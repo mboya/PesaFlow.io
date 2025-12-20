@@ -13,6 +13,9 @@ class Webhooks::RatibaController < ActionController::API
 
     return head :ok unless subscription
 
+    # Set tenant from subscription
+    ActsAsTenant.current_tenant = subscription.tenant if subscription.tenant.present?
+
     if payload["ResultCode"] == 0
       # Standing order payment successful
       process_successful_payment(subscription, payload)

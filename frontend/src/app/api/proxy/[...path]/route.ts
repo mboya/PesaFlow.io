@@ -46,6 +46,37 @@ export async function DELETE(
   return proxyRequest(request, path, 'DELETE');
 }
 
+export async function OPTIONS(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  // Handle CORS preflight requests
+  // When credentials are included, we cannot use '*' for Access-Control-Allow-Origin
+  // We must use the specific origin from the request
+  const origin = request.headers.get('origin') || 
+                 (request.headers.get('referer') ? new URL(request.headers.get('referer')!).origin : null) ||
+                 '*';
+  
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Tenant-Subdomain, X-Tenant-ID',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400',
+    'Access-Control-Expose-Headers': 'Authorization, X-Tenant-Subdomain, X-Tenant-ID',
+  };
+  
+  // Only set Access-Control-Allow-Origin if we have a valid origin
+  // For same-origin requests (no origin header), the browser doesn't need CORS headers
+  if (origin && origin !== '*') {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+  
+  return new NextResponse(null, {
+    status: 200,
+    headers,
+  });
+}
+
 async function proxyRequest(
   request: NextRequest,
   pathSegments: string[],
@@ -76,7 +107,13 @@ async function proxyRequest(
     const backendPath = apiPath ? `/api/v1/${apiPath}` : '/api/v1';
     const backendUrl = `${BACKEND_URL}${backendPath}${queryString}`;
 
-    console.log(`[Proxy] ${method} ${request.url} -> ${backendUrl}`);
+    // Log tenant headers for debugging (remove in production if needed)
+    const tenantHeaderValue = request.headers.get('x-tenant-subdomain') || request.headers.get('X-Tenant-Subdomain');
+    if (tenantHeaderValue) {
+      console.log(`[Proxy] ${method} ${request.url} -> ${backendUrl} [Tenant: ${tenantHeaderValue}]`);
+    } else {
+      console.log(`[Proxy] ${method} ${request.url} -> ${backendUrl}`);
+    }
 
     // Get request body if present
     let body: string | undefined;
@@ -89,14 +126,58 @@ async function proxyRequest(
     }
 
     // Forward headers (excluding host and connection)
+    // Explicitly include tenant headers for multi-tenancy support
     const headers: Record<string, string> = {};
+    
+    // Extract Authorization header first to ensure it's not lost
+    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
+    if (authHeader) {
+      headers['Authorization'] = authHeader;
+      console.log('[Proxy] Forwarding Authorization header to backend');
+    } else {
+      console.warn('[Proxy] No Authorization header found in request to:', backendUrl);
+    }
+    
+    // First, copy all headers except excluded ones
     request.headers.forEach((value, key) => {
+      const lowerKey = key.toLowerCase();
       if (
-        !['host', 'connection', 'content-length'].includes(key.toLowerCase())
+        !['host', 'connection', 'content-length', 'authorization'].includes(lowerKey)
       ) {
-        headers[key] = value;
+        // Preserve original header name casing for tenant headers
+        // Rails/backend expects exact case: X-Tenant-Subdomain, X-Tenant-ID
+        if (lowerKey === 'x-tenant-subdomain') {
+          headers['X-Tenant-Subdomain'] = value;
+        } else if (lowerKey === 'x-tenant-id') {
+          headers['X-Tenant-ID'] = value;
+        } else {
+          headers[key] = value;
+        }
       }
     });
+
+    // Also check for tenant headers with different casing (ensure they're set)
+    // Next.js headers are case-insensitive, but backend expects exact case
+    // We already set them above in the forEach loop, but this is a backup
+    if (!headers['X-Tenant-Subdomain']) {
+      const tenantSubdomainValue = request.headers.get('x-tenant-subdomain') || 
+                                   request.headers.get('X-Tenant-Subdomain');
+      if (tenantSubdomainValue) {
+        headers['X-Tenant-Subdomain'] = tenantSubdomainValue;
+      }
+    }
+    if (!headers['X-Tenant-ID']) {
+      const tenantIdValue = request.headers.get('x-tenant-id') || 
+                            request.headers.get('X-Tenant-ID');
+      if (tenantIdValue) {
+        headers['X-Tenant-ID'] = tenantIdValue;
+      }
+    }
+
+    // Log headers for debugging (especially tenant headers)
+    if (headers['X-Tenant-Subdomain'] || headers['x-tenant-subdomain']) {
+      console.log('[Proxy] Forwarding tenant header:', headers['X-Tenant-Subdomain'] || headers['x-tenant-subdomain']);
+    }
 
     // Make request to backend
     const response = await fetch(backendUrl, {
@@ -130,15 +211,21 @@ async function proxyRequest(
       statusText: response.statusText,
     });
 
+    // Extract Authorization header from response first (before forEach loop) to ensure we don't lose it
+    const responseAuthHeader = response.headers.get('authorization') || response.headers.get('Authorization');
+    if (responseAuthHeader) {
+      console.log('[Proxy] Found Authorization header from backend, forwarding to frontend');
+      proxiedResponse.headers.set('Authorization', responseAuthHeader);
+    } else {
+      console.warn('[Proxy] No Authorization header found in backend response. Available headers:', Array.from(response.headers.keys()));
+    }
+
     // Forward response headers (excluding CORS, connection, and cache headers that might cause issues)
-    // But explicitly include Authorization header for JWT tokens
     response.headers.forEach((value, key) => {
       const lowerKey = key.toLowerCase();
-      if (
-        !['access-control-allow-origin', 'connection', 'etag', 'last-modified', 'cache-control'].includes(
-          lowerKey
-        ) || lowerKey === 'authorization'
-      ) {
+      const excludedHeaders = ['access-control-allow-origin', 'connection', 'etag', 'last-modified', 'cache-control'];
+      // Skip excluded headers, but Authorization is already set above
+      if (!excludedHeaders.includes(lowerKey) && lowerKey !== 'authorization') {
         proxiedResponse.headers.set(key, value);
       }
     });
@@ -149,14 +236,30 @@ async function proxyRequest(
     proxiedResponse.headers.set('Expires', '0');
 
     // Set CORS headers for the frontend
-    proxiedResponse.headers.set('Access-Control-Allow-Origin', '*');
+    // When credentials are included, we cannot use '*' for Access-Control-Allow-Origin
+    // We must use the specific origin from the request
+    const origin = request.headers.get('origin') || 
+                   (request.headers.get('referer') ? new URL(request.headers.get('referer')!).origin : null);
+    
+    if (origin) {
+      proxiedResponse.headers.set('Access-Control-Allow-Origin', origin);
+      proxiedResponse.headers.set('Access-Control-Allow-Credentials', 'true');
+    }
+    
     proxiedResponse.headers.set(
       'Access-Control-Allow-Methods',
       'GET, POST, PUT, PATCH, DELETE, OPTIONS'
     );
     proxiedResponse.headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization'
+      'Content-Type, Authorization, X-Tenant-Subdomain, X-Tenant-ID'
+    );
+    
+    // Expose Authorization header so Axios can read it from the response
+    // Browsers don't expose custom headers by default due to CORS restrictions
+    proxiedResponse.headers.set(
+      'Access-Control-Expose-Headers',
+      'Authorization, X-Tenant-Subdomain, X-Tenant-ID'
     );
 
     return proxiedResponse;

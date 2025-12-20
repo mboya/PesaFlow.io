@@ -27,6 +27,13 @@ Rails.application.routes.draw do
       # User routes
       get "current_user", to: "users#current_user"
 
+      # Tenant management
+      resources :tenants, only: [:index, :show, :create, :update] do
+        collection do
+          get "current", to: "tenants#current"
+        end
+      end
+
       # OTP routes
       post "otp/enable", to: "otp#enable"
       post "otp/verify", to: "otp#verify"

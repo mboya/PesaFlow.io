@@ -1,5 +1,6 @@
 // Custom Next.js server with WebSocket proxy support
 // This allows proxying WebSocket connections to the backend while keeping it private
+// Note: Next.js HMR WebSocket is disabled to prevent connection errors in Docker
 
 const { createServer } = require('http');
 const { parse } = require('url');
@@ -58,6 +59,13 @@ app.prepare().then(() => {
   // Handle WebSocket upgrade
   server.on('upgrade', (req, socket, head) => {
     const { pathname } = parse(req.url);
+
+    // Ignore Next.js HMR WebSocket connections (they will fail gracefully)
+    // This prevents connection errors in the browser console
+    if (pathname && pathname.startsWith('/_next/webpack-hmr')) {
+      socket.destroy();
+      return;
+    }
 
     if (pathname === '/api/proxy/ws' || pathname.startsWith('/api/proxy/ws/')) {
       // Proxy WebSocket upgrade to backend

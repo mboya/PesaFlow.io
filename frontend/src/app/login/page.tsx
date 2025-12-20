@@ -11,11 +11,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, otpRequired, verifyOtpLogin, otpUserId } = useAuth();
+  const { login, otpRequired, verifyOtpLogin, otpUserId, clearOtpState } = useAuth();
   const router = useRouter();
 
   // Redirect if already authenticated
   useEffect(() => {
+    // Only check localStorage on client side
+    if (typeof window === 'undefined') return;
+    
     const token = localStorage.getItem('authToken');
     if (token) {
       router.push('/dashboard');
@@ -32,7 +35,19 @@ export default function LoginPage() {
       // If OTP is required, stay on page to show OTP input
       // Otherwise, redirect to dashboard
       if (!otpRequired) {
-        router.push('/dashboard');
+        // Verify token is stored before redirecting
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('authToken');
+          if (token) {
+            console.log('[Login] Token stored, redirecting to dashboard');
+            router.push('/dashboard');
+          } else {
+            console.error('[Login] Token not found after login, cannot redirect');
+            setError('Login succeeded but token was not stored. Please try again.');
+          }
+        } else {
+          router.push('/dashboard');
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.errors?.[0] || err.message || 'Login failed');
@@ -113,7 +128,7 @@ export default function LoginPage() {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={() => clearOtpState()}
                 className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
               >
                 Back to login

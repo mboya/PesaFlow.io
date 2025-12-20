@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   // reactCompiler: true, // Temporarily disabled to debug refresh loop
   
+  reactStrictMode: true,
+  
   // Reduce file watching sensitivity in Docker
   webpack: (config, { dev }) => {
     if (dev) {

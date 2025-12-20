@@ -2,6 +2,8 @@ module Api
   module V1
     class OtpController < ApplicationController
       before_action :authenticate_api_v1_user!, except: [ :verify_login ]
+      # Skip tenant scoping for verify_login since it doesn't require authentication
+      skip_before_action :set_tenant_from_user, only: [ :verify_login ]
 
       # POST /api/v1/otp/enable
       def enable
@@ -149,7 +151,8 @@ module Api
           return
         end
 
-        user = User.find_by(id: user_id)
+        # Find user without tenant scoping - OTP verification is not tenant-scoped
+        user = ActsAsTenant.without_tenant { User.find_by(id: user_id) }
         unless user&.otp_enabled?
           render json: {
             status: {

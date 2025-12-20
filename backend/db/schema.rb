@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_20_113747) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -30,10 +30,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.integer "retry_count", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "tenant_id"
     t.index ["next_retry_at"], name: "index_billing_attempts_on_next_retry_at"
     t.index ["status"], name: "index_billing_attempts_on_status"
     t.index ["stk_push_checkout_id"], name: "index_billing_attempts_on_stk_push_checkout_id"
     t.index ["subscription_id"], name: "index_billing_attempts_on_subscription_id"
+    t.index ["tenant_id"], name: "index_billing_attempts_on_tenant_id"
   end
 
   create_table "customers", force: :cascade do |t|
@@ -48,8 +50,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["email"], name: "index_customers_on_email", unique: true
-    t.index ["phone_number"], name: "index_customers_on_phone_number", unique: true
+    t.bigint "tenant_id"
+    t.index ["tenant_id", "email"], name: "index_customers_on_tenant_id_and_email", unique: true, where: "(email IS NOT NULL)"
+    t.index ["tenant_id", "phone_number"], name: "index_customers_on_tenant_id_and_phone_number", unique: true, where: "(phone_number IS NOT NULL)"
+    t.index ["tenant_id"], name: "index_customers_on_tenant_id"
     t.index ["user_id"], name: "index_customers_on_user_id", unique: true
   end
 
@@ -75,11 +79,13 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.datetime "paid_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "tenant_id"
     t.index ["billing_attempt_id"], name: "index_payments_on_billing_attempt_id"
-    t.index ["mpesa_transaction_id"], name: "index_payments_on_mpesa_transaction_id", unique: true
     t.index ["reconciled"], name: "index_payments_on_reconciled"
     t.index ["status"], name: "index_payments_on_status"
     t.index ["subscription_id"], name: "index_payments_on_subscription_id"
+    t.index ["tenant_id", "mpesa_transaction_id"], name: "index_payments_on_tenant_id_and_mpesa_transaction_id", unique: true
+    t.index ["tenant_id"], name: "index_payments_on_tenant_id"
   end
 
   create_table "refunds", force: :cascade do |t|
@@ -98,9 +104,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.text "failure_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "tenant_id"
     t.index ["approved_by_id"], name: "index_refunds_on_approved_by_id"
     t.index ["payment_id"], name: "index_refunds_on_payment_id"
     t.index ["subscription_id"], name: "index_refunds_on_subscription_id"
+    t.index ["tenant_id"], name: "index_refunds_on_tenant_id"
   end
 
   create_table "subscriptions", force: :cascade do |t|
@@ -128,11 +136,26 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.integer "billing_cycle_days"
     t.boolean "has_trial", default: false, null: false
     t.integer "trial_days", default: 0, null: false
+    t.bigint "tenant_id"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["next_billing_date"], name: "index_subscriptions_on_next_billing_date"
-    t.index ["reference_number"], name: "index_subscriptions_on_reference_number", unique: true
     t.index ["standing_order_id"], name: "index_subscriptions_on_standing_order_id"
     t.index ["status"], name: "index_subscriptions_on_status"
+    t.index ["tenant_id", "reference_number"], name: "index_subscriptions_on_tenant_id_and_reference_number", unique: true
+    t.index ["tenant_id"], name: "index_subscriptions_on_tenant_id"
+  end
+
+  create_table "tenants", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "subdomain", null: false
+    t.string "status", default: "active"
+    t.string "domain"
+    t.jsonb "settings", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["domain"], name: "index_tenants_on_domain", unique: true
+    t.index ["status"], name: "index_tenants_on_status"
+    t.index ["subdomain"], name: "index_tenants_on_subdomain", unique: true
   end
 
   create_table "users", force: :cascade do |t|
@@ -146,8 +169,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.string "otp_secret_key"
     t.boolean "otp_enabled", default: false, null: false
     t.text "backup_codes"
-    t.index ["email"], name: "index_users_on_email", unique: true
+    t.bigint "tenant_id"
+    t.boolean "admin", default: false, null: false
+    t.index ["admin"], name: "index_users_on_admin"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["tenant_id", "email"], name: "index_users_on_tenant_id_and_email", unique: true
+    t.index ["tenant_id"], name: "index_users_on_tenant_id"
   end
 
   create_table "webhook_logs", force: :cascade do |t|
@@ -159,17 +186,26 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_110000) do
     t.string "error_message"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "tenant_id"
     t.index ["created_at"], name: "index_webhook_logs_on_created_at"
     t.index ["source"], name: "index_webhook_logs_on_source"
     t.index ["status"], name: "index_webhook_logs_on_status"
+    t.index ["tenant_id"], name: "index_webhook_logs_on_tenant_id"
   end
 
   add_foreign_key "billing_attempts", "subscriptions"
+  add_foreign_key "billing_attempts", "tenants"
+  add_foreign_key "customers", "tenants"
   add_foreign_key "customers", "users"
   add_foreign_key "payments", "billing_attempts"
   add_foreign_key "payments", "subscriptions"
+  add_foreign_key "payments", "tenants"
   add_foreign_key "refunds", "payments"
   add_foreign_key "refunds", "subscriptions"
+  add_foreign_key "refunds", "tenants"
   add_foreign_key "refunds", "users", column: "approved_by_id"
   add_foreign_key "subscriptions", "customers"
+  add_foreign_key "subscriptions", "tenants"
+  add_foreign_key "users", "tenants"
+  add_foreign_key "webhook_logs", "tenants"
 end

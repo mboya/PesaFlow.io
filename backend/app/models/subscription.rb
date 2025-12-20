@@ -1,4 +1,8 @@
 class Subscription < ApplicationRecord
+  # Multi-tenancy
+  acts_as_tenant :tenant
+  belongs_to :tenant
+
   # Associations
   belongs_to :customer
   has_many :billing_attempts, dependent: :destroy
@@ -7,7 +11,7 @@ class Subscription < ApplicationRecord
   # Note: Invoices are represented by billing_attempts with invoice_number
 
   # Validations
-  validates :reference_number, presence: true, uniqueness: true
+  validates :reference_number, presence: true, uniqueness: { scope: :tenant_id }
   validates :status, inclusion: { in: %w[pending active suspended cancelled expired] }
   validates :preferred_payment_method, inclusion: { in: %w[ratiba stk_push c2b] }, allow_nil: true
   validates :outstanding_amount, numericality: { greater_than_or_equal_to: 0 }
@@ -23,6 +27,8 @@ class Subscription < ApplicationRecord
 
   # Callbacks
   before_validation :generate_reference_number, on: :create
+  before_validation :set_tenant_from_customer, on: :create
+  before_save :set_tenant_from_customer
 
   # Instance methods
 
@@ -154,6 +160,16 @@ class Subscription < ApplicationRecord
     loop do
       self.reference_number = "SUB-#{SecureRandom.alphanumeric(8).upcase}"
       break unless Subscription.exists?(reference_number: reference_number)
+    end
+  end
+
+  def set_tenant_from_customer
+    return unless customer.present? && tenant_id.nil?
+    
+    # Use without_tenant to avoid scoping issues when accessing customer.tenant_id
+    ActsAsTenant.without_tenant do
+      customer_tenant_id = customer.tenant_id
+      self.tenant_id = customer_tenant_id if customer_tenant_id.present?
     end
   end
 end

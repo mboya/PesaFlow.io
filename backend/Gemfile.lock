@@ -74,6 +74,8 @@ GEM
       minitest (>= 5.1)
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
+    acts_as_tenant (1.0.1)
+      rails (>= 6.0)
     ast (2.4.3)
     base64 (0.3.0)
     bcrypt (3.1.20)
@@ -388,6 +390,7 @@ PLATFORMS
   arm64-darwin-24
 
 DEPENDENCIES
+  acts_as_tenant
   blueprinter
   bootsnap
   brakeman
@@ -430,6 +433,7 @@ CHECKSUMS
   activerecord (7.2.3) sha256=6facb7478ceb5f6baa9f0647daa50b4a3a43934997900f0011e6c667ff41a0d7
   activestorage (7.2.3) sha256=4c1422bbfaa60c89e7b43cc38ade7bd3b8dc81024c48a21c1ac56814cf34ca2f
   activesupport (7.2.3) sha256=5675c9770dac93e371412684249f9dc3c8cec104efd0624362a520ae685c7b10
+  acts_as_tenant (1.0.1) sha256=6944e4d64533337938a8817a6b4ff9b11189c9dcc0b1333bb89f3821a4c14c53
   ast (2.4.3) sha256=954615157c1d6a382bc27d690d973195e79db7f55e9765ac7c481c60bdb4d383
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bcrypt (3.1.20) sha256=8410f8c7b3ed54a3c00cd2456bf13917d695117f033218e2483b2e40b0784099

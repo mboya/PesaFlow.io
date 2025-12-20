@@ -4,9 +4,11 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { Navigation } from '@/components/Navigation';
 import { profileApi } from '@/lib/api';
 import { Customer } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -16,12 +18,26 @@ export default function SettingsPage() {
   // Form state
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [tenantSubdomain, setTenantSubdomain] = useState<string>('Not available');
 
   useEffect(() => {
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    // Get tenant subdomain from user or localStorage as fallback (client-side only)
+    if (typeof window !== 'undefined') {
+      const subdomain = user?.tenant_subdomain || localStorage.getItem('tenantSubdomain') || 'Not available';
+      setTenantSubdomain(subdomain);
+    }
+  }, [user?.tenant_subdomain]);
+
   const loadProfile = async () => {
+    // Only make request if we're on the client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
       setLoading(true);
       const { data } = await profileApi.get();
@@ -29,7 +45,8 @@ export default function SettingsPage() {
       setName(data.name || '');
       setPhoneNumber(data.phone_number || '');
     } catch (err: any) {
-      setError('Failed to load profile');
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load profile';
+      setError(errorMessage);
       console.error('Profile load error:', err);
     } finally {
       setLoading(false);
@@ -168,14 +185,45 @@ export default function SettingsPage() {
                 </form>
               </div>
 
-              {/* Account Status Card */}
+              {/* Account Status & Tenant Information Card */}
               <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
                 <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                   <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    Account Status
+                    Account & Tenant Information
                   </h2>
                 </div>
                 <div className="p-6 space-y-4">
+                  {/* Tenant Information Section */}
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                      Tenant Subdomain
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={tenantSubdomain}
+                        disabled
+                        className="flex-1 rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-900 font-mono dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      Your unique tenant identifier. This is automatically generated from your email during registration.
+                    </p>
+                  </div>
+
+                  {user?.tenant_id && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Tenant ID</span>
+                      <span className="text-sm text-zinc-900 dark:text-zinc-50 font-mono">
+                        {user.tenant_id}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Divider */}
+                  <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4"></div>
+
+                  {/* Account Status Section */}
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">Status</span>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
