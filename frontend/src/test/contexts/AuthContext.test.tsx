@@ -70,7 +70,14 @@ describe('AuthContext', () => {
 
   it('should clear user when getCurrentUser fails', async () => {
     localStorage.setItem('authToken', 'invalid-token');
-    vi.mocked(authApi.getCurrentUser).mockRejectedValue(new Error('Unauthorized'));
+    // Mock an axios-like error with 401 status
+    const axiosError = {
+      response: {
+        status: 401,
+      },
+      message: 'Unauthorized',
+    };
+    vi.mocked(authApi.getCurrentUser).mockRejectedValue(axiosError);
 
     render(
       <AuthProvider>

@@ -53,7 +53,7 @@ describe('authApi', () => {
 
       expect(mockPost).toHaveBeenCalledWith('/signup', {
         user: { email: 'test@example.com', password: 'password123' },
-      });
+      }, {});
       expect(result.user).toEqual(mockUser);
       expect(result.token).toBe('test-jwt-token');
     });
