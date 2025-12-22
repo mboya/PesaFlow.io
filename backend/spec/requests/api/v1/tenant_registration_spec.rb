@@ -69,7 +69,7 @@ RSpec.describe "Tenant Assignment During Registration", type: :request do
              headers: { 'X-Tenant-Subdomain' => 'nonexistent' }, as: :json
 
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(JSON.parse(response.body)['status']['message']).to include('Tenant')
+        expect(JSON.parse(response.body)['status']['message']).to include('tenant')
       end
 
       it "returns error for suspended tenant" do

@@ -46,6 +46,11 @@ rescue ActiveRecord::PendingMigrationError => e
 end
 
 RSpec.configure do |config|
+  # Remove Devise's email uniqueness validator before each test
+  # This ensures tenant-scoped validation works correctly
+  config.before(:each) do
+    User.remove_devise_email_uniqueness_validator if defined?(User)
+  end
   # Restore verbose mode after Rails is loaded (optional - keeps warnings off)
   # config.after(:suite) { $VERBOSE = original_verbose }
 

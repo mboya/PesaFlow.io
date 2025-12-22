@@ -116,22 +116,9 @@ module Api
           return tenant if tenant&.active?
           # If tenant exists but is not active, return nil (error)
           return nil if tenant
-          # If tenant doesn't exist, try to create it from the header subdomain
-          begin
-            tenant = ActsAsTenant.without_tenant do
-              Tenant.create!(
-                subdomain: header_subdomain,
-                name: header_subdomain.humanize,
-                status: "active",
-                settings: {}
-              )
-            end
-            Rails.logger.info("Auto-created tenant '#{header_subdomain}' from header")
-            return tenant if tenant.present?
-          rescue ActiveRecord::RecordInvalid => e
-            Rails.logger.error("Failed to create tenant from header '#{header_subdomain}': #{e.message}")
-            # Fall through to auto-generation or default tenant
-          end
+          # If tenant doesn't exist and header was explicitly provided, return nil (error)
+          # Don't auto-create from header - user must provide valid existing tenant
+          return nil
         end
 
         # Priority 2: Header-based identification (ID)
@@ -151,30 +138,8 @@ module Api
           return tenant if tenant.present?
         end
 
-        # Priority 4: Auto-generate tenant from email if no tenant specified
-        # This creates a new tenant for the user automatically
-        if email.present?
-          subdomain = Tenant.generate_unique_subdomain_from_email(email)
-          if subdomain.present?
-            begin
-              tenant = ActsAsTenant.without_tenant do
-                Tenant.create!(
-                  subdomain: subdomain,
-                  name: subdomain.humanize, # Convert "john-doe-example" to "John Doe Example"
-                  status: "active",
-                  settings: {}
-                )
-              end
-              Rails.logger.info("Auto-created tenant '#{subdomain}' for email '#{email}'")
-              return tenant if tenant.present?
-            rescue ActiveRecord::RecordInvalid => e
-              Rails.logger.error("Failed to create tenant from email '#{email}': #{e.message}")
-              # Fall through to default tenant
-            end
-          end
-        end
-
-        # Priority 5: Use default tenant as fallback
+        # Priority 4: Use default tenant as fallback (don't auto-generate from email)
+        # Auto-generation from email was removed - always use default tenant if no tenant specified
         begin
           default_tenant = ActsAsTenant.without_tenant do
             Tenant.find_or_create_by!(subdomain: TenantScoped::DEFAULT_SUBDOMAIN) do |t|
