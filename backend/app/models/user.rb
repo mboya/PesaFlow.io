@@ -22,14 +22,16 @@ class User < ApplicationRecord
 
   # Callbacks
   before_validation :ensure_tenant, on: :create
+  before_validation :ensure_devise_validator_removed
+  after_validation :clear_devise_email_uniqueness_error_if_no_tenant_duplicate
 
   # Validations
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
 
   # Custom email uniqueness validation scoped by tenant_id
-  # This overrides Devise's default uniqueness validation
-  # Use prepend: true to run before Devise's validatable validations
-  # This ensures our validation runs first and can prevent Devise's validator from adding errors
+  # This overrides Devise's global uniqueness validation
+  # Run BEFORE Devise's validators (prepend: true) to prevent Devise from adding errors
+  # We'll add our own error if there's a duplicate within the tenant
   validate :validate_email_uniqueness_within_tenant, prepend: true
 
   def validate_email_uniqueness_within_tenant
@@ -54,13 +56,12 @@ class User < ApplicationRecord
     end
 
     if existing_user
-      # Clear ALL existing email errors first (including Devise's global uniqueness error)
-      errors.delete(:email)
       # Add our tenant-scoped error
+      # This will prevent Devise's validator from running (validation stops on first error)
       errors.add(:email, :taken, value: email)
     end
-    # If no duplicate found, don't add any error (allow it)
-    # Devise's validator will be removed, so no need to clear errors
+    # If no duplicate found within the tenant, don't add any error
+    # Devise's validator will run after ours, but we'll clear its error in an after_validation callback
   end
 
   # Serialize backup_codes as array
@@ -168,6 +169,45 @@ class User < ApplicationRecord
 
   DEFAULT_TENANT_SUBDOMAIN = "default"
 
+  def ensure_devise_validator_removed
+    self.class.remove_devise_email_uniqueness_validator
+  end
+
+  def clear_devise_email_uniqueness_error_if_no_tenant_duplicate
+    return unless email.present?
+    
+    tenant_id_to_check = tenant_id || tenant&.id
+    return unless tenant_id_to_check.present?
+
+    # Check if there's actually a duplicate within the tenant
+    # If not, clear Devise's global uniqueness error
+    has_tenant_duplicate = ActsAsTenant.without_tenant do
+      scope = User.where("LOWER(email) = ?", email.downcase.strip)
+                   .where(tenant_id: tenant_id_to_check)
+      scope = scope.where.not(id: id) if id.present?
+      scope.exists?
+    end
+
+    # If there's no duplicate within the tenant, clear Devise's "taken" errors
+    # This allows same email across different tenants
+    unless has_tenant_duplicate
+      if errors.details[:email].present?
+        taken_indices = []
+        errors.details[:email].each_with_index do |detail, index|
+          is_taken = detail[:error] == :taken || 
+                    (errors[:email][index].present? && errors[:email][index].to_s.downcase.include?('taken'))
+          taken_indices << index if is_taken
+        end
+        
+        # Remove "taken" errors by index (in reverse order to maintain indices)
+        taken_indices.reverse.each do |index|
+          errors.details[:email].delete_at(index) if errors.details[:email].present?
+          errors[:email].delete_at(index) if errors[:email].present?
+        end
+      end
+    end
+  end
+
   def ensure_tenant
     return if tenant_id.present?
 
@@ -183,9 +223,12 @@ class User < ApplicationRecord
   # This must be called after the class is fully loaded
   def self.remove_devise_email_uniqueness_validator
     begin
+      # Clear validators cache first to force Rails to rebuild it
+      User._validators_cache.clear if User._validators_cache
+
       # Remove non-scoped email uniqueness validators added by Devise
       # Keep only our tenant-scoped validation
-      if User._validators[:email]
+      if User._validators && User._validators[:email]
         User._validators[:email].reject! do |validator|
           validator.is_a?(ActiveRecord::Validations::UniquenessValidator) &&
           !validator.options.key?(:scope)
@@ -201,6 +244,9 @@ class User < ApplicationRecord
           !callback.filter.options.key?(:scope)
         end
       end
+
+      # Clear validators cache again after removal
+      User._validators_cache.clear if User._validators_cache
     rescue => e
       # Ignore errors - validator might already be removed
       Rails.logger.debug("Failed to remove Devise email uniqueness validator: #{e.message}")
