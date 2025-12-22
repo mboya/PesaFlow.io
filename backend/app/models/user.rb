@@ -35,8 +35,9 @@ class User < ApplicationRecord
   def validate_email_uniqueness_within_tenant
     return unless email.present?
 
-    # Only validate if tenant_id is present (it should be after ensure_tenant callback)
-    return unless tenant_id.present?
+    # Get tenant_id from association if not directly set
+    tenant_id_to_check = tenant_id || tenant&.id
+    return unless tenant_id_to_check.present?
 
     # Check for existing user with same email in the same tenant
     # Use without_tenant to query across all tenants for uniqueness check
@@ -44,7 +45,7 @@ class User < ApplicationRecord
     # For existing records, we exclude the current record from the check
     existing_user = ActsAsTenant.without_tenant do
       scope = User.where("LOWER(email) = ?", email.downcase.strip)
-                   .where(tenant_id: tenant_id)
+                   .where(tenant_id: tenant_id_to_check)
 
       # Exclude current record if this is an update
       scope = scope.where.not(id: id) if id.present?
@@ -192,13 +193,12 @@ class User < ApplicationRecord
       end
       
       # Also check _validate_callbacks for any uniqueness validations
+      # Devise adds validators via callbacks, so we need to remove them from the callback chain
       if User._validate_callbacks
-        User._validate_callbacks.each do |callback|
-          if callback.filter.is_a?(ActiveRecord::Validations::UniquenessValidator) &&
-             callback.filter.attributes.include?(:email) &&
-             !callback.filter.options.key?(:scope)
-            User._validate_callbacks.delete(callback)
-          end
+        User._validate_callbacks.reject! do |callback|
+          callback.filter.is_a?(ActiveRecord::Validations::UniquenessValidator) &&
+          callback.filter.attributes.include?(:email) &&
+          !callback.filter.options.key?(:scope)
         end
       end
     rescue => e
@@ -215,14 +215,4 @@ Rails.application.config.after_initialize do
   User.remove_devise_email_uniqueness_validator
 end
 
-# Also remove in tests (RSpec loads classes differently)
-if defined?(RSpec)
-  RSpec.configure do |config|
-    config.before(:suite) do
-      User.remove_devise_email_uniqueness_validator
-    end
-    config.before(:each) do
-      User.remove_devise_email_uniqueness_validator
-    end
-  end
-end
+# RSpec configuration is handled in spec/rails_helper.rb
