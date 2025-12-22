@@ -28,6 +28,19 @@ module TenantScoped
     # Skip if tenant is already set (e.g., by set_tenant_from_user) and no headers
     return true if ActsAsTenant.current_tenant.present?
 
+    # For login/signup endpoints, allow requests to proceed even if tenant header is provided but tenant doesn't exist
+    # The user might be logging in before their tenant is fully set up, or creating a new tenant
+    is_auth_endpoint = request.path.include?("/login") || request.path.include?("/signup") || request.path.include?("/registration")
+    
+    # If a tenant header was provided but tenant doesn't exist, and this is an auth endpoint, allow it
+    if is_auth_endpoint && (request.headers[TENANT_SUBDOMAIN_HEADER].present? || request.headers[TENANT_ID_HEADER].present?)
+      # Header was provided but tenant not found - allow login/signup to proceed
+      # They will handle tenant creation/assignment
+      default_tenant = ActsAsTenant.without_tenant { Tenant.find_by(subdomain: DEFAULT_SUBDOMAIN) }
+      ActsAsTenant.current_tenant = default_tenant if default_tenant
+      return true
+    end
+
     # Always ensure we have a tenant set, even if it's the default
     # This prevents acts_as_tenant from scoping queries to empty results
     default_tenant = ActsAsTenant.without_tenant { Tenant.find_by(subdomain: DEFAULT_SUBDOMAIN) }
@@ -35,10 +48,10 @@ module TenantScoped
     tenant = find_tenant
 
     if tenant.nil?
-      # For API endpoints (except registration), use default tenant as fallback
-      # Registration endpoint will handle tenant requirement separately
+      # For API endpoints (except registration and login), use default tenant as fallback
+      # Registration and login endpoints will handle tenant requirement separately
       # Webhook endpoints will try to infer tenant from payload
-      if request.path.start_with?("/api/") && !request.path.include?("signup") && !request.path.include?("registration")
+      if request.path.start_with?("/api/") && !request.path.include?("signup") && !request.path.include?("registration") && !request.path.include?("login")
         # Use default tenant as fallback (set_tenant_from_user should have already set it)
         if default_tenant
           ActsAsTenant.current_tenant = default_tenant
