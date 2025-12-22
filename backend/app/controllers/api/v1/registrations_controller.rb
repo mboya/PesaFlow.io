@@ -106,15 +106,35 @@ module Api
       end
 
       def find_tenant_for_registration(email = nil)
-        # Priority 1-2: Header-based identification
+        # Priority 1: Header-based identification (subdomain)
         if request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER].present?
+          header_subdomain = request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER].downcase.strip
           tenant = ActsAsTenant.without_tenant do
-            Tenant.find_by(subdomain: request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER].downcase.strip)
+            Tenant.find_by(subdomain: header_subdomain)
           end
-          return nil unless tenant&.active?
-          return tenant if tenant
+          # If tenant exists and is active, use it
+          return tenant if tenant&.active?
+          # If tenant exists but is not active, return nil (error)
+          return nil if tenant
+          # If tenant doesn't exist, try to create it from the header subdomain
+          begin
+            tenant = ActsAsTenant.without_tenant do
+              Tenant.create!(
+                subdomain: header_subdomain,
+                name: header_subdomain.humanize,
+                status: "active",
+                settings: {}
+              )
+            end
+            Rails.logger.info("Auto-created tenant '#{header_subdomain}' from header")
+            return tenant if tenant.present?
+          rescue ActiveRecord::RecordInvalid => e
+            Rails.logger.error("Failed to create tenant from header '#{header_subdomain}': #{e.message}")
+            # Fall through to auto-generation or default tenant
+          end
         end
 
+        # Priority 2: Header-based identification (ID)
         if request.headers[TenantScoped::TENANT_ID_HEADER].present?
           tenant = ActsAsTenant.without_tenant do
             Tenant.find_by(id: request.headers[TenantScoped::TENANT_ID_HEADER])
@@ -136,28 +156,37 @@ module Api
         if email.present?
           subdomain = Tenant.generate_unique_subdomain_from_email(email)
           if subdomain.present?
-            tenant = ActsAsTenant.without_tenant do
-              Tenant.create!(
-                subdomain: subdomain,
-                name: subdomain.humanize, # Convert "john-doe-example" to "John Doe Example"
-                status: "active",
-                settings: {}
-              )
+            begin
+              tenant = ActsAsTenant.without_tenant do
+                Tenant.create!(
+                  subdomain: subdomain,
+                  name: subdomain.humanize, # Convert "john-doe-example" to "John Doe Example"
+                  status: "active",
+                  settings: {}
+                )
+              end
+              Rails.logger.info("Auto-created tenant '#{subdomain}' for email '#{email}'")
+              return tenant if tenant.present?
+            rescue ActiveRecord::RecordInvalid => e
+              Rails.logger.error("Failed to create tenant from email '#{email}': #{e.message}")
+              # Fall through to default tenant
             end
-            Rails.logger.info("Auto-created tenant '#{subdomain}' for email '#{email}'")
-            return tenant if tenant.present?
           end
         end
 
         # Priority 5: Use default tenant as fallback
-        default_tenant = ActsAsTenant.without_tenant do
-          Tenant.find_or_create_by!(subdomain: TenantScoped::DEFAULT_SUBDOMAIN) do |t|
-            t.name = "Default Tenant"
-            t.status = "active"
-            t.settings = {}
+        begin
+          default_tenant = ActsAsTenant.without_tenant do
+            Tenant.find_or_create_by!(subdomain: TenantScoped::DEFAULT_SUBDOMAIN) do |t|
+              t.name = "Default Tenant"
+              t.status = "active"
+              t.settings = {}
+            end
           end
+          return default_tenant if default_tenant.present?
+        rescue ActiveRecord::RecordInvalid => e
+          Rails.logger.error("Failed to create default tenant: #{e.message}")
         end
-        return default_tenant if default_tenant.present?
 
         nil
       end
