@@ -11,8 +11,10 @@ const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
 const port = 3000;
 
-// Backend URL from environment variable (internal Docker network)
-const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://backend:3000';
+// Backend URL from environment variable
+// For Fly.io: Use NEXT_PUBLIC_API_BASE_URL or BACKEND_URL
+// For Docker Compose: Use BACKEND_INTERNAL_URL
+const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://backend:3000';
 const WS_BACKEND_URL = BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 const app = next({ dev, hostname, port });
