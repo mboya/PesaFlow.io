@@ -72,8 +72,8 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
-// Helper to extract data from API responses
-const extractData = <T>(response: { data: T }): { data: T } => ({ data: response.data });
+// Helper to extract data from API responses (Axios response structure)
+const extractData = <T>(response: any): { data: T } => ({ data: response.data as T });
 
 // Subscriptions API
 export const subscriptionsApi = {
