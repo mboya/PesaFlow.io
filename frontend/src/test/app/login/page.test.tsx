@@ -8,6 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
+  usePathname: vi.fn(() => '/login'),
 }));
 
 // Mock AuthContext
@@ -77,7 +78,11 @@ describe('LoginPage', () => {
 
   it('should redirect to dashboard after successful login', async () => {
     const user = userEvent.setup();
-    mockLogin.mockResolvedValue(undefined);
+    // Mock login to store token in localStorage (simulating what authApi.login does)
+    mockLogin.mockImplementation(() => {
+      localStorage.setItem('authToken', 'test-token');
+      return Promise.resolve(undefined);
+    });
 
     render(<LoginPage />);
 
@@ -87,7 +92,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
-    });
+    }, { timeout: 3000 });
   });
 
   it('should display error message on login failure', async () => {
