@@ -122,7 +122,29 @@ make clean
 
 ## Production
 
-For production builds, use the optimized multi-stage Dockerfiles:
+### Deploy to Fly.io (Recommended)
+
+Deploy both backend and frontend to Fly.io with a single command:
+
+```bash
+# One-command deployment (sets up database, deploys backend + frontend)
+./deploy.sh
+
+# Or use the interactive script
+./deploy-fly.sh
+```
+
+See [FLY_DEPLOYMENT.md](FLY_DEPLOYMENT.md) for detailed instructions or [QUICK_START_FLY.md](QUICK_START_FLY.md) for a quick reference.
+
+**What gets deployed:**
+- ✅ PostgreSQL database (Fly Postgres)
+- ✅ Rails backend API
+- ✅ Next.js frontend
+- ✅ Automatic HTTPS, health checks, and scaling
+
+### Docker Production Builds
+
+For production builds using Docker Compose:
 
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml build

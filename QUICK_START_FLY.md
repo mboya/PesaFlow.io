@@ -13,10 +13,12 @@ fly auth login
 ## One-Command Deployment
 
 ```bash
-# Run the deployment helper script
-./deploy-fly.sh
+# Deploy everything (database + backend + frontend) in one command
+./deploy.sh
 
-# Choose option 4 to deploy everything
+# Or use the interactive script
+./deploy-fly.sh
+# Choose option 1 to deploy both
 ```
 
 ## Manual Deployment Steps
