@@ -4,8 +4,8 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
 
   # GET /api/v1/invoices
   def index
-    customer = current_user_customer
-    return render json: { error: "Customer not found" }, status: :not_found unless customer
+    customer = require_customer!
+    return unless customer
 
     # Invoices are represented by billing attempts with invoice numbers
     # Eager load associations to avoid N+1 queries
@@ -38,8 +38,10 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
   end
 
   def authorize_invoice!
-    customer = current_user_customer
-    unless customer && @invoice.subscription.customer == customer
+    customer = require_customer!
+    return false unless customer
+    
+    unless @invoice.subscription.customer == customer
       render json: { error: "Unauthorized" }, status: :unauthorized
       return false
     end

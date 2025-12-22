@@ -3,8 +3,8 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
 
   # POST /api/v1/payment_methods/ratiba
   def setup_ratiba
-    customer = current_user_customer
-    return render json: { error: "Customer not found" }, status: :not_found unless customer
+    customer = require_customer!
+    return unless customer
 
     with_transaction do
       # Update customer phone number if provided
@@ -37,8 +37,8 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
 
   # POST /api/v1/payment_methods/setup_standing_order
   def setup_standing_order
-    customer = current_user_customer
-    return render json: { error: "Customer not found" }, status: :not_found unless customer
+    customer = require_customer!
+    return unless customer
 
     with_transaction do
       subscription = customer.subscriptions.find(params[:subscription_id])
@@ -59,8 +59,8 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
 
   # POST /api/v1/payment_methods/stk_push (frontend endpoint)
   def initiate_stk_push
-    customer = current_user_customer
-    return render json: { error: "Customer not found" }, status: :not_found unless customer
+    customer = require_customer!
+    return unless customer
 
     with_transaction do
       # Update customer phone number if provided

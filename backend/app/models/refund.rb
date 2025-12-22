@@ -1,4 +1,6 @@
 class Refund < ApplicationRecord
+  include TenantAssignment
+
   # Multi-tenancy
   acts_as_tenant :tenant
   belongs_to :tenant
@@ -22,8 +24,6 @@ class Refund < ApplicationRecord
 
   # Callbacks
   before_validation :set_requested_at, on: :create
-  before_validation :set_tenant_from_subscription, on: :create
-  before_save :set_tenant_from_subscription
 
   # Instance methods
   def approve!(user:)
@@ -70,9 +70,5 @@ class Refund < ApplicationRecord
 
   def set_requested_at
     self.requested_at ||= Time.current
-  end
-
-  def set_tenant_from_subscription
-    self.tenant_id = subscription.tenant_id if subscription.present? && subscription.tenant_id.present? && tenant_id.nil?
   end
 end

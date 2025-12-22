@@ -1,4 +1,6 @@
 class BillingAttempt < ApplicationRecord
+  include TenantAssignment
+
   # Multi-tenancy
   acts_as_tenant :tenant
   belongs_to :tenant
@@ -22,8 +24,6 @@ class BillingAttempt < ApplicationRecord
 
   # Callbacks
   before_validation :set_attempted_at, on: :create
-  before_validation :set_tenant_from_subscription, on: :create
-  before_save :set_tenant_from_subscription
 
   # Instance methods
   def mark_as_processing!
@@ -55,8 +55,10 @@ class BillingAttempt < ApplicationRecord
     retry_count < max_retries
   end
 
+  MAX_RETRIES = 3
+
   def max_retries
-    3 # Configurable
+    MAX_RETRIES
   end
 
   private
@@ -65,13 +67,12 @@ class BillingAttempt < ApplicationRecord
     self.attempted_at ||= Time.current
   end
 
+  RETRY_DELAYS_HOURS = [1, 4, 24].freeze
+  DEFAULT_RETRY_DELAY_HOURS = 24
+
   def calculate_next_retry_at
     # Exponential backoff: 1 hour, 4 hours, 24 hours
-    hours = [ 1, 4, 24 ][retry_count - 1] || 24
+    hours = RETRY_DELAYS_HOURS[retry_count - 1] || DEFAULT_RETRY_DELAY_HOURS
     hours.hours.from_now
-  end
-
-  def set_tenant_from_subscription
-    self.tenant_id = subscription.tenant_id if subscription.present? && subscription.tenant_id.present? && tenant_id.nil?
   end
 end

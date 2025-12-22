@@ -4,8 +4,8 @@ class Api::V1::RefundsController < Api::V1::ApplicationController
 
   # GET /api/v1/refunds
   def index
-    customer = current_user_customer
-    return render json: { error: "Customer not found" }, status: :not_found unless customer
+    customer = require_customer!
+    return unless customer
 
     @refunds = Refund.joins(payment: :subscription)
                      .where(subscriptions: { customer_id: customer.id })
@@ -22,8 +22,8 @@ class Api::V1::RefundsController < Api::V1::ApplicationController
 
   # POST /api/v1/refunds
   def create
-    customer = current_user_customer
-    return render json: { error: "Customer not found" }, status: :not_found unless customer
+    customer = require_customer!
+    return unless customer
 
     with_transaction do
       payment = Payment.find(params[:payment_id])

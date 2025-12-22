@@ -24,6 +24,17 @@ module Api
                                    Customer.find_by(email: current_user.email)
       end
 
+      # Helper method to require customer or return error response
+      # Returns customer if found, nil if not found (caller should handle nil)
+      def require_customer!
+        customer = current_user_customer
+        unless customer
+          render json: { error: "Customer not found" }, status: :not_found
+          return nil
+        end
+        customer
+      end
+
       # Set tenant from authenticated user (if no header provided)
       # This runs after set_current_tenant, so if headers set a tenant, we keep it
       # If no tenant is set, we use the user's tenant

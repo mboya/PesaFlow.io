@@ -1,4 +1,6 @@
 class Payment < ApplicationRecord
+  include TenantAssignment
+
   # Multi-tenancy
   acts_as_tenant :tenant
   belongs_to :tenant
@@ -24,8 +26,6 @@ class Payment < ApplicationRecord
 
   # Callbacks
   before_validation :set_paid_at, on: :create
-  before_validation :set_tenant_from_subscription, on: :create
-  before_save :set_tenant_from_subscription
 
   # Instance methods
   def mark_as_refunded!
@@ -52,9 +52,5 @@ class Payment < ApplicationRecord
 
   def set_paid_at
     self.paid_at ||= Time.current
-  end
-
-  def set_tenant_from_subscription
-    self.tenant_id = subscription.tenant_id if subscription.present? && subscription.tenant_id.present? && tenant_id.nil?
   end
 end

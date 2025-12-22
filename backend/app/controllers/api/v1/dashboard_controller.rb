@@ -3,8 +3,8 @@ class Api::V1::DashboardController < Api::V1::ApplicationController
 
   # GET /api/v1/dashboard
   def show
-    customer = current_user_customer
-    return render json: { error: "Customer not found" }, status: :not_found unless customer
+    customer = require_customer!
+    return unless customer
 
     # Eager load associations to avoid N+1 queries
     subscriptions = customer.subscriptions.includes(:customer, :payments)
