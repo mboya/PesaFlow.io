@@ -28,43 +28,12 @@ export const apiClient = axios.create({
 apiClient.interceptors.response.use(
     (response) => {
         // Extract token from response headers if present (client-side only)
-        // Axios normalizes headers to lowercase
         if (typeof window !== 'undefined') {
-            // Try multiple ways to access the header
-            let authHeader: string | undefined;
-            
-            // Try as object property (Axios default)
-            if (response.headers) {
-                authHeader = response.headers['authorization'] || 
-                            response.headers['Authorization'];
-                
-                // If not found, try getting all header keys and checking manually
-                if (!authHeader && typeof response.headers === 'object') {
-                    const headerKeys = Object.keys(response.headers);
-                    const authKey = headerKeys.find(key => key.toLowerCase() === 'authorization');
-                    if (authKey) {
-                        authHeader = response.headers[authKey];
-                    }
-                }
-            }
-            
+            const authHeader = response.headers?.['authorization'] || response.headers?.['Authorization'];
             if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
                 const token = authHeader.substring(7);
                 if (token) {
                     localStorage.setItem('authToken', token);
-                    console.log('[API Client] Stored auth token from response headers, URL:', response.config?.url);
-                }
-            } else {
-                // Debug: log if we expected a token but didn't find it
-                if (response.config?.url?.includes('/login') || response.config?.url?.includes('/signup')) {
-                    console.warn('[API Client] No Authorization header found in response for:', response.config?.url);
-                    console.warn('[API Client] Available headers:', Object.keys(response.headers || {}));
-                    // Log all headers for debugging
-                    if (response.headers) {
-                        Object.keys(response.headers).forEach(key => {
-                            console.log(`[API Client] Header ${key}:`, response.headers[key]);
-                        });
-                    }
                 }
             }
         }
@@ -84,38 +53,18 @@ apiClient.interceptors.response.use(
 
 // Add auth token and tenant headers to requests
 apiClient.interceptors.request.use((config) => {
-    // Only access localStorage on client side
     if (typeof window !== 'undefined') {
+        // Add authentication token
         const token = localStorage.getItem('authToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            // Log when token is being sent (but only for a few requests to avoid spam)
-            if (config.url?.includes('/dashboard') || config.url?.includes('/current_user')) {
-                console.log('[API Client] Sending auth token with request to:', config.url);
-            }
-        } else {
-            // Debug: log when token is missing for protected routes
-            if (config.url && !config.url.includes('/login') && !config.url.includes('/signup')) {
-                console.warn('[API Client] No auth token found in localStorage for request to:', config.url);
-                console.warn('[API Client] localStorage.getItem("authToken"):', localStorage.getItem('authToken'));
-            }
         }
 
-        // Add tenant subdomain header if available
-        // This allows the backend to identify which tenant's data to access
-        // Only add if not already set (allows explicit override in request config)
+        // Add tenant subdomain header if available (allows backend to identify tenant)
         if (!config.headers['X-Tenant-Subdomain'] && !config.headers['x-tenant-subdomain']) {
             const tenantSubdomain = localStorage.getItem('tenantSubdomain');
             if (tenantSubdomain) {
-                // Use exact header name backend expects
                 config.headers['X-Tenant-Subdomain'] = tenantSubdomain;
-                if (config.url?.includes('/dashboard') || config.url?.includes('/current_user')) {
-                    console.log('[API Client] Sending tenant subdomain header:', tenantSubdomain);
-                }
-            } else {
-                if (config.url && !config.url.includes('/login') && !config.url.includes('/signup')) {
-                    console.warn('[API Client] No tenant subdomain found in localStorage for request to:', config.url);
-                }
             }
         }
     }

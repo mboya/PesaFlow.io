@@ -38,7 +38,7 @@ module Api
 
           # If user doesn't have a tenant, assign default tenant
           if user.tenant_id.nil?
-            default_tenant = ActsAsTenant.without_tenant { Tenant.find_by(subdomain: "default") }
+            default_tenant = ActsAsTenant.without_tenant { Tenant.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN) }
             if default_tenant
               user.update_column(:tenant_id, default_tenant.id)
               user.reload

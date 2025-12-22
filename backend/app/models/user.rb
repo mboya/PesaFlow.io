@@ -87,20 +87,24 @@ class User < ApplicationRecord
   end
 
   # Verify OTP code with drift tolerance (±1 time step = 90 seconds total)
+  OTP_DRIFT_BEHIND = 1
+  OTP_DRIFT_AHEAD = 1
+
   def verify_otp(code)
     return false unless otp_secret_key.present?
 
     totp = ROTP::TOTP.new(otp_secret_key)
-    # ROTP#verify returns timestamp on success, nil on failure - convert to boolean
-    result = totp.verify(code.to_s, drift_behind: 1, drift_ahead: 1)
-    result.present?
+    totp.verify(code.to_s, drift_behind: OTP_DRIFT_BEHIND, drift_ahead: OTP_DRIFT_AHEAD).present?
   end
 
-  # Generate 10 backup codes (8-character alphanumeric)
+  # Generate backup codes
+  BACKUP_CODE_COUNT = 10
+  BACKUP_CODE_LENGTH = 8
+
   def generate_backup_codes
-    codes = Array.new(10) { SecureRandom.alphanumeric(8).upcase }
+    codes = Array.new(BACKUP_CODE_COUNT) { SecureRandom.alphanumeric(BACKUP_CODE_LENGTH).upcase }
     self.backup_codes = codes
-    save
+    save!
     codes
   end
 
@@ -119,14 +123,20 @@ class User < ApplicationRecord
   end
 
   # Generate provisioning URI for QR code
-  def provisioning_uri(issuer = "PesaFlow")
+  def provisioning_uri(issuer = DEFAULT_ISSUER)
     return nil unless otp_secret_key.present?
 
     ROTP::TOTP.new(otp_secret_key, issuer: issuer).provisioning_uri(email)
   end
 
+  # QR code generation constants
+  QR_CODE_SIZE = 300
+  QR_CODE_BORDER = 4
+  QR_CODE_MODULE_SIZE = 6
+  DEFAULT_ISSUER = "PesaFlow"
+
   # Generate QR code as data URL
-  def qr_code_data_url(issuer = "PesaFlow")
+  def qr_code_data_url(issuer = DEFAULT_ISSUER)
     return nil unless otp_secret_key.present?
 
     uri = provisioning_uri(issuer)
@@ -135,15 +145,15 @@ class User < ApplicationRecord
     qr = RQRCode::QRCode.new(uri)
     png = qr.as_png(
       bit_depth: 1,
-      border_modules: 4,
+      border_modules: QR_CODE_BORDER,
       color_mode: ChunkyPNG::COLOR_GRAYSCALE,
       color: "black",
       file: nil,
       fill: "white",
-      module_px_size: 6,
+      module_px_size: QR_CODE_MODULE_SIZE,
       resize_exactly_to: false,
       resize_gte_to: false,
-      size: 300
+      size: QR_CODE_SIZE
     )
     "data:image/png;base64,#{Base64.strict_encode64(png.to_s)}"
   end
@@ -155,16 +165,16 @@ class User < ApplicationRecord
 
   private
 
+  DEFAULT_TENANT_SUBDOMAIN = "default"
+
   def ensure_tenant
     return if tenant_id.present?
 
     # Only set default tenant if no tenant was explicitly assigned
     # This allows controllers to set tenant before validation
     ActsAsTenant.without_tenant do
-      default_tenant = Tenant.find_by(subdomain: "default")
-      if default_tenant
-        self.tenant_id = default_tenant.id
-      end
+      default_tenant = Tenant.find_by(subdomain: DEFAULT_TENANT_SUBDOMAIN)
+      self.tenant_id = default_tenant.id if default_tenant
     end
   end
 end

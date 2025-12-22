@@ -35,19 +35,15 @@ export default function LoginPage() {
       // If OTP is required, stay on page to show OTP input
       // Otherwise, redirect to dashboard
       if (!otpRequired) {
-        // Verify token is stored before redirecting
+        // Redirect to dashboard after successful login
         if (typeof window !== 'undefined') {
           const token = localStorage.getItem('authToken');
-          if (token) {
-            console.log('[Login] Token stored, redirecting to dashboard');
-            router.push('/dashboard');
-          } else {
-            console.error('[Login] Token not found after login, cannot redirect');
+          if (!token) {
             setError('Login succeeded but token was not stored. Please try again.');
+            return;
           }
-        } else {
-          router.push('/dashboard');
         }
+        router.push('/dashboard');
       }
     } catch (err: any) {
       setError(err.response?.data?.errors?.[0] || err.message || 'Login failed');

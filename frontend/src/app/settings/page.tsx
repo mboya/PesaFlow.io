@@ -6,6 +6,7 @@ import { profileApi } from '@/lib/api';
 import { Customer } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/lib/auth-api';
+import { formatPhoneNumber } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
 export default function SettingsPage() {
@@ -69,18 +70,6 @@ export default function SettingsPage() {
     }
   };
 
-  // Format phone number to 254XXXXXXXXX format
-  const formatPhoneNumber = (phone: string): string => {
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.startsWith('0')) {
-      return `254${cleaned.slice(1)}`;
-    } else if (cleaned.startsWith('7')) {
-      return `254${cleaned}`;
-    } else if (cleaned.startsWith('254')) {
-      return cleaned;
-    }
-    return cleaned;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

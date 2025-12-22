@@ -106,29 +106,21 @@ module Api
       end
 
       def find_tenant_for_registration(email = nil)
-        # Use without_tenant when querying Tenant model since Tenant itself is not tenant-scoped
-        # Priority 1: Header-based identification (X-Tenant-Subdomain)
-        if request.headers["X-Tenant-Subdomain"].present?
+        # Priority 1-2: Header-based identification
+        if request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER].present?
           tenant = ActsAsTenant.without_tenant do
-            Tenant.find_by(subdomain: request.headers["X-Tenant-Subdomain"].downcase.strip)
+            Tenant.find_by(subdomain: request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER].downcase.strip)
           end
-          # If header provided but tenant not found, return nil (error)
-          return nil unless tenant.present?
-          # If tenant is not active (suspended/cancelled), return nil (will be handled by TenantScoped)
-          return nil unless tenant.active?
-          return tenant
+          return nil unless tenant&.active?
+          return tenant if tenant
         end
 
-        # Priority 2: Header-based identification (X-Tenant-ID)
-        if request.headers["X-Tenant-ID"].present?
+        if request.headers[TenantScoped::TENANT_ID_HEADER].present?
           tenant = ActsAsTenant.without_tenant do
-            Tenant.find_by(id: request.headers["X-Tenant-ID"])
+            Tenant.find_by(id: request.headers[TenantScoped::TENANT_ID_HEADER])
           end
-          # If header provided but tenant not found, return nil (error)
-          return nil unless tenant.present?
-          # If tenant is not active (suspended/cancelled), return nil
-          return nil unless tenant.active?
-          return tenant
+          return nil unless tenant&.active?
+          return tenant if tenant
         end
 
         # Priority 3: Subdomain-based identification
@@ -158,9 +150,8 @@ module Api
         end
 
         # Priority 5: Use default tenant as fallback
-        # Always ensure default tenant exists (create if missing)
         default_tenant = ActsAsTenant.without_tenant do
-          Tenant.find_or_create_by!(subdomain: "default") do |t|
+          Tenant.find_or_create_by!(subdomain: TenantScoped::DEFAULT_SUBDOMAIN) do |t|
             t.name = "Default Tenant"
             t.status = "active"
             t.settings = {}

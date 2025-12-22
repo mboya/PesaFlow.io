@@ -33,37 +33,23 @@ export default function DashboardPage() {
         const response = await dashboardApi.getData();
         setDashboardData(response.data);
       } catch (err: any) {
-        console.error('Dashboard error:', err);
-        console.error('Error response:', err.response?.data);
-        console.error('Error status:', err.response?.status);
-        
-        // Extract error message from various possible response formats
+        // Extract error message from response
         let errorMessage = 'Failed to load dashboard data';
-        if (err.response?.data) {
-          if (typeof err.response.data === 'string') {
-            errorMessage = err.response.data;
-          } else if (err.response.data.error) {
-            errorMessage = err.response.data.error;
-          } else if (err.response.data.message) {
-            errorMessage = err.response.data.message;
-          } else if (err.response.data.status?.message) {
-            errorMessage = err.response.data.status.message;
-          }
+        const status = err.response?.status;
+        const data = err.response?.data;
+        
+        if (status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (status === 403) {
+          errorMessage = 'Access forbidden. You may not have permission to view this data.';
+        } else if (status === 404) {
+          errorMessage = 'Customer not found. Please contact support.';
+        } else if (data) {
+          errorMessage = typeof data === 'string' 
+            ? data 
+            : data.error || data.message || data.status?.message || errorMessage;
         } else if (err.message) {
           errorMessage = err.message;
-        }
-        
-        // Add status code context
-        if (err.response?.status) {
-          if (err.response.status === 401) {
-            errorMessage = 'Authentication failed. Please log in again.';
-          } else if (err.response.status === 403) {
-            errorMessage = 'Access forbidden. You may not have permission to view this data.';
-          } else if (err.response.status === 404) {
-            errorMessage = 'Customer not found. Please contact support.';
-          } else {
-            errorMessage = `${errorMessage} (Status: ${err.response.status})`;
-          }
         }
         
         setError(errorMessage);

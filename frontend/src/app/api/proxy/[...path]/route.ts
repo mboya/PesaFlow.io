@@ -5,6 +5,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://backend:3000';
+const EXCLUDED_REQUEST_HEADERS = ['host', 'connection', 'content-length'];
+const EXCLUDED_RESPONSE_HEADERS = ['access-control-allow-origin', 'connection', 'etag', 'last-modified', 'cache-control'];
+const TENANT_HEADERS = {
+  SUBDOMAIN: 'X-Tenant-Subdomain',
+  ID: 'X-Tenant-ID',
+} as const;
 
 export async function GET(
   request: NextRequest,
@@ -107,13 +113,6 @@ async function proxyRequest(
     const backendPath = apiPath ? `/api/v1/${apiPath}` : '/api/v1';
     const backendUrl = `${BACKEND_URL}${backendPath}${queryString}`;
 
-    // Log tenant headers for debugging (remove in production if needed)
-    const tenantHeaderValue = request.headers.get('x-tenant-subdomain') || request.headers.get('X-Tenant-Subdomain');
-    if (tenantHeaderValue) {
-      console.log(`[Proxy] ${method} ${request.url} -> ${backendUrl} [Tenant: ${tenantHeaderValue}]`);
-    } else {
-      console.log(`[Proxy] ${method} ${request.url} -> ${backendUrl}`);
-    }
 
     // Get request body if present
     let body: string | undefined;
@@ -125,59 +124,21 @@ async function proxyRequest(
       }
     }
 
-    // Forward headers (excluding host and connection)
-    // Explicitly include tenant headers for multi-tenancy support
+    // Forward headers (preserve exact casing for tenant headers)
     const headers: Record<string, string> = {};
-    
-    // Extract Authorization header first to ensure it's not lost
-    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
-    if (authHeader) {
-      headers['Authorization'] = authHeader;
-      console.log('[Proxy] Forwarding Authorization header to backend');
-    } else {
-      console.warn('[Proxy] No Authorization header found in request to:', backendUrl);
-    }
-    
-    // First, copy all headers except excluded ones
     request.headers.forEach((value, key) => {
       const lowerKey = key.toLowerCase();
-      if (
-        !['host', 'connection', 'content-length', 'authorization'].includes(lowerKey)
-      ) {
-        // Preserve original header name casing for tenant headers
-        // Rails/backend expects exact case: X-Tenant-Subdomain, X-Tenant-ID
-        if (lowerKey === 'x-tenant-subdomain') {
-          headers['X-Tenant-Subdomain'] = value;
-        } else if (lowerKey === 'x-tenant-id') {
-          headers['X-Tenant-ID'] = value;
-        } else {
-          headers[key] = value;
-        }
+      if (EXCLUDED_REQUEST_HEADERS.includes(lowerKey)) return;
+      
+      // Normalize tenant header casing for backend
+      if (lowerKey === 'x-tenant-subdomain') {
+        headers[TENANT_HEADERS.SUBDOMAIN] = value;
+      } else if (lowerKey === 'x-tenant-id') {
+        headers[TENANT_HEADERS.ID] = value;
+      } else {
+        headers[key] = value;
       }
     });
-
-    // Also check for tenant headers with different casing (ensure they're set)
-    // Next.js headers are case-insensitive, but backend expects exact case
-    // We already set them above in the forEach loop, but this is a backup
-    if (!headers['X-Tenant-Subdomain']) {
-      const tenantSubdomainValue = request.headers.get('x-tenant-subdomain') || 
-                                   request.headers.get('X-Tenant-Subdomain');
-      if (tenantSubdomainValue) {
-        headers['X-Tenant-Subdomain'] = tenantSubdomainValue;
-      }
-    }
-    if (!headers['X-Tenant-ID']) {
-      const tenantIdValue = request.headers.get('x-tenant-id') || 
-                            request.headers.get('X-Tenant-ID');
-      if (tenantIdValue) {
-        headers['X-Tenant-ID'] = tenantIdValue;
-      }
-    }
-
-    // Log headers for debugging (especially tenant headers)
-    if (headers['X-Tenant-Subdomain'] || headers['x-tenant-subdomain']) {
-      console.log('[Proxy] Forwarding tenant header:', headers['X-Tenant-Subdomain'] || headers['x-tenant-subdomain']);
-    }
 
     // Make request to backend
     const response = await fetch(backendUrl, {
@@ -223,12 +184,10 @@ async function proxyRequest(
       console.warn('[Proxy] No Authorization header found in backend response for auth endpoint. Available headers:', Array.from(response.headers.keys()));
     }
 
-    // Forward response headers (excluding CORS, connection, and cache headers that might cause issues)
+    // Forward response headers (excluding CORS and cache headers)
     response.headers.forEach((value, key) => {
       const lowerKey = key.toLowerCase();
-      const excludedHeaders = ['access-control-allow-origin', 'connection', 'etag', 'last-modified', 'cache-control'];
-      // Skip excluded headers, but Authorization is already set above
-      if (!excludedHeaders.includes(lowerKey) && lowerKey !== 'authorization') {
+      if (!EXCLUDED_RESPONSE_HEADERS.includes(lowerKey) && lowerKey !== 'authorization') {
         proxiedResponse.headers.set(key, value);
       }
     });

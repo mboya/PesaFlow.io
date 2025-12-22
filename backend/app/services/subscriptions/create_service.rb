@@ -57,7 +57,7 @@ module Subscriptions
       # Ensure user has a tenant before creating customer (to avoid tenant scoping issues)
       ActsAsTenant.without_tenant do
         if @user.tenant_id.nil?
-          default_tenant = Tenant.find_by(subdomain: "default")
+          default_tenant = Tenant.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
           if default_tenant
             @user.update_column(:tenant_id, default_tenant.id)
             @user.reload

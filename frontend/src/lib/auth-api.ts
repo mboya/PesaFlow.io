@@ -56,32 +56,15 @@ export interface OtpVerifyResponse {
   backup_codes?: string[];
 }
 
-// Extract JWT token from response headers
-// Axios response headers are in response.headers object
+/**
+ * Extract JWT token from Axios response headers
+ * Axios normalizes headers to lowercase, so we check both cases
+ */
 const extractToken = (response: any): string | null => {
-  // Axios normalizes headers to lowercase
-  // Try multiple ways to access headers
-  let authHeader: string | undefined;
-  
-  if (response.headers) {
-    // Try lowercase first (Axios default)
-    authHeader = response.headers['authorization'] || 
-                 response.headers['Authorization'];
-    
-    // If not found, try getting all header keys and checking manually
-    if (!authHeader && typeof response.headers === 'object') {
-      const headerKeys = Object.keys(response.headers);
-      const authKey = headerKeys.find(key => key.toLowerCase() === 'authorization');
-      if (authKey) {
-        authHeader = response.headers[authKey];
-      }
-    }
-  }
-  
+  const authHeader = response.headers?.['authorization'] || response.headers?.['Authorization'];
   if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  
   return null;
 };
 
@@ -116,9 +99,8 @@ export const authApi = {
     const user = response.data.data;
     
     // Store tenant subdomain from response (backend includes it after creating tenant)
-    if (user?.tenant_subdomain) {
+    if (user?.tenant_subdomain && typeof window !== 'undefined') {
       localStorage.setItem('tenantSubdomain', user.tenant_subdomain);
-      console.log('[Auth API] Stored tenant subdomain from signup response:', user.tenant_subdomain);
     }
 
     return {
@@ -145,7 +127,6 @@ export const authApi = {
     // Store tenant subdomain from user data if available
     if (loginData.data?.tenant_subdomain && typeof window !== 'undefined') {
       localStorage.setItem('tenantSubdomain', loginData.data.tenant_subdomain);
-      console.log('[Auth API] Stored tenant subdomain from login response:', loginData.data.tenant_subdomain);
     }
     
     return loginData;
@@ -163,9 +144,8 @@ export const authApi = {
       
       // Store tenant subdomain from user data if available
       const user = response.data.data;
-      if (user?.tenant_subdomain) {
+      if (user?.tenant_subdomain && typeof window !== 'undefined') {
         localStorage.setItem('tenantSubdomain', user.tenant_subdomain);
-        console.log('[Auth API] Stored tenant subdomain from OTP login response:', user.tenant_subdomain);
       }
     }
     return {
@@ -195,7 +175,6 @@ export const authApi = {
       const currentTenantSubdomain = localStorage.getItem('tenantSubdomain');
       if (!currentTenantSubdomain || currentTenantSubdomain !== user.tenant_subdomain) {
         localStorage.setItem('tenantSubdomain', user.tenant_subdomain);
-        console.log('[Auth API] Stored tenant subdomain from current_user response:', user.tenant_subdomain);
       }
     }
     

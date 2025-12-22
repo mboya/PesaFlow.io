@@ -9,21 +9,13 @@ module TenantScoped
 
   private
 
+  TENANT_SUBDOMAIN_HEADER = "X-Tenant-Subdomain"
+  TENANT_ID_HEADER = "X-Tenant-ID"
+  DEFAULT_SUBDOMAIN = "default"
+
   def set_current_tenant
     # Check for headers first - they take precedence over user tenant
-    # Headers are checked in find_tenant with Priority 1
-    header_tenant = nil
-    if request.headers["X-Tenant-Subdomain"].present?
-      header_tenant = ActsAsTenant.without_tenant do
-        Tenant.find_by(subdomain: request.headers["X-Tenant-Subdomain"].downcase.strip)
-      end
-    elsif request.headers["X-Tenant-ID"].present?
-      header_tenant = ActsAsTenant.without_tenant do
-        Tenant.find_by(id: request.headers["X-Tenant-ID"])
-      end
-    end
-
-    # If header tenant is found, use it (overriding any previously set tenant)
+    header_tenant = find_tenant_from_headers
     if header_tenant
       if header_tenant.suspended? || header_tenant.cancelled?
         render json: { error: "Tenant account is suspended or cancelled" }, status: :forbidden
@@ -38,8 +30,7 @@ module TenantScoped
 
     # Always ensure we have a tenant set, even if it's the default
     # This prevents acts_as_tenant from scoping queries to empty results
-    # Use without_tenant when querying Tenant model since Tenant itself is not tenant-scoped
-    default_tenant = ActsAsTenant.without_tenant { Tenant.find_by(subdomain: "default") }
+    default_tenant = ActsAsTenant.without_tenant { Tenant.find_by(subdomain: DEFAULT_SUBDOMAIN) }
 
     tenant = find_tenant
 
@@ -79,21 +70,26 @@ module TenantScoped
     true
   end
 
-  def find_tenant
-    # Use without_tenant when querying Tenant model since Tenant itself is not tenant-scoped
-    # Priority 1: Header-based identification (X-Tenant-Subdomain)
-    if request.headers["X-Tenant-Subdomain"].present?
+  def find_tenant_from_headers
+    if request.headers[TENANT_SUBDOMAIN_HEADER].present?
       return ActsAsTenant.without_tenant do
-        Tenant.active.find_by(subdomain: request.headers["X-Tenant-Subdomain"].downcase.strip)
+        Tenant.find_by(subdomain: request.headers[TENANT_SUBDOMAIN_HEADER].downcase.strip)
       end
     end
 
-    # Priority 2: Header-based identification (X-Tenant-ID)
-    if request.headers["X-Tenant-ID"].present?
+    if request.headers[TENANT_ID_HEADER].present?
       return ActsAsTenant.without_tenant do
-        Tenant.active.find_by(id: request.headers["X-Tenant-ID"])
+        Tenant.find_by(id: request.headers[TENANT_ID_HEADER])
       end
     end
+
+    nil
+  end
+
+  def find_tenant
+    # Priority 1: Header-based identification
+    header_tenant = find_tenant_from_headers
+    return header_tenant if header_tenant&.active?
 
     # Priority 3: Subdomain-based identification (for future use)
     if request.subdomain.present? && request.subdomain != "www" && request.subdomain != "api"
@@ -113,7 +109,7 @@ module TenantScoped
 
         # If user doesn't have a tenant, try to assign default tenant
         if user && user.tenant_id.nil?
-          default_tenant = Tenant.find_by(subdomain: "default")
+          default_tenant = Tenant.find_by(subdomain: DEFAULT_SUBDOMAIN)
           if default_tenant
             user.update_column(:tenant_id, default_tenant.id)
             user.reload
