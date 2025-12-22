@@ -212,12 +212,15 @@ async function proxyRequest(
     });
 
     // Extract Authorization header from response first (before forEach loop) to ensure we don't lose it
+    // Only log warnings for login/signup endpoints where we expect the header
+    const isAuthEndpoint = backendPath.includes('/login') || backendPath.includes('/signup') || backendPath.includes('/otp/verify_login');
     const responseAuthHeader = response.headers.get('authorization') || response.headers.get('Authorization');
     if (responseAuthHeader) {
       console.log('[Proxy] Found Authorization header from backend, forwarding to frontend');
       proxiedResponse.headers.set('Authorization', responseAuthHeader);
-    } else {
-      console.warn('[Proxy] No Authorization header found in backend response. Available headers:', Array.from(response.headers.keys()));
+    } else if (isAuthEndpoint) {
+      // Only warn for auth endpoints where we expect the header
+      console.warn('[Proxy] No Authorization header found in backend response for auth endpoint. Available headers:', Array.from(response.headers.keys()));
     }
 
     // Forward response headers (excluding CORS, connection, and cache headers that might cause issues)

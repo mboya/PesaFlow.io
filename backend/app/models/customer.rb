@@ -61,7 +61,7 @@ class Customer < ApplicationRecord
 
   def set_tenant_from_user
     return unless user.present? && tenant_id.nil?
-    
+
     # Use without_tenant to avoid scoping issues when accessing user.tenant_id
     ActsAsTenant.without_tenant do
       user_tenant_id = user.tenant_id

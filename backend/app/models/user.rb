@@ -6,7 +6,7 @@ class User < ApplicationRecord
   # Multi-tenancy
   acts_as_tenant :tenant, required: false
   belongs_to :tenant, optional: true
-  
+
   # Override find_for_jwt_authentication to ensure user lookup isn't tenant-scoped
   # JWT authentication should work across tenants
   def self.find_for_jwt_authentication(sub)
@@ -24,32 +24,32 @@ class User < ApplicationRecord
 
   # Validations
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
-  
+
   # Custom email uniqueness validation scoped by tenant_id
   # This overrides Devise's default uniqueness validation
   # Run this as the last validation to ensure it clears any Devise errors
   validate :validate_email_uniqueness_within_tenant
-  
+
   def validate_email_uniqueness_within_tenant
     return unless email.present?
-    
+
     # Only validate if tenant_id is present (it should be after ensure_tenant callback)
     return unless tenant_id.present?
-    
+
     # Check for existing user with same email in the same tenant
     # Use without_tenant to query across all tenants for uniqueness check
     # For new records (id is nil), we need to check if any user exists with this email in this tenant
     # For existing records, we exclude the current record from the check
     existing_user = ActsAsTenant.without_tenant do
-      scope = User.where('LOWER(email) = ?', email.downcase.strip)
+      scope = User.where("LOWER(email) = ?", email.downcase.strip)
                    .where(tenant_id: tenant_id)
-      
+
       # Exclude current record if this is an update
       scope = scope.where.not(id: id) if id.present?
-      
+
       scope.exists?
     end
-    
+
     if existing_user
       # Clear existing errors and add our tenant-scoped error
       errors.delete(:email)
@@ -57,7 +57,7 @@ class User < ApplicationRecord
     else
       # No duplicate found - clear any non-tenant-scoped "taken" errors from Devise
       if errors[:email].present?
-        errors[:email].reject! { |e| e.is_a?(String) && (e.include?('has already been taken') || e.include?('taken')) }
+        errors[:email].reject! { |e| e.is_a?(String) && (e.include?("has already been taken") || e.include?("taken")) }
       end
     end
   end
@@ -157,17 +157,16 @@ class User < ApplicationRecord
 
   def ensure_tenant
     return if tenant_id.present?
-    
+
     # Only set default tenant if no tenant was explicitly assigned
     # This allows controllers to set tenant before validation
     ActsAsTenant.without_tenant do
-      default_tenant = Tenant.find_by(subdomain: 'default')
+      default_tenant = Tenant.find_by(subdomain: "default")
       if default_tenant
         self.tenant_id = default_tenant.id
       end
     end
   end
-  
 end
 
 # Remove Devise's email uniqueness validator (added by :validatable)
@@ -179,7 +178,7 @@ Rails.application.config.after_initialize do
     # Keep only our tenant-scoped validation
     if User._validators[:email]
       User._validators[:email].reject! do |validator|
-        validator.is_a?(ActiveRecord::Validations::UniquenessValidator) && 
+        validator.is_a?(ActiveRecord::Validations::UniquenessValidator) &&
         !validator.options.key?(:scope)
       end
     end

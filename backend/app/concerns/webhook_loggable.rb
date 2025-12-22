@@ -35,14 +35,14 @@ module WebhookLoggable
     return nil unless payload.is_a?(Hash)
 
     # Try to find tenant from subscription reference
-    if payload['AccountReference'].present?
-      subscription = Subscription.find_by(reference_number: payload['AccountReference'])
+    if payload["AccountReference"].present?
+      subscription = Subscription.find_by(reference_number: payload["AccountReference"])
       return subscription&.tenant
     end
 
     # Try to find tenant from checkout request ID (STK Push)
-    if payload.dig('Body', 'stkCallback', 'CheckoutRequestID').present?
-      checkout_id = payload.dig('Body', 'stkCallback', 'CheckoutRequestID')
+    if payload.dig("Body", "stkCallback", "CheckoutRequestID").present?
+      checkout_id = payload.dig("Body", "stkCallback", "CheckoutRequestID")
       billing_attempt = BillingAttempt.find_by(stk_push_checkout_id: checkout_id)
       return billing_attempt&.subscription&.tenant
     end

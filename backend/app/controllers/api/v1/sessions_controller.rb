@@ -31,12 +31,12 @@ module Api
           else
             # User doesn't have OTP, issue JWT token immediately
             sign_in(resource_name, resource)
-            
+
             # Generate JWT token manually for the response header
             # This ensures the token is always set, even if middleware doesn't run in time
             token = Warden::JWTAuth::UserEncoder.new.call(resource, :api_v1_user, nil).first
             response.set_header("Authorization", "Bearer #{token}")
-            
+
             render json: {
               status: {
                 code: 200,
@@ -161,7 +161,7 @@ module Api
           }, status: :unauthorized
           return false
         end
-        
+
         true
       end
     end

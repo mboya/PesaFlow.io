@@ -33,7 +33,7 @@ module Api
       def verify
         # Reload user to ensure we have the latest otp_secret_key from database
         current_api_v1_user.reload
-        
+
         unless current_api_v1_user.otp_secret_key.present?
           render json: {
             status: {

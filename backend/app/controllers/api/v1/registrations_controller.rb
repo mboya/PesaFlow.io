@@ -7,11 +7,11 @@ module Api
       def create
         # Get email from params before building resource (needed for tenant generation)
         email = sign_up_params[:email] rescue params.dig(:user, :email)
-        
+
         # Find or create tenant for registration
         # If no tenant header is provided, a tenant will be auto-generated from the email
         tenant = find_tenant_for_registration(email)
-        
+
         unless tenant
           return render json: {
             status: {
@@ -24,13 +24,13 @@ module Api
         # Temporarily set current tenant for acts_as_tenant scoping
         # But we also set tenant_id directly on the resource
         ActsAsTenant.current_tenant = tenant
-        
+
         build_resource(sign_up_params)
-        
+
         # Assign tenant to user (set tenant_id directly to avoid association issues)
         # This must be done before validation so ensure_tenant callback doesn't override it
         resource.tenant_id = tenant.id
-        
+
         # Ensure tenant_id is set before saving
         unless resource.tenant_id.present?
           Rails.logger.error("Failed to set tenant_id for user during registration")
@@ -48,7 +48,7 @@ module Api
         if resource.persisted?
           # Reload to ensure tenant is persisted
           resource.reload
-          
+
           # Verify tenant was saved
           unless resource.tenant_id.present?
             Rails.logger.error("User #{resource.id} was created without tenant_id")
@@ -59,12 +59,12 @@ module Api
           if resource.active_for_authentication?
             # Sign in the user (session is null store, so no data is stored)
             sign_in(resource_name, resource)
-            
+
             # Generate JWT token manually for the response header
             # This ensures the token is always set, even if middleware doesn't run in time
             token = Warden::JWTAuth::UserEncoder.new.call(resource, :api_v1_user, nil).first
             response.set_header("Authorization", "Bearer #{token}")
-            
+
             # UserSerializer now includes tenant_subdomain automatically
             render json: {
               status: {
@@ -108,9 +108,9 @@ module Api
       def find_tenant_for_registration(email = nil)
         # Use without_tenant when querying Tenant model since Tenant itself is not tenant-scoped
         # Priority 1: Header-based identification (X-Tenant-Subdomain)
-        if request.headers['X-Tenant-Subdomain'].present?
+        if request.headers["X-Tenant-Subdomain"].present?
           tenant = ActsAsTenant.without_tenant do
-            Tenant.find_by(subdomain: request.headers['X-Tenant-Subdomain'].downcase.strip)
+            Tenant.find_by(subdomain: request.headers["X-Tenant-Subdomain"].downcase.strip)
           end
           # If header provided but tenant not found, return nil (error)
           return nil unless tenant.present?
@@ -120,9 +120,9 @@ module Api
         end
 
         # Priority 2: Header-based identification (X-Tenant-ID)
-        if request.headers['X-Tenant-ID'].present?
+        if request.headers["X-Tenant-ID"].present?
           tenant = ActsAsTenant.without_tenant do
-            Tenant.find_by(id: request.headers['X-Tenant-ID'])
+            Tenant.find_by(id: request.headers["X-Tenant-ID"])
           end
           # If header provided but tenant not found, return nil (error)
           return nil unless tenant.present?
@@ -132,7 +132,7 @@ module Api
         end
 
         # Priority 3: Subdomain-based identification
-        if request.subdomain.present? && request.subdomain != 'www' && request.subdomain != 'api'
+        if request.subdomain.present? && request.subdomain != "www" && request.subdomain != "api"
           tenant = ActsAsTenant.without_tenant do
             Tenant.active.find_by(subdomain: request.subdomain.downcase.strip)
           end
@@ -148,7 +148,7 @@ module Api
               Tenant.create!(
                 subdomain: subdomain,
                 name: subdomain.humanize, # Convert "john-doe-example" to "John Doe Example"
-                status: 'active',
+                status: "active",
                 settings: {}
               )
             end
@@ -160,9 +160,9 @@ module Api
         # Priority 5: Use default tenant as fallback
         # Always ensure default tenant exists (create if missing)
         default_tenant = ActsAsTenant.without_tenant do
-          Tenant.find_or_create_by!(subdomain: 'default') do |t|
-            t.name = 'Default Tenant'
-            t.status = 'active'
+          Tenant.find_or_create_by!(subdomain: "default") do |t|
+            t.name = "Default Tenant"
+            t.status = "active"
             t.settings = {}
           end
         end

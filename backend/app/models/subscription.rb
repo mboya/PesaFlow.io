@@ -165,7 +165,7 @@ class Subscription < ApplicationRecord
 
   def set_tenant_from_customer
     return unless customer.present? && tenant_id.nil?
-    
+
     # Use without_tenant to avoid scoping issues when accessing customer.tenant_id
     ActsAsTenant.without_tenant do
       customer_tenant_id = customer.tenant_id

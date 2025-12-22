@@ -2,7 +2,7 @@ module Api
   module V1
     class TenantsController < ApplicationController
       before_action :authenticate_api_v1_user!
-      before_action :authorize_admin, only: [:create, :update, :destroy]
+      before_action :authorize_admin, only: [ :create, :update, :destroy ]
 
       # GET /api/v1/tenants
       def index
@@ -12,7 +12,7 @@ module Api
         if current_user.admin?
           @tenants = ActsAsTenant.without_tenant { Tenant.all }
         else
-          @tenants = [current_user.tenant].compact
+          @tenants = [ current_user.tenant ].compact
         end
 
         render json: @tenants.map { |t| tenant_json(t) }
@@ -21,10 +21,10 @@ module Api
       # GET /api/v1/tenants/:id
       def show
         @tenant = ActsAsTenant.without_tenant { Tenant.find(params[:id]) }
-        
+
         # Users can only view their own tenant unless they're admin
         unless current_user.admin? || current_user.tenant == @tenant
-          return render json: { error: 'Unauthorized' }, status: :unauthorized
+          return render json: { error: "Unauthorized" }, status: :unauthorized
         end
 
         render json: tenant_json(@tenant)
@@ -48,7 +48,7 @@ module Api
 
         # Users can only update their own tenant unless they're admin
         unless current_user.admin? || current_user.tenant == @tenant
-          return render json: { error: 'Unauthorized' }, status: :unauthorized
+          return render json: { error: "Unauthorized" }, status: :unauthorized
         end
 
         if @tenant.update(tenant_params)
@@ -61,7 +61,7 @@ module Api
       # GET /api/v1/tenants/current
       def current
         @tenant = current_user.tenant
-        return render json: { error: 'No tenant associated with user' }, status: :not_found unless @tenant
+        return render json: { error: "No tenant associated with user" }, status: :not_found unless @tenant
 
         render json: tenant_json(@tenant)
       end
@@ -87,10 +87,9 @@ module Api
 
       def authorize_admin
         unless current_user.admin?
-          render json: { error: 'Admin access required' }, status: :forbidden
+          render json: { error: "Admin access required" }, status: :forbidden
         end
       end
     end
   end
 end
-

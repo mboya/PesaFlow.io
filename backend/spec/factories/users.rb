@@ -6,7 +6,7 @@ FactoryBot.define do
     otp_enabled { false }
     otp_secret_key { nil }
     backup_codes { [] }
-    
+
     # Tenant will be assigned via ensure_tenant callback if not provided
     # Use ActsAsTenant.without_tenant { create(:user, tenant: tenant) } to explicitly set tenant
     transient do

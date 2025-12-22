@@ -28,7 +28,7 @@ Rails.application.routes.draw do
       get "current_user", to: "users#current_user"
 
       # Tenant management
-      resources :tenants, only: [:index, :show, :create, :update] do
+      resources :tenants, only: [ :index, :show, :create, :update ] do
         collection do
           get "current", to: "tenants#current"
         end

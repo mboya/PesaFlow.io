@@ -8,7 +8,7 @@ class BackfillTenantIds < ActiveRecord::Migration[7.2]
       ON CONFLICT (subdomain) DO NOTHING;
     SQL
     )
-    
+
     # Get the tenant id (whether it was just created or already existed)
     result = execute("SELECT id FROM tenants WHERE subdomain = 'default' LIMIT 1")
     default_tenant_id = result.first&.[]('id')
@@ -84,7 +84,7 @@ class BackfillTenantIds < ActiveRecord::Migration[7.2]
 
     begin
       data = JSON.parse(log.payload)
-      
+
       # Try to find subscription by reference number
       if data['AccountReference'].present?
         subscription = Subscription.find_by(reference_number: data['AccountReference'])

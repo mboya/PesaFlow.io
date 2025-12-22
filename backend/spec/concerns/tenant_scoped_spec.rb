@@ -56,7 +56,7 @@ RSpec.describe TenantScoped, type: :request do
     context "for webhook endpoints" do
       it "allows webhooks to proceed without tenant" do
         # Webhooks infer tenant from payload, so they can proceed without explicit tenant
-        post "/webhooks/stk_push/callback", params: {}.to_json, 
+        post "/webhooks/stk_push/callback", params: {}.to_json,
              headers: { 'Content-Type' => 'application/json' }
         # Should not return 401/403 for missing tenant
         expect(response.status).not_to eq(401)
@@ -65,4 +65,3 @@ RSpec.describe TenantScoped, type: :request do
     end
   end
 end
-

@@ -22,7 +22,7 @@ RSpec.describe Tenant, type: :model do
       it "rejects invalid subdomains" do
         # Note: "ACME" would be normalized to "acme" which is valid
         # So we test with subdomains that remain invalid after normalization
-        invalid_subdomains = ["company_1", "tenant.123", "my tenant", "tenant@123"]
+        invalid_subdomains = [ "company_1", "tenant.123", "my tenant", "tenant@123" ]
         invalid_subdomains.each do |subdomain|
           tenant = build(:tenant, subdomain: subdomain)
           expect(tenant).not_to be_valid
