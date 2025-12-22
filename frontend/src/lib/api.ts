@@ -73,7 +73,7 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // Helper to extract data from API responses
-const extractData = <T>(response: any): { data: T } => ({ data: response.data });
+const extractData = <T>(response: { data: T }): { data: T } => ({ data: response.data });
 
 // Subscriptions API
 export const subscriptionsApi = {
