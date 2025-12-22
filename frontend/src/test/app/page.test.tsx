@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Home from '../../app/page';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
+  usePathname: vi.fn(() => '/'),
 }));
 
 // Mock AuthContext
@@ -15,18 +16,20 @@ vi.mock('../../contexts/AuthContext', () => ({
 }));
 
 describe('Home Page', () => {
-  const mockPush = vi.fn();
+  const mockReplace = vi.fn();
+  const mockPathname = vi.fn(() => '/');
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useRouter).mockReturnValue({
-      push: mockPush,
-      replace: vi.fn(),
+      push: vi.fn(),
+      replace: mockReplace,
       prefetch: vi.fn(),
       back: vi.fn(),
       forward: vi.fn(),
       refresh: vi.fn(),
     } as any);
+    vi.mocked(usePathname).mockReturnValue('/');
   });
 
   it('should show loading state initially', () => {
@@ -74,7 +77,7 @@ describe('Home Page', () => {
     render(<Home />);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/dashboard');
+      expect(mockReplace).toHaveBeenCalledWith('/dashboard');
     });
   });
 
@@ -96,7 +99,7 @@ describe('Home Page', () => {
     render(<Home />);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/login');
+      expect(mockReplace).toHaveBeenCalledWith('/login');
     });
   });
 });
