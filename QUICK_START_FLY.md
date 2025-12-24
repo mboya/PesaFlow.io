@@ -53,7 +53,7 @@ fly deploy -a pesaflow-backend
 ### 3. Run Migrations
 
 ```bash
-fly ssh console -a pesaflow-backend -C "cd /rails && bundle exec rails db:migrate"
+fly ssh console -a pesaflow-backend -C "bundle exec rails db:migrate"
 ```
 
 ### 4. Deploy Frontend

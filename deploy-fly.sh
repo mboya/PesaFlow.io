@@ -203,7 +203,8 @@ setup_database() {
 # Function to run migrations
 run_migrations() {
     echo -e "${YELLOW}🔄 Running database migrations...${NC}"
-    fly ssh console -a pesaflow-backend -C "cd /rails && bundle exec rails db:migrate"
+    # The app image has WORKDIR set to /rails, so we can run the command directly
+    fly ssh console -a pesaflow-backend -C "bundle exec rails db:migrate"
     echo -e "${GREEN}✓ Migrations complete${NC}"
     echo ""
 }

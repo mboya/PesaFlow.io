@@ -104,8 +104,7 @@ After deploying the backend:
 ```bash
 # Run migrations
 fly ssh console -a pesaflow-backend
-# Inside the console:
-cd /rails
+# Inside the console (WORKDIR is already /rails):
 bundle exec rails db:migrate
 
 # Optional: Seed initial data (if needed)
