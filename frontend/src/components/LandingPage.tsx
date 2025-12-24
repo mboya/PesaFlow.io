@@ -320,9 +320,6 @@ export function LandingPage() {
 
       {/* How It Works Section */}
       <section className="py-24 sm:py-32 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 dark:from-violet-950 dark:via-purple-950 dark:to-fuchsia-950 relative">
-        {/* Connecting line for steps */}
-        <div className="absolute left-1/2 top-1/4 bottom-1/4 w-0.5 bg-gradient-to-b from-violet-500 via-purple-500 to-fuchsia-500 hidden lg:block transform -translate-x-1/2 opacity-30"></div>
-        
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             {/* Visual element */}
@@ -343,33 +340,22 @@ export function LandingPage() {
           </div>
           <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
             <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
-              {steps.map((step, index) => {
-                // Only show horizontal line for first column items (even indices) in 2-column layout
-                const isFirstColumn = index % 2 === 0;
-                const hasNextInRow = index < steps.length - 1;
-                
-                return (
-                  <div key={step.step} className="relative pl-16 group">
-                    {/* Connecting horizontal arrow - only for first column items */}
-                    {isFirstColumn && hasNextInRow && (
-                      <div className="absolute left-12 top-6 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 hidden lg:block opacity-30 group-hover:opacity-60 transition-opacity" style={{ width: 'calc(100% + 2rem)' }}></div>
-                    )}
-                    
-                    <dt className="text-base font-semibold leading-7 text-zinc-900 dark:text-zinc-50">
-                      <div className="absolute left-0 top-0 group-hover:scale-110 transition-transform duration-300">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                        <div className="relative flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
-                          <span className="text-lg font-bold text-white">{step.step}</span>
-                        </div>
+              {steps.map((step, index) => (
+                <div key={step.step} className="relative pl-16 group">
+                  <dt className="text-base font-semibold leading-7 text-zinc-900 dark:text-zinc-50">
+                    <div className="absolute left-0 top-0 group-hover:scale-110 transition-transform duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                      <div className="relative flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
+                        <span className="text-lg font-bold text-white">{step.step}</span>
                       </div>
-                      {step.title}
-                    </dt>
-                    <dd className="mt-2 text-base leading-7 text-zinc-600 dark:text-zinc-400">
-                      {step.description}
-                    </dd>
-                  </div>
-                );
-              })}
+                    </div>
+                    {step.title}
+                  </dt>
+                  <dd className="mt-2 text-base leading-7 text-zinc-600 dark:text-zinc-400">
+                    {step.description}
+                  </dd>
+                </div>
+              ))}
             </dl>
           </div>
         </div>
