@@ -3,7 +3,7 @@
 
 services:
   # PostgreSQL Database
-  - type: pg
+  - type: pserv
     name: pesaflow-database
     plan: starter  # Can be upgraded to standard or pro
     databaseName: pesaflow_production
