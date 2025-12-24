@@ -12,7 +12,9 @@ RUN npm ci
 COPY frontend/ ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-RUN npm run build
+# Increase Node.js memory limit for build and explicitly use webpack
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN npm run build -- --webpack
 
 # Copy standalone build if it exists, otherwise copy regular build
 RUN if [ -d ".next/standalone" ]; then \
