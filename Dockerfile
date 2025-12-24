@@ -121,6 +121,7 @@ RUN mkdir -p /etc/supervisor/conf.d && \
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
+    mkdir -p /rails/db /rails/log /rails/storage /rails/tmp && \
     chown -R rails:rails /rails/db /rails/log /rails/storage /rails/tmp && \
     chown -R rails:rails /app/frontend
 
