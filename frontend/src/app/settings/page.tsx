@@ -348,8 +348,8 @@ export default function SettingsPage() {
 
                   {user?.tenant_id && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600 text-zinc-600">Tenant ID</span>
-                      <span className="text-sm text-zinc-900 text-zinc-900 font-mono">
+                      <span className="text-sm text-zinc-600">Tenant ID</span>
+                      <span className="text-sm text-zinc-900 font-mono">
                         {user.tenant_id}
                       </span>
                     </div>
@@ -360,10 +360,10 @@ export default function SettingsPage() {
 
                   {/* Account Status Section */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600 text-zinc-600">Status</span>
+                    <span className="text-sm text-zinc-600">Status</span>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       profile?.status === 'active' 
-                        ? 'bg-green-100 text-green-800 bg-green-100 text-green-800'
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-yellow-100 text-yellow-800 bg-yellow-100 text-yellow-800'
                     }`}>
                       {profile?.status || 'Unknown'}
@@ -417,11 +417,11 @@ export default function SettingsPage() {
                 <div className="p-6 space-y-4">
                   {/* Current Status */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600 text-zinc-600">2FA Status</span>
+                    <span className="text-sm text-zinc-600">2FA Status</span>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       user?.otp_enabled
-                        ? 'bg-green-100 text-green-800 bg-green-100 text-green-800'
-                        : 'bg-zinc-100 text-zinc-800 bg-zinc-100 text-zinc-600'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-zinc-100 text-zinc-800'
                     }`}>
                       {user?.otp_enabled ? 'Enabled' : 'Disabled'}
                     </span>
@@ -432,7 +432,7 @@ export default function SettingsPage() {
                     <>
                       {!otpSetupData ? (
                         <div>
-                          <p className="text-sm text-zinc-600 text-zinc-600 mb-4">
+                          <p className="text-sm text-zinc-600 mb-4">
                             Add an extra layer of security to your account by enabling two-factor authentication.
                           </p>
                           <button
@@ -446,7 +446,7 @@ export default function SettingsPage() {
                         /* QR Code and Verification */
                         <div className="space-y-4">
                           <div>
-                            <p className="text-sm text-zinc-600 text-zinc-600 mb-2">
+                            <p className="text-sm text-zinc-600 mb-2">
                               Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):
                             </p>
                             {otpSetupData.qr_code && (
@@ -561,7 +561,7 @@ export default function SettingsPage() {
                       ) : (
                         /* Disable 2FA Form */
                         <div className="space-y-4">
-                          <p className="text-sm text-zinc-600 text-zinc-600">
+                          <p className="text-sm text-zinc-600">
                             To disable 2FA, please enter your password and a code from your authenticator app.
                           </p>
                           <div>
