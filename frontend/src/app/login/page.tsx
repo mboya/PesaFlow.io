@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import Link from 'next/link';
-import { Zap, Mail, Lock, Shield, ArrowRight } from 'lucide-react';
+import { Zap, Mail, Lock, Shield, ArrowRight, Clock } from 'lucide-react';
+import { getRateLimitErrorMessage, extractRateLimitInfo } from '@/lib/rate-limit-helper';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -47,7 +48,16 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.errors?.[0] || err.message || 'Login failed');
+      // Handle rate limit errors gracefully
+      const rateLimitInfo = extractRateLimitInfo(err);
+      if (rateLimitInfo) {
+        setError(getRateLimitErrorMessage(err));
+      } else {
+        setError(err.response?.data?.status?.message || 
+                 err.response?.data?.errors?.[0] || 
+                 err.message || 
+                 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -70,7 +80,13 @@ export default function LoginPage() {
       await verifyOtpLogin(otpCode);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.status?.message || 'Invalid OTP code');
+      // Handle rate limit errors gracefully
+      const rateLimitInfo = extractRateLimitInfo(err);
+      if (rateLimitInfo) {
+        setError(getRateLimitErrorMessage(err));
+      } else {
+        setError(err.response?.data?.status?.message || 'Invalid OTP code');
+      }
     } finally {
       setLoading(false);
     }
@@ -193,12 +209,20 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 p-4 text-sm text-red-800 dark:text-red-400 animate-fade-in-up">
+            <div className={`rounded-lg border-2 p-4 text-sm animate-fade-in-up ${
+              error.includes('Too many') || error.includes('rate limit') || error.includes('try again')
+                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-400'
+                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-400'
+            }`}>
               <div className="flex items-start gap-2">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+                  {error.includes('Too many') || error.includes('rate limit') || error.includes('try again') ? (
+                    <Clock className="h-5 w-5" />
+                  ) : (
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
                 </div>
                 <span>{error}</span>
               </div>

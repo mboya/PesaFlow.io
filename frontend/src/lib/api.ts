@@ -46,6 +46,29 @@ apiClient.interceptors.response.use(
             // Don't clear on network errors or other issues
             localStorage.removeItem('authToken');
         }
+        
+        // Handle rate limit errors (429) gracefully
+        if (error.response?.status === 429) {
+            const rateLimitData = error.response?.data;
+            const retryAfter = error.response?.headers?.['retry-after'] || 
+                             error.response?.headers?.['Retry-After'] ||
+                             rateLimitData?.retry_after;
+            
+            // Enhance error with rate limit information
+            error.rateLimitInfo = {
+                retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+                message: rateLimitData?.status?.message || 
+                        rateLimitData?.message || 
+                        'Too many requests. Please try again later.',
+                limit: error.response?.headers?.['x-ratelimit-limit'] || 
+                      error.response?.headers?.['X-RateLimit-Limit'],
+                remaining: error.response?.headers?.['x-ratelimit-remaining'] || 
+                          error.response?.headers?.['X-RateLimit-Remaining'],
+                reset: error.response?.headers?.['x-ratelimit-reset'] || 
+                      error.response?.headers?.['X-RateLimit-Reset']
+            };
+        }
+        
         console.error('API Error:', error.response?.status, error.response?.data || error.message);
         return Promise.reject(error);
     }
