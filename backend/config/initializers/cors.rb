@@ -11,8 +11,8 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       # Allow Render frontend URLs (wildcard for *.onrender.com)
       /https?:\/\/.*\.onrender\.com/,
       # Allow custom domain if set
-      ENV.fetch("FRONTEND_CUSTOM_DOMAIN", "").split(",").map(&:strip).reject(&:empty?)
-    ).flatten.compact
+      *ENV.fetch("FRONTEND_CUSTOM_DOMAIN", "").split(",").map(&:strip).reject(&:empty?)
+    )
 
     resource "*",
              headers: :any,
