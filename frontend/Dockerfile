@@ -5,45 +5,18 @@ FROM node:20-slim AS base
 FROM base AS deps
 WORKDIR /app
 
-# Install build dependencies for native modules (lightningcss)
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies - explicitly install lightningcss and build native bindings
-RUN npm install --include=optional && \
-    npm install lightningcss --save-dev --force && \
-    npm rebuild lightningcss
+# Install dependencies
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 
-# Install build dependencies in builder stage too (needed for native modules during build)
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Verify lightningcss native bindings exist, rebuild if needed
-RUN if [ ! -f "node_modules/lightningcss/lightningcss.linux-x64-gnu.node" ]; then \
-      echo "Native binding not found, rebuilding..." && \
-      npm rebuild lightningcss --verbose; \
-    fi && \
-    echo "Checking for native bindings..." && \
-    find node_modules/lightningcss -name "*.node" -type f || echo "No .node files found" && \
-    ls -la node_modules/lightningcss/ || echo "lightningcss directory not found"
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
