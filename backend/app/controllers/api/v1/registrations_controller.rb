@@ -106,6 +106,11 @@ module Api
       end
 
       def find_tenant_for_registration(email = nil)
+        Rails.logger.info("find_tenant_for_registration called with email: #{email}")
+        Rails.logger.info("Tenant header (subdomain): #{request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER]}")
+        Rails.logger.info("Tenant header (ID): #{request.headers[TenantScoped::TENANT_ID_HEADER]}")
+        Rails.logger.info("Request subdomain: #{request.subdomain}")
+        
         # Priority 1: Header-based identification (subdomain)
         if request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER].present?
           header_subdomain = request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER].downcase.strip
@@ -142,17 +147,40 @@ module Api
         # Auto-generation from email was removed - always use default tenant if no tenant specified
         begin
           default_tenant = ActsAsTenant.without_tenant do
-            Tenant.find_or_create_by!(subdomain: TenantScoped::DEFAULT_SUBDOMAIN) do |t|
-              t.name = "Default Tenant"
-              t.status = "active"
-              t.settings = {}
+            tenant = Tenant.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
+            
+            if tenant.nil?
+              # Create new default tenant
+              tenant = Tenant.create!(
+                subdomain: TenantScoped::DEFAULT_SUBDOMAIN,
+                name: "Default Tenant",
+                status: "active",
+                settings: {}
+              )
+              Rails.logger.info("Created default tenant: #{tenant.inspect}")
+            else
+              # Ensure existing default tenant is active
+              if tenant.status != "active"
+                tenant.update!(status: "active")
+                Rails.logger.info("Updated default tenant status to active: #{tenant.inspect}")
+              else
+                Rails.logger.info("Found existing default tenant: #{tenant.inspect}")
+              end
             end
+            
+            tenant
           end
-          return default_tenant if default_tenant.present?
+          
+          return default_tenant if default_tenant.present? && default_tenant.active?
         rescue ActiveRecord::RecordInvalid => e
-          Rails.logger.error("Failed to create default tenant: #{e.message}")
+          Rails.logger.error("Failed to create/update default tenant: #{e.message}")
+          Rails.logger.error("Validation errors: #{e.record.errors.full_messages.join(', ')}")
+        rescue StandardError => e
+          Rails.logger.error("Unexpected error with default tenant: #{e.class.name}: #{e.message}")
+          Rails.logger.error(e.backtrace.join("\n"))
         end
 
+        Rails.logger.error("find_tenant_for_registration returning nil - no tenant found or created")
         nil
       end
 
