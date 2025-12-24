@@ -214,7 +214,9 @@ export function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 sm:py-32 bg-zinc-50/30 relative border-t border-zinc-200/50">
+      <section className="py-24 sm:py-32 bg-zinc-50/30 relative">
+        {/* Gradient separator */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
         {/* Decorative grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] opacity-40"></div>
         
@@ -264,7 +266,9 @@ export function LandingPage() {
       </section>
 
       {/* Payment Methods Section */}
-      <section className="py-24 sm:py-32 bg-white relative overflow-hidden border-t border-zinc-200/50">
+      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
+        {/* Gradient separator */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500"></div>
         {/* Animated circles */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
           <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-2xl animate-pulse"></div>
@@ -319,7 +323,9 @@ export function LandingPage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 sm:py-32 bg-zinc-50/30 relative border-t border-zinc-200/50">
+      <section className="py-24 sm:py-32 bg-zinc-50/30 relative">
+        {/* Gradient separator */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500"></div>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             {/* Visual element */}
@@ -362,7 +368,9 @@ export function LandingPage() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-24 sm:py-32 bg-white relative overflow-hidden border-t border-zinc-200/50">
+      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
+        {/* Gradient separator */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
         {/* Animated background pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
@@ -474,7 +482,9 @@ export function LandingPage() {
       </section>
 
       {/* Screenshots/Workflow Section */}
-      <section className="py-24 sm:py-32 bg-zinc-50/30 relative overflow-hidden border-t border-zinc-200/50">
+      <section className="py-24 sm:py-32 bg-zinc-50/30 relative overflow-hidden">
+        {/* Gradient separator */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500"></div>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center mb-16">
             <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
@@ -788,7 +798,9 @@ export function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 sm:py-32 bg-white relative overflow-hidden border-t border-zinc-200/50">
+      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
+        {/* Gradient separator */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"></div>
         {/* Subtle decorative background */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
