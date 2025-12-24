@@ -6,7 +6,12 @@ WORKDIR /app/frontend
 
 # Install frontend dependencies
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci
+# Use npm install if lock file doesn't exist, otherwise npm ci
+RUN if [ -f "package-lock.json" ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 
 # Build frontend
 COPY frontend/ ./
