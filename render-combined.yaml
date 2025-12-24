@@ -1,0 +1,125 @@
+# Render Blueprint for PesaFlow.io
+# This file defines the infrastructure for deploying to Render
+
+databases:
+  # PostgreSQL Database
+  - name: pesaflow-database
+    databaseName: pesaflow_production
+    user: pesaflow_user
+    plan: free
+    ipAllowList: []  # Empty array allows all IPs
+
+services:
+  # Redis Instance
+  - type: redis
+    name: pesaflow-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Empty array allows all IPs
+
+  # Backend Service (Rails API)
+  - type: web
+    name: pesaflow-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pesaflow-database
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: pesaflow-redis
+          property: connectionString
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: MPESA_BASE_URL
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_BUSINESS_SHORT_CODE
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_CALLBACK_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: APP_HOST
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: PORT
+        value: "3000"
+
+  # Sidekiq Worker (Background Jobs)
+  - type: worker
+    name: pesaflow-sidekiq
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pesaflow-database
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: pesaflow-redis
+          property: connectionString
+      - key: SECRET_KEY_BASE
+        sync: false
+      - key: MPESA_BASE_URL
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_BUSINESS_SHORT_CODE
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_CALLBACK_URL
+        sync: false
+      - key: APP_HOST
+        sync: false
+
+  # Frontend Service (Next.js)
+  - type: web
+    name: pesaflow-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: BACKEND_INTERNAL_URL
+        sync: false
+      - key: NEXT_PUBLIC_WS_URL
+        sync: false

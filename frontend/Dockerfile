@@ -1,0 +1,66 @@
+# Frontend Dockerfile for production deployment
+FROM node:20-slim AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies (use npm install if lock file doesn't exist, otherwise npm ci)
+RUN if [ -f "package-lock.json" ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Set environment variables for build
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+# Increase Node.js memory limit for build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Build the application
+RUN npm run build
+
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs --create-home nextjs
+
+# Copy necessary files from standalone build
+COPY --from=builder /app/public ./public
+
+# Copy standalone build output if it exists, otherwise copy regular build
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy server.js and package.json (needed for custom server)
+COPY --from=builder --chown=nextjs:nodejs /app/server.js ./server.js
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+# Install production dependencies for server.js (http-proxy-middleware)
+RUN npm install --production --ignore-scripts
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Use custom server.js for WebSocket proxy support
+CMD ["node", "server.js"]

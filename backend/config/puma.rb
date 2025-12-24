@@ -24,7 +24,12 @@ threads_count = ENV.fetch("RAILS_MAX_THREADS", 3)
 threads threads_count, threads_count
 
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
+# Render sets PORT automatically, but we default to 3000 for local development
 port ENV.fetch("PORT", 3000)
+
+# Bind to all interfaces (0.0.0.0) to accept connections from Render's load balancer
+# This is important for Docker deployments where the container needs to accept external connections
+bind "tcp://0.0.0.0:#{ENV.fetch("PORT", 3000)}"
 
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart

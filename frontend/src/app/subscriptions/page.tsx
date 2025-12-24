@@ -6,6 +6,7 @@ import { subscriptionsApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Repeat } from 'lucide-react';
 import type { Subscription } from '@/lib/types';
 
 export default function SubscriptionsPage() {
@@ -73,18 +74,32 @@ export default function SubscriptionsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="min-h-screen bg-white relative">
+        {/* Subtle background decorative elements */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
+        </div>
+        
         <Navigation />
 
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
           <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                Subscriptions
-              </h1>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                Manage your recurring payments and subscriptions
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl blur opacity-50"></div>
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
+                  <Repeat className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
+                  Subscriptions
+                </h1>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  Manage your recurring payments and subscriptions
+                </p>
+              </div>
             </div>
             <Link
               href="/subscriptions/new"
@@ -107,7 +122,7 @@ export default function SubscriptionsPage() {
           )}
 
           {!loading && !error && (
-            <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
+            <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
               {subscriptions.length === 0 ? (
                 <div className="p-8 text-center">
                   <p className="text-zinc-600 dark:text-zinc-400 mb-4">
@@ -115,39 +130,39 @@ export default function SubscriptionsPage() {
                   </p>
                   <Link
                     href="/subscriptions/new"
-                    className="inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    className="inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
                   >
                     Create Subscription
                   </Link>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-                    <thead className="bg-zinc-50 dark:bg-zinc-900">
+                  <table className="min-w-full divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
+                    <thead className="bg-white/50 dark:bg-zinc-900/50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                           Subscription
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                           Status
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                           Amount
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                           Next Billing
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                           Payment Method
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-900">
+                    <tbody className="divide-y divide-zinc-200/50 bg-white/50 dark:divide-zinc-800/50 dark:bg-zinc-900/50">
                       {subscriptions.map((subscription) => (
-                        <tr key={subscription.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                        <tr key={subscription.id} className="transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20">
                           <td className="whitespace-nowrap px-6 py-4">
                             <div>
                               <div className="font-medium text-zinc-900 dark:text-zinc-50">
@@ -181,9 +196,9 @@ export default function SubscriptionsPage() {
                           <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                             <Link
                               href={`/subscriptions/${subscription.id}`}
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                              className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                             >
-                              View
+                              View →
                             </Link>
                           </td>
                         </tr>

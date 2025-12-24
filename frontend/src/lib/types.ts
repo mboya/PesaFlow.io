@@ -6,6 +6,8 @@ export interface Customer {
   email: string;
   phone_number: string | null;
   status: 'active' | 'suspended' | 'cancelled';
+  standing_order_enabled?: boolean;
+  last_payment_at?: string | null;
   created_at: string;
   updated_at: string;
 }

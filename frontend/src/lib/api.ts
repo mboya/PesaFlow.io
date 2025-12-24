@@ -101,9 +101,9 @@ const extractData = <T>(response: any): { data: T } => ({ data: response.data as
 // Subscriptions API
 export const subscriptionsApi = {
     getAll: (): Promise<{ data: Subscription[] }> => 
-        apiClient.get('/subscriptions').then(extractData),
+        apiClient.get('/subscriptions').then(extractData<Subscription[]>),
     getById: (id: string | number): Promise<{ data: Subscription }> =>
-        apiClient.get(`/subscriptions/${id}`).then(extractData),
+        apiClient.get(`/subscriptions/${id}`).then(extractData<Subscription>),
     // Create a subscription directly with name/description/amount etc.
     create: (data: {
         subscription: {
@@ -135,45 +135,45 @@ export const subscriptionsApi = {
 // Payment Methods API
 export const paymentMethodsApi = {
     setupRatiba: (data: { phone_number: string; amount: number; reference: string }): Promise<{ data: any }> => 
-        apiClient.post('/payment_methods/ratiba', data).then(extractData),
+        apiClient.post('/payment_methods/ratiba', data).then(extractData<any>),
     initiateStkPush: (data: { phone_number: string; amount: number; reference: string }): Promise<{ data: any }> => 
-        apiClient.post('/payment_methods/stk_push', data).then(extractData),
+        apiClient.post('/payment_methods/stk_push', data).then(extractData<any>),
 };
 
 // Dashboard API
 export const dashboardApi = {
     getData: (): Promise<{ data: DashboardData }> => 
-        apiClient.get('/dashboard').then(extractData),
+        apiClient.get('/dashboard').then(extractData<DashboardData>),
 };
 
 // Invoices API
 export const invoicesApi = {
     getAll: (): Promise<{ data: Invoice[] }> => 
-        apiClient.get('/invoices').then(extractData),
+        apiClient.get('/invoices').then(extractData<Invoice[]>),
     getById: (id: string | number): Promise<{ data: Invoice }> => 
-        apiClient.get(`/invoices/${id}`).then(extractData),
+        apiClient.get(`/invoices/${id}`).then(extractData<Invoice>),
 };
 
 // Refunds API
 export const refundsApi = {
     getAll: (): Promise<{ data: Refund[] }> => 
-        apiClient.get('/refunds').then(extractData),
+        apiClient.get('/refunds').then(extractData<Refund[]>),
     create: (data: { payment_id: number; amount: number; reason: string }): Promise<{ data: Refund }> => 
-        apiClient.post('/refunds', data).then(extractData),
+        apiClient.post('/refunds', data).then(extractData<Refund>),
     getById: (id: string | number): Promise<{ data: Refund }> => 
-        apiClient.get(`/refunds/${id}`).then(extractData),
+        apiClient.get(`/refunds/${id}`).then(extractData<Refund>),
 };
 
 // Payments API (for subscription-specific payments)
 export const paymentsApi = {
     getBySubscription: (subscriptionId: string | number): Promise<{ data: Payment[] }> => 
-        apiClient.get(`/subscriptions/${subscriptionId}/payments`).then(extractData),
+        apiClient.get(`/subscriptions/${subscriptionId}/payments`).then(extractData<Payment[]>),
 };
 
 // Profile API
 export const profileApi = {
     get: (): Promise<{ data: Customer }> =>
-        apiClient.get('/profile').then(extractData),
+        apiClient.get('/profile').then(extractData<Customer>),
     update: (data: { profile: { name?: string; phone_number?: string; preferred_payment_day?: string } }): Promise<{ data: Customer }> =>
-        apiClient.patch('/profile', data).then(extractData),
+        apiClient.patch('/profile', data).then(extractData<Customer>),
 };

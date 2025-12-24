@@ -131,12 +131,12 @@ export function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-white relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/20 to-transparent rounded-full blur-3xl dark:from-zinc-800/20"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/20 to-transparent rounded-full blur-3xl dark:from-zinc-800/20"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-zinc-100/10 to-transparent rounded-full blur-3xl dark:from-zinc-900/10"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-zinc-100/10 to-transparent rounded-full blur-3xl"></div>
       </div>
 
       {/* Navigation */}
@@ -320,9 +320,6 @@ export function LandingPage() {
 
       {/* How It Works Section */}
       <section className="py-24 sm:py-32 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 dark:from-violet-950 dark:via-purple-950 dark:to-fuchsia-950 relative">
-        {/* Connecting line for steps */}
-        <div className="absolute left-1/2 top-1/4 bottom-1/4 w-0.5 bg-gradient-to-b from-violet-500 via-purple-500 to-fuchsia-500 hidden lg:block transform -translate-x-1/2 opacity-30"></div>
-        
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             {/* Visual element */}
@@ -345,11 +342,6 @@ export function LandingPage() {
             <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
               {steps.map((step, index) => (
                 <div key={step.step} className="relative pl-16 group">
-                  {/* Connecting arrow */}
-                  {index < steps.length - 1 && (
-                    <div className="absolute left-8 top-12 w-8 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 hidden lg:block opacity-30 group-hover:opacity-60 transition-opacity"></div>
-                  )}
-                  
                   <dt className="text-base font-semibold leading-7 text-zinc-900 dark:text-zinc-50">
                     <div className="absolute left-0 top-0 group-hover:scale-110 transition-transform duration-300">
                       <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -496,7 +488,7 @@ export function LandingPage() {
           <div className="space-y-16">
             {/* Dashboard Screenshot */}
             <div 
-              ref={(el) => (sectionRefs.current[0] = el)}
+              ref={(el) => { sectionRefs.current[0] = el; }}
               className={`flex flex-col lg:flex-row items-center gap-12 transition-all duration-1000 ${
                 visibleSections.has(0)
                   ? 'opacity-100 translate-y-0'
@@ -572,7 +564,7 @@ export function LandingPage() {
 
             {/* Subscriptions Screenshot */}
             <div 
-              ref={(el) => (sectionRefs.current[1] = el)}
+              ref={(el) => { sectionRefs.current[1] = el; }}
               className={`flex flex-col lg:flex-row-reverse items-center gap-12 transition-all duration-1000 delay-300 ${
                 visibleSections.has(1)
                   ? 'opacity-100 translate-y-0'
@@ -646,7 +638,7 @@ export function LandingPage() {
 
             {/* Payment Methods Screenshot */}
             <div 
-              ref={(el) => (sectionRefs.current[2] = el)}
+              ref={(el) => { sectionRefs.current[2] = el; }}
               className={`flex flex-col lg:flex-row items-center gap-12 transition-all duration-1000 delay-600 ${
                 visibleSections.has(2)
                   ? 'opacity-100 translate-y-0'
@@ -720,7 +712,7 @@ export function LandingPage() {
 
             {/* Invoices Screenshot */}
             <div 
-              ref={(el) => (sectionRefs.current[3] = el)}
+              ref={(el) => { sectionRefs.current[3] = el; }}
               className={`flex flex-col lg:flex-row-reverse items-center gap-12 transition-all duration-1000 delay-900 ${
                 visibleSections.has(3)
                   ? 'opacity-100 translate-y-0'
@@ -843,7 +835,7 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-black border-t border-zinc-200 dark:border-zinc-800">
+      <footer className="bg-white border-t border-zinc-200">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex items-center">
