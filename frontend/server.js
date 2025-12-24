@@ -9,7 +9,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
-const port = 3000;
+const port = parseInt(process.env.PORT || '3000', 10);
 
 // Backend URL from environment variable (internal Docker network)
 const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://backend:3000';
