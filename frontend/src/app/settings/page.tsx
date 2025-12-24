@@ -371,11 +371,11 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600 text-zinc-600">Standing Orders</span>
+                    <span className="text-sm text-zinc-600">Standing Orders</span>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       profile?.standing_order_enabled
-                        ? 'bg-green-100 text-green-800 bg-green-100 text-green-800'
-                        : 'bg-zinc-100 text-zinc-800 bg-zinc-100 text-zinc-600'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-zinc-100 text-zinc-800'
                     }`}>
                       {profile?.standing_order_enabled ? 'Enabled' : 'Not Enabled'}
                     </span>
@@ -383,16 +383,16 @@ export default function SettingsPage() {
 
                   {profile?.last_payment_at && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600 text-zinc-600">Last Payment</span>
-                      <span className="text-sm text-zinc-900 text-zinc-900">
+                      <span className="text-sm text-zinc-600">Last Payment</span>
+                      <span className="text-sm text-zinc-900">
                         {new Date(profile.last_payment_at).toLocaleDateString()}
                       </span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600 text-zinc-600">Member Since</span>
-                    <span className="text-sm text-zinc-900 text-zinc-900">
+                    <span className="text-sm text-zinc-600">Member Since</span>
+                    <span className="text-sm text-zinc-900">
                       {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
                     </span>
                   </div>
