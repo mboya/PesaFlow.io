@@ -1,32 +1,27 @@
-# Render Blueprint for PesaFlow.io - Combined Deployment
-# This configuration deploys both backend and frontend in a single service
-# Use this instead of render.yaml if you want to deploy both together
+# Render Blueprint for PesaFlow.io
+# This file defines the infrastructure for deploying to Render
 
-services:
+databases:
   # PostgreSQL Database
-  - type: pserv
-    name: pesaflow-database
-    plan: starter
+  - name: pesaflow-database
     databaseName: pesaflow_production
     user: pesaflow_user
+    plan: free
 
+services:
   # Redis Instance
   - type: redis
     name: pesaflow-redis
-    plan: starter
+    plan: free
     maxmemoryPolicy: allkeys-lru
 
-  # Combined Backend + Frontend Service
+  # Backend Service (Rails API)
   - type: web
-    name: pesaflow-app
+    name: pesaflow-backend
     runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
-    plan: standard  # Use standard or higher for combined service (more resources needed)
-    buildCommand: ""
-    startCommand: ""
-    healthCheckPath: /up  # Backend health check endpoint
-    # Render will route traffic to PORT (frontend), backend runs on internal port 3000
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
     envVars:
       - key: RAILS_ENV
         value: production
@@ -43,12 +38,6 @@ services:
           property: connectionString
       - key: SECRET_KEY_BASE
         generateValue: true
-      # Port configuration
-      # Render sets PORT automatically - frontend will use it, backend uses 3000 internally
-      - key: PORT
-        value: "3001"  # Frontend port (exposed to internet via Render)
-      - key: BACKEND_PORT
-        value: "3000"  # Internal backend port (for supervisord)
       # M-Pesa Configuration (set these in Render dashboard)
       - key: MPESA_BASE_URL
         sync: false
@@ -61,7 +50,7 @@ services:
       - key: MPESA_PASSKEY
         sync: false
       - key: MPESA_CALLBACK_URL
-        sync: false  # Set to https://your-app-url.onrender.com/webhooks/stk_push/callback
+        sync: false
       # SMTP Configuration
       - key: SMTP_HOST
         sync: false
@@ -75,31 +64,13 @@ services:
         sync: false
       # App Host (for generating callback URLs)
       - key: APP_HOST
-        sync: false  # Set to your Render app URL
-      # Frontend Configuration
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: host
-        transform: "https://${host}/api/proxy"
-      - key: BACKEND_INTERNAL_URL
-        value: "http://localhost:3000"  # Internal communication
-      - key: NEXT_PUBLIC_WS_URL
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: host
-        transform: "wss://${host}/api/proxy/ws"
-      # CORS Configuration
+        sync: false  # Set to your Render backend URL
+      # Frontend URL for CORS
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: host
-        transform: "https://${host}"
+        sync: false  # Set this manually after frontend deploys
+      # Port (Render sets this automatically)
+      - key: PORT
+        value: "3000"
 
   # Sidekiq Worker (Background Jobs)
   - type: worker
@@ -107,8 +78,7 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    plan: starter
-    buildCommand: ""
+    plan: free
     startCommand: bundle exec sidekiq
     envVars:
       - key: RAILS_ENV
@@ -125,43 +95,35 @@ services:
           name: pesaflow-redis
           property: connectionString
       - key: SECRET_KEY_BASE
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: envVars.SECRET_KEY_BASE
-      # Copy all other env vars from main app service
+        sync: false  # Copy from backend after it generates
       - key: MPESA_BASE_URL
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: envVars.MPESA_BASE_URL
+        sync: false
       - key: MPESA_CONSUMER_KEY
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: envVars.MPESA_CONSUMER_KEY
+        sync: false
       - key: MPESA_CONSUMER_SECRET
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: envVars.MPESA_CONSUMER_SECRET
+        sync: false
       - key: MPESA_BUSINESS_SHORT_CODE
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: envVars.MPESA_BUSINESS_SHORT_CODE
+        sync: false
       - key: MPESA_PASSKEY
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: envVars.MPESA_PASSKEY
+        sync: false
       - key: MPESA_CALLBACK_URL
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: envVars.MPESA_CALLBACK_URL
+        sync: false
       - key: APP_HOST
-        fromService:
-          type: web
-          name: pesaflow-app
-          property: envVars.APP_HOST
+        sync: false
+
+  # Frontend Service (Next.js)
+  - type: web
+    name: pesaflow-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false  # Set to backend URL + /api or configure proxy
+      - key: BACKEND_INTERNAL_URL
+        sync: false  # Set to backend URL
+      - key: NEXT_PUBLIC_WS_URL
+        sync: false  # Set to WebSocket URL
