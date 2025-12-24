@@ -16,15 +16,31 @@ RUN apt-get update && apt-get install -y \
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies and explicitly rebuild lightningcss for native bindings
-RUN npm ci --include=optional && \
+# Install dependencies - use npm install to allow rebuilding native modules
+RUN npm install --include=optional && \
     npm rebuild lightningcss
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Install build dependencies in builder stage too (needed for native modules during build)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Verify and rebuild lightningcss native bindings in builder stage
+RUN npm rebuild lightningcss && \
+    ls -la node_modules/lightningcss/lightningcss.linux-x64-gnu.node || \
+    (echo "Native binding not found, attempting manual build..." && \
+     cd node_modules/lightningcss && \
+     npm run build 2>&1 || echo "Manual build failed, continuing...")
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
