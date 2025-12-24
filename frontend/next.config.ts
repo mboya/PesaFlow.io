@@ -11,8 +11,7 @@ const nextConfig: NextConfig = {
   
   // Explicitly use webpack (not turbopack) to avoid build errors
   // Turbopack is still experimental and can cause issues in Docker builds
-  // Set empty turbopack config to disable it and use webpack instead
-  turbopack: {},
+  // We use --webpack flag in package.json build script to force webpack
   
   // Reduce file watching sensitivity in Docker
   webpack: (config, { dev, isServer }) => {
