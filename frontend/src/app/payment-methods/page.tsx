@@ -69,59 +69,38 @@ export default function PaymentMethodsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-blue-50/30 to-purple-50/30 dark:from-zinc-950 dark:via-blue-950/30 dark:to-purple-950/30">
+      <div className="min-h-screen bg-zinc-50 dark:bg-black">
         <Navigation />
 
         <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Hero Section */}
-          <div className="relative mb-12 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950 dark:via-purple-950 dark:to-pink-950 py-12 sm:py-16">
-            {/* Animated background shapes */}
-            <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute top-10 left-10 w-48 h-48 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
-              <div className="absolute bottom-10 right-10 w-64 h-64 bg-gradient-to-tl from-pink-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-            </div>
-            
-            <div className="relative z-10 px-6 sm:px-8">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl blur opacity-50"></div>
-                  <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
-                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-                    Payment Methods
-                  </h1>
-                  <p className="mt-1 text-base text-zinc-600 dark:text-zinc-400">
-                    Set up your payment methods for subscriptions
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+              Payment Methods
+            </h1>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              Set up your payment methods for subscriptions
+            </p>
           </div>
 
           {/* Tabs */}
-          <div className="mb-6 rounded-xl bg-white/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 p-1">
-            <nav className="flex space-x-2">
+          <div className="mb-6 border-b border-zinc-200 dark:border-zinc-800">
+            <nav className="-mb-px flex space-x-8">
               <button
                 onClick={() => setActiveTab('ratiba')}
-                className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium ${
                   activeTab === 'ratiba'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
-                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                    ? 'border-zinc-900 text-zinc-900 dark:border-zinc-50 dark:text-zinc-50'
+                    : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
                 }`}
               >
                 Ratiba (Standing Order)
               </button>
               <button
                 onClick={() => setActiveTab('stk_push')}
-                className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium ${
                   activeTab === 'stk_push'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
-                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                    ? 'border-zinc-900 text-zinc-900 dark:border-zinc-50 dark:text-zinc-50'
+                    : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
                 }`}
               >
                 STK Push
@@ -130,22 +109,21 @@ export default function PaymentMethodsPage() {
           </div>
 
           {error && (
-            <div className="mb-6 rounded-2xl bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-200 p-4 dark:from-red-900/20 dark:to-pink-900/20 dark:border-red-800">
+            <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
               <p className="text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 p-4 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-800">
+            <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 dark:bg-green-900/20 dark:border-green-800">
               <p className="text-green-800 dark:text-green-200">{success}</p>
             </div>
           )}
 
           {/* Ratiba Form */}
           {activeTab === 'ratiba' && (
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-blue-50/50 shadow-lg dark:from-zinc-900 dark:to-blue-950/30 border border-zinc-200/50 dark:border-zinc-800/50">
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px] opacity-40"></div>
-              <div className="relative border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
+            <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
+              <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   Setup Ratiba (Standing Order)
                 </h2>
@@ -153,7 +131,7 @@ export default function PaymentMethodsPage() {
                   Set up automatic recurring payments via M-Pesa Standing Order
                 </p>
               </div>
-              <form onSubmit={handleRatibaSubmit} className="relative p-6">
+              <form onSubmit={handleRatibaSubmit} className="p-6">
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="ratiba_phone" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -215,9 +193,8 @@ export default function PaymentMethodsPage() {
 
           {/* STK Push Form */}
           {activeTab === 'stk_push' && (
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-purple-50/50 shadow-lg dark:from-zinc-900 dark:to-purple-950/30 border border-zinc-200/50 dark:border-zinc-800/50">
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px] opacity-40"></div>
-              <div className="relative border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
+            <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
+              <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   Initiate STK Push
                 </h2>
@@ -225,7 +202,7 @@ export default function PaymentMethodsPage() {
                   Make a one-time payment via M-Pesa STK Push
                 </p>
               </div>
-              <form onSubmit={handleStkPushSubmit} className="relative p-6">
+              <form onSubmit={handleStkPushSubmit} className="p-6">
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="stk_phone" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -276,7 +253,7 @@ export default function PaymentMethodsPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full rounded-md bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-md hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                   >
                     {loading ? 'Initiating...' : 'Initiate STK Push'}
                   </button>
