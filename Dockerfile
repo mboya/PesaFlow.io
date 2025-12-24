@@ -4,33 +4,12 @@
 FROM node:20-slim AS frontend-base
 WORKDIR /app/frontend
 
-# Install build dependencies for native modules (lightningcss)
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install frontend dependencies
 COPY frontend/package.json frontend/package-lock.json* ./
-
-# Install dependencies - explicitly install lightningcss and build native bindings
-RUN npm install --include=optional && \
-    npm install lightningcss --save-dev --force && \
-    npm rebuild lightningcss
+RUN npm ci
 
 # Build frontend
 COPY frontend/ ./
-
-# Verify lightningcss native bindings before build
-RUN if [ ! -f "node_modules/lightningcss/lightningcss.linux-x64-gnu.node" ]; then \
-      echo "Native binding not found, rebuilding..." && \
-      npm rebuild lightningcss --verbose; \
-    fi && \
-    echo "Checking for native bindings..." && \
-    find node_modules/lightningcss -name "*.node" -type f || echo "No .node files found" && \
-    ls -la node_modules/lightningcss/ || echo "lightningcss directory not found"
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
