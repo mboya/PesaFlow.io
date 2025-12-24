@@ -101,7 +101,7 @@ const extractData = <T>(response: any): { data: T } => ({ data: response.data as
 // Subscriptions API
 export const subscriptionsApi = {
     getAll: (): Promise<{ data: Subscription[] }> => 
-        apiClient.get('/subscriptions').then(extractData),
+        apiClient.get('/subscriptions').then(extractData<Subscription[]>),
     getById: (id: string | number): Promise<{ data: Subscription }> =>
         apiClient.get(`/subscriptions/${id}`).then(extractData),
     // Create a subscription directly with name/description/amount etc.
