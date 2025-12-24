@@ -788,7 +788,7 @@ export function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 sm:py-32 bg-gradient-to-br from-slate-900 via-zinc-900 to-neutral-900 relative overflow-hidden">
+      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
         {/* Animated gradient background */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 animate-pulse"></div>
