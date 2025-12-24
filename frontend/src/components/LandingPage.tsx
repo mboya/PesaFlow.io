@@ -131,12 +131,12 @@ export function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-white relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/20 to-transparent rounded-full blur-3xl dark:from-zinc-800/20"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/20 to-transparent rounded-full blur-3xl dark:from-zinc-800/20"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-zinc-100/10 to-transparent rounded-full blur-3xl dark:from-zinc-900/10"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-zinc-100/10 to-transparent rounded-full blur-3xl"></div>
       </div>
 
       {/* Navigation */}
@@ -835,7 +835,7 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-black border-t border-zinc-200 dark:border-zinc-800">
+      <footer className="bg-white border-t border-zinc-200">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex items-center">

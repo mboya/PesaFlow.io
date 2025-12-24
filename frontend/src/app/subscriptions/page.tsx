@@ -73,24 +73,32 @@ export default function SubscriptionsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-white dark:bg-black relative">
+      <div className="min-h-screen bg-white relative">
         {/* Subtle background decorative elements */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl dark:from-zinc-800/10"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl dark:from-zinc-800/10"></div>
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
         </div>
         
         <Navigation />
 
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
           <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-                Subscriptions
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                Manage your recurring payments and subscriptions
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl blur opacity-50"></div>
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
+                  <Repeat className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
+                  Subscriptions
+                </h1>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  Manage your recurring payments and subscriptions
+                </p>
+              </div>
             </div>
             <Link
               href="/subscriptions/new"
