@@ -564,7 +564,7 @@ export function LandingPage() {
 
             {/* Subscriptions Screenshot */}
             <div 
-              ref={(el) => (sectionRefs.current[1] = el)}
+              ref={(el) => { sectionRefs.current[1] = el; }}
               className={`flex flex-col lg:flex-row-reverse items-center gap-12 transition-all duration-1000 delay-300 ${
                 visibleSections.has(1)
                   ? 'opacity-100 translate-y-0'
