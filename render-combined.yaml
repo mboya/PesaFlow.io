@@ -7,6 +7,7 @@ databases:
     databaseName: pesaflow_production
     user: pesaflow_user
     plan: free
+    ipAllowList: []  # Empty array allows all IPs
 
 services:
   # Redis Instance
@@ -14,6 +15,7 @@ services:
     name: pesaflow-redis
     plan: free
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Empty array allows all IPs
 
   # Backend Service (Rails API)
   - type: web
@@ -26,7 +28,7 @@ services:
       - key: RAILS_ENV
         value: production
       - key: RAILS_MASTER_KEY
-        sync: false  # Set this in Render dashboard
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: pesaflow-database
@@ -38,7 +40,6 @@ services:
           property: connectionString
       - key: SECRET_KEY_BASE
         generateValue: true
-      # M-Pesa Configuration (set these in Render dashboard)
       - key: MPESA_BASE_URL
         sync: false
       - key: MPESA_CONSUMER_KEY
@@ -51,7 +52,6 @@ services:
         sync: false
       - key: MPESA_CALLBACK_URL
         sync: false
-      # SMTP Configuration
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -62,13 +62,10 @@ services:
         sync: false
       - key: SMTP_FROM_EMAIL
         sync: false
-      # App Host (for generating callback URLs)
       - key: APP_HOST
-        sync: false  # Set to your Render backend URL
-      # Frontend URL for CORS
+        sync: false
       - key: FRONTEND_URL
-        sync: false  # Set this manually after frontend deploys
-      # Port (Render sets this automatically)
+        sync: false
       - key: PORT
         value: "3000"
 
@@ -79,7 +76,6 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free
-    startCommand: bundle exec sidekiq
     envVars:
       - key: RAILS_ENV
         value: production
@@ -95,7 +91,7 @@ services:
           name: pesaflow-redis
           property: connectionString
       - key: SECRET_KEY_BASE
-        sync: false  # Copy from backend after it generates
+        sync: false
       - key: MPESA_BASE_URL
         sync: false
       - key: MPESA_CONSUMER_KEY
@@ -122,8 +118,8 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        sync: false  # Set to backend URL + /api or configure proxy
+        sync: false
       - key: BACKEND_INTERNAL_URL
-        sync: false  # Set to backend URL
+        sync: false
       - key: NEXT_PUBLIC_WS_URL
-        sync: false  # Set to WebSocket URL
+        sync: false
