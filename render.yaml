@@ -1,0 +1,166 @@
+# Render Blueprint for PesaFlow.io
+# This file defines the infrastructure for deploying to Render
+
+services:
+  # PostgreSQL Database
+  - type: pspg
+    name: pesaflow-database
+    plan: starter  # Can be upgraded to standard or pro
+    databaseName: pesaflow_production
+    user: pesaflow_user
+
+  # Redis Instance
+  - type: redis
+    name: pesaflow-redis
+    plan: starter  # Can be upgraded to standard or pro
+    maxmemoryPolicy: allkeys-lru
+
+  # Backend Service (Rails API)
+  - type: web
+    name: pesaflow-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter  # Can be upgraded to standard or pro
+    buildCommand: ""  # Docker handles the build
+    startCommand: ""  # Uses CMD from Dockerfile
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_MASTER_KEY
+        sync: false  # Set this in Render dashboard
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pesaflow-database
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: pesaflow-redis
+          property: connectionString
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      # M-Pesa Configuration (set these in Render dashboard)
+      - key: MPESA_BASE_URL
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_BUSINESS_SHORT_CODE
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_CALLBACK_URL
+        sync: false
+      # SMTP Configuration
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      # App Host (for generating callback URLs)
+      - key: APP_HOST
+        sync: false  # Set to your Render backend URL
+
+  # Sidekiq Worker (Background Jobs)
+  - type: worker
+    name: pesaflow-sidekiq
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    buildCommand: ""
+    startCommand: bundle exec sidekiq
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pesaflow-database
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: pesaflow-redis
+          property: connectionString
+      - key: SECRET_KEY_BASE
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: envVars.SECRET_KEY_BASE
+      # Copy all other env vars from backend service
+      - key: MPESA_BASE_URL
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: envVars.MPESA_BASE_URL
+      - key: MPESA_CONSUMER_KEY
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: envVars.MPESA_CONSUMER_KEY
+      - key: MPESA_CONSUMER_SECRET
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: envVars.MPESA_CONSUMER_SECRET
+      - key: MPESA_BUSINESS_SHORT_CODE
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: envVars.MPESA_BUSINESS_SHORT_CODE
+      - key: MPESA_PASSKEY
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: envVars.MPESA_PASSKEY
+      - key: MPESA_CALLBACK_URL
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: envVars.MPESA_CALLBACK_URL
+      - key: APP_HOST
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: envVars.APP_HOST
+
+  # Frontend Service (Next.js)
+  - type: web
+    name: pesaflow-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: starter
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: pesaflow-frontend
+          property: host
+        transform: "https://${host}/api/proxy"
+      - key: BACKEND_INTERNAL_URL
+        fromService:
+          type: web
+          name: pesaflow-backend
+          property: host
+        transform: "https://${host}"
+      # WebSocket URL
+      - key: NEXT_PUBLIC_WS_URL
+        fromService:
+          type: web
+          name: pesaflow-frontend
+          property: host
+        transform: "wss://${host}/api/proxy/ws"

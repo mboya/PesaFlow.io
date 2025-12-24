@@ -15,7 +15,17 @@ const port = 3000;
 const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://backend:3000';
 const WS_BACKEND_URL = BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
-const app = next({ dev, hostname, port });
+// For standalone builds, Next.js changes the structure
+// Check if we're in standalone mode (production build)
+const isStandalone = process.env.NODE_ENV === 'production' && !dev;
+
+const app = next({ 
+  dev, 
+  hostname, 
+  port,
+  // In standalone mode, Next.js is already built
+  conf: isStandalone ? undefined : undefined
+});
 const handle = app.getRequestHandler();
 
 // Create WebSocket proxy middleware

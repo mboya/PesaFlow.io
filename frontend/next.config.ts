@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   
   reactStrictMode: true,
   
+  // Enable standalone output for Docker
+  output: 'standalone',
+  
   // Reduce file watching sensitivity in Docker
   webpack: (config, { dev }) => {
     if (dev) {

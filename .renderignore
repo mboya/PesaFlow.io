@@ -1,0 +1,37 @@
+# Files to ignore when deploying to Render
+# This helps reduce build context size
+
+# Documentation
+*.md
+!README.md
+!RENDER_DEPLOYMENT.md
+
+# Git
+.git
+.gitignore
+
+# Docker (not needed in Render)
+docker-compose*.yml
+docker/
+Makefile
+
+# Development files
+.env.example
+.env.local
+.env.development
+
+# Test files
+**/*.test.*
+**/__tests__/**
+**/test/**
+**/spec/**
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
