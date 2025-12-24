@@ -12,10 +12,8 @@ RUN npm ci
 COPY frontend/ ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Increase Node.js memory limit for build and explicitly use webpack
+# Increase Node.js memory limit for build
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-# Force webpack instead of turbopack (turbopack can cause build issues in Docker)
-ENV NEXT_PRIVATE_SKIP_TURBOPACK=1
 RUN npm run build
 
 # Copy standalone build if it exists, otherwise copy regular build
