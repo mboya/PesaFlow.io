@@ -78,15 +78,21 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="min-h-screen bg-white dark:bg-black relative">
+        {/* Subtle background decorative elements */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl dark:from-zinc-800/10"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl dark:from-zinc-800/10"></div>
+        </div>
+        
         <Navigation />
 
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               Dashboard
             </h1>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
               Overview of your subscriptions and account
             </p>
           </div>
@@ -107,42 +113,51 @@ export default function DashboardPage() {
             <div className="space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                <div className="rounded-lg bg-white p-6 shadow dark:bg-zinc-900">
-                  <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                    Active Subscriptions
-                  </h3>
-                  <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                    {dashboardData.active_subscriptions.length}
-                  </p>
+                <div className="group relative overflow-hidden rounded-2xl bg-zinc-50 p-6 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-lg">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-300"></div>
+                  <div className="relative">
+                    <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                      Active Subscriptions
+                    </h3>
+                    <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+                      {dashboardData.active_subscriptions.length}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-lg bg-white p-6 shadow dark:bg-zinc-900">
-                  <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                    Total Outstanding
-                  </h3>
-                  <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                    {formatCurrency(dashboardData.total_outstanding)}
-                  </p>
+                <div className="group relative overflow-hidden rounded-2xl bg-zinc-50 p-6 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-300 hover:shadow-lg">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-300"></div>
+                  <div className="relative">
+                    <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                      Total Outstanding
+                    </h3>
+                    <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+                      {formatCurrency(dashboardData.total_outstanding)}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-lg bg-white p-6 shadow dark:bg-zinc-900">
-                  <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                    Account Status
-                  </h3>
-                  <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
-                    {dashboardData.customer.status.charAt(0).toUpperCase() + dashboardData.customer.status.slice(1)}
-                  </p>
+                <div className="group relative overflow-hidden rounded-2xl bg-zinc-50 p-6 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 hover:border-green-300 dark:hover:border-green-700 transition-all duration-300 hover:shadow-lg">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-300"></div>
+                  <div className="relative">
+                    <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                      Account Status
+                    </h3>
+                    <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                      {dashboardData.customer.status.charAt(0).toUpperCase() + dashboardData.customer.status.slice(1)}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Active Subscriptions */}
-              <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-                <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+              <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
+                <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                       Active Subscriptions
                     </h2>
                     <Link
                       href="/subscriptions"
-                      className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                      className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                     >
                       View all →
                     </Link>
@@ -151,14 +166,14 @@ export default function DashboardPage() {
                 <div className="p-6">
                   {dashboardData.active_subscriptions.length === 0 ? (
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      No active subscriptions. <Link href="/subscriptions/new" className="text-blue-600 hover:underline">Create one</Link>
+                      No active subscriptions. <Link href="/subscriptions/new" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">Create one</Link>
                     </p>
                   ) : (
                     <div className="space-y-4">
                       {dashboardData.active_subscriptions.map((subscription: Subscription) => (
                         <div
                           key={subscription.id}
-                          className="rounded-md border border-zinc-200 p-4 dark:border-zinc-800"
+                          className="group rounded-xl border border-zinc-200/50 bg-white/50 p-4 dark:border-zinc-800/50 dark:bg-zinc-900/50 transition-all duration-200 hover:border-blue-300 hover:shadow-sm dark:hover:border-blue-700"
                         >
                           <div className="flex items-center justify-between">
                             <div>
@@ -186,8 +201,8 @@ export default function DashboardPage() {
               </div>
 
               {/* Recent Payments */}
-              <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-                <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+              <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
+                <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
                   <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                     Recent Payments
                   </h2>
@@ -200,7 +215,7 @@ export default function DashboardPage() {
                       {dashboardData.recent_payments.map((payment: Payment) => (
                         <div
                           key={payment.id}
-                          className="flex items-center justify-between rounded-md border border-zinc-200 p-4 dark:border-zinc-800"
+                          className="group flex items-center justify-between rounded-xl border border-zinc-200/50 bg-white/50 p-4 dark:border-zinc-800/50 dark:bg-zinc-900/50 transition-all duration-200 hover:border-green-300 hover:shadow-sm dark:hover:border-green-700"
                         >
                           <div>
                             <p className="font-medium text-zinc-900 dark:text-zinc-50">
@@ -214,7 +229,7 @@ export default function DashboardPage() {
                             <p className="font-medium text-zinc-900 dark:text-zinc-50">
                               {formatCurrency(payment.amount, payment.currency)}
                             </p>
-                            <p className={`text-sm ${
+                            <p className={`text-sm font-medium ${
                               payment.status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-zinc-600 dark:text-zinc-400'
                             }`}>
                               {payment.status}
@@ -229,8 +244,8 @@ export default function DashboardPage() {
 
               {/* Upcoming Billing */}
               {dashboardData.upcoming_billing.length > 0 && (
-                <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-                  <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
+                  <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
                     <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                       Upcoming Billing (Next 7 Days)
                     </h2>
@@ -240,7 +255,7 @@ export default function DashboardPage() {
                       {dashboardData.upcoming_billing.map((subscription: Subscription) => (
                         <div
                           key={subscription.id}
-                          className="rounded-md border border-zinc-200 p-4 dark:border-zinc-800"
+                          className="group rounded-xl border border-zinc-200/50 bg-white/50 p-4 dark:border-zinc-800/50 dark:bg-zinc-900/50 transition-all duration-200 hover:border-amber-300 hover:shadow-sm dark:hover:border-amber-700"
                         >
                           <div className="flex items-center justify-between">
                             <div>

@@ -69,15 +69,21 @@ export default function PaymentMethodsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="min-h-screen bg-white dark:bg-black relative">
+        {/* Subtle background decorative elements */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl dark:from-zinc-800/10"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl dark:from-zinc-800/10"></div>
+        </div>
+        
         <Navigation />
 
-        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 relative">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               Payment Methods
             </h1>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
               Set up your payment methods for subscriptions
             </p>
           </div>
@@ -122,8 +128,8 @@ export default function PaymentMethodsPage() {
 
           {/* Ratiba Form */}
           {activeTab === 'ratiba' && (
-            <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-              <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+            <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
+              <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   Setup Ratiba (Standing Order)
                 </h2>
@@ -193,8 +199,8 @@ export default function PaymentMethodsPage() {
 
           {/* STK Push Form */}
           {activeTab === 'stk_push' && (
-            <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-              <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+            <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
+              <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   Initiate STK Push
                 </h2>
@@ -253,7 +259,7 @@ export default function PaymentMethodsPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
                   >
                     {loading ? 'Initiating...' : 'Initiate STK Push'}
                   </button>
