@@ -4,7 +4,7 @@
 
 services:
   # PostgreSQL Database
-  - type: pspg
+  - type: pg
     name: pesaflow-database
     plan: starter
     databaseName: pesaflow_production
