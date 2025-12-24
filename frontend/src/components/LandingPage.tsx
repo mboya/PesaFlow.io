@@ -488,7 +488,7 @@ export function LandingPage() {
           <div className="space-y-16">
             {/* Dashboard Screenshot */}
             <div 
-              ref={(el) => (sectionRefs.current[0] = el)}
+              ref={(el) => { sectionRefs.current[0] = el; }}
               className={`flex flex-col lg:flex-row items-center gap-12 transition-all duration-1000 ${
                 visibleSections.has(0)
                   ? 'opacity-100 translate-y-0'
@@ -638,7 +638,7 @@ export function LandingPage() {
 
             {/* Payment Methods Screenshot */}
             <div 
-              ref={(el) => (sectionRefs.current[2] = el)}
+              ref={(el) => { sectionRefs.current[2] = el; }}
               className={`flex flex-col lg:flex-row items-center gap-12 transition-all duration-1000 delay-600 ${
                 visibleSections.has(2)
                   ? 'opacity-100 translate-y-0'
@@ -712,7 +712,7 @@ export function LandingPage() {
 
             {/* Invoices Screenshot */}
             <div 
-              ref={(el) => (sectionRefs.current[3] = el)}
+              ref={(el) => { sectionRefs.current[3] = el; }}
               className={`flex flex-col lg:flex-row-reverse items-center gap-12 transition-all duration-1000 delay-900 ${
                 visibleSections.has(3)
                   ? 'opacity-100 translate-y-0'
