@@ -789,11 +789,10 @@ export function LandingPage() {
 
       {/* CTA Section */}
       <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 animate-pulse"></div>
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        {/* Subtle decorative background */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
         </div>
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
@@ -801,9 +800,9 @@ export function LandingPage() {
             {/* Visual element */}
             <div className="flex justify-center mb-8">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-white to-blue-200 rounded-full blur-2xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
-                  <Lock className="h-12 w-12 text-white" />
+                <div className="absolute inset-0 bg-gradient-to-r from-zinc-200 to-blue-200 rounded-full blur-2xl opacity-50 animate-pulse"></div>
+                <div className="relative bg-gradient-to-br from-zinc-100 to-zinc-50 backdrop-blur-sm p-6 rounded-2xl border border-zinc-200/50">
+                  <Lock className="h-12 w-12 text-zinc-900" />
                 </div>
               </div>
             </div>
