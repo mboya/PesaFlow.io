@@ -140,23 +140,23 @@ export function LandingPage() {
       </div>
 
       {/* Navigation */}
-      <nav className="border-b border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/80 sticky top-0 z-50">
+      <nav className="border-b border-zinc-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center">
-              <Zap className="h-6 w-6 text-zinc-900 dark:text-zinc-50 mr-2" />
-              <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">PesaFlow</span>
+              <Zap className="h-6 w-6 text-zinc-900 mr-2" />
+              <span className="text-xl font-bold text-zinc-900">PesaFlow</span>
             </div>
             <div className="flex items-center gap-4">
               <Link
                 href="/login"
-                className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
               >
                 Sign In
               </Link>
               <Link
                 href="/signup"
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2"
               >
                 Get Started
               </Link>
@@ -166,7 +166,7 @@ export function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950 dark:via-purple-950 dark:to-pink-950 py-20 sm:py-32">
+      <section className="relative overflow-hidden bg-white py-20 sm:py-32">
         {/* Animated background shapes */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-pulse"></div>
@@ -185,26 +185,26 @@ export function LandingPage() {
               </div>
             </div>
             
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 px-4">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight text-zinc-900 px-4">
               Subscription Billing
-              <span className="block text-lg sm:text-xl lg:text-2xl text-zinc-600 dark:text-zinc-400 mt-2 font-normal">
+              <span className="block text-lg sm:text-xl lg:text-2xl text-zinc-600 mt-2 font-normal">
                 Powered by M-Pesa
               </span>
             </h1>
-            <p className="mt-6 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            <p className="mt-6 text-lg leading-8 text-zinc-600">
               Automate recurring payments, manage subscriptions, and grow your business with Kenya's most trusted payment platform. 
               Built for SaaS companies, service providers, and businesses that need reliable subscription billing.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
                 href="/signup"
-                className="rounded-md bg-zinc-900 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-600 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="rounded-md bg-zinc-900 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-600"
               >
                 Start Free Trial
               </Link>
               <Link
                 href="/login"
-                className="text-base font-semibold leading-6 text-zinc-900 dark:text-zinc-50"
+                className="text-base font-semibold leading-6 text-zinc-900"
               >
                 Sign In <span aria-hidden="true">→</span>
               </Link>
@@ -214,7 +214,7 @@ export function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 sm:py-32 bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-indigo-950 dark:via-blue-950 dark:to-cyan-950 relative">
+      <section className="py-24 sm:py-32 bg-white relative">
         {/* Decorative grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] opacity-40"></div>
         
@@ -227,10 +227,10 @@ export function LandingPage() {
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce delay-300"></div>
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
               Everything you need to manage subscriptions
             </h2>
-            <p className="mt-2 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 text-lg leading-8 text-zinc-600">
               Powerful features designed to streamline your subscription billing workflow.
             </p>
           </div>
@@ -238,7 +238,7 @@ export function LandingPage() {
             {features.map((feature, index) => (
               <div
                 key={feature.title}
-                className="group flex flex-col rounded-2xl bg-zinc-50 p-8 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                className="group flex flex-col rounded-2xl bg-zinc-50 p-8 border border-zinc-200/50 hover:border-blue-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               >
                 {/* Decorative gradient background */}
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-300 -z-10"></div>
@@ -250,11 +250,11 @@ export function LandingPage() {
                       <feature.icon className="h-6 w-6 text-white" />
                     </div>
                   </div>
-                  <h3 className="text-lg font-semibold leading-7 text-zinc-900 dark:text-zinc-50">
+                  <h3 className="text-lg font-semibold leading-7 text-zinc-900">
                     {feature.title}
                   </h3>
                 </div>
-                <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400">
+                <p className="text-base leading-7 text-zinc-600">
                   {feature.description}
                 </p>
               </div>
@@ -264,7 +264,7 @@ export function LandingPage() {
       </section>
 
       {/* Payment Methods Section */}
-      <section className="py-24 sm:py-32 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950 dark:via-teal-950 dark:to-cyan-950 relative overflow-hidden">
+      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
         {/* Animated circles */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
           <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-2xl animate-pulse"></div>
@@ -282,10 +282,10 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
               Multiple M-Pesa Payment Options
             </h2>
-            <p className="mt-2 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 text-lg leading-8 text-zinc-600">
               Support all M-Pesa payment methods to give your customers flexibility and convenience.
             </p>
           </div>
@@ -293,7 +293,7 @@ export function LandingPage() {
             {paymentMethods.map((method, index) => (
               <div
                 key={method.name}
-                className="group relative flex gap-6 rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/50 hover:border-green-300 dark:hover:border-green-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                className="group relative flex gap-6 rounded-2xl bg-white p-8 shadow-sm border border-zinc-200/50 hover:border-green-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               >
                 {/* Gradient accent */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -305,10 +305,10 @@ export function LandingPage() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold leading-7 text-zinc-900 dark:text-zinc-50">
+                  <h3 className="text-lg font-semibold leading-7 text-zinc-900">
                     {method.name}
                   </h3>
-                  <p className="mt-2 text-base leading-7 text-zinc-600 dark:text-zinc-400">
+                  <p className="mt-2 text-base leading-7 text-zinc-600">
                     {method.description}
                   </p>
                 </div>
@@ -319,7 +319,7 @@ export function LandingPage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 sm:py-32 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 dark:from-violet-950 dark:via-purple-950 dark:to-fuchsia-950 relative">
+      <section className="py-24 sm:py-32 bg-white relative">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             {/* Visual element */}
@@ -331,10 +331,10 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
               How It Works
             </h2>
-            <p className="mt-2 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 text-lg leading-8 text-zinc-600">
               Get started in minutes with our simple setup process.
             </p>
           </div>
@@ -342,7 +342,7 @@ export function LandingPage() {
             <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
               {steps.map((step, index) => (
                 <div key={step.step} className="relative pl-16 group">
-                  <dt className="text-base font-semibold leading-7 text-zinc-900 dark:text-zinc-50">
+                  <dt className="text-base font-semibold leading-7 text-zinc-900">
                     <div className="absolute left-0 top-0 group-hover:scale-110 transition-transform duration-300">
                       <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
                       <div className="relative flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
@@ -351,7 +351,7 @@ export function LandingPage() {
                     </div>
                     {step.title}
                   </dt>
-                  <dd className="mt-2 text-base leading-7 text-zinc-600 dark:text-zinc-400">
+                  <dd className="mt-2 text-base leading-7 text-zinc-600">
                     {step.description}
                   </dd>
                 </div>
@@ -362,9 +362,9 @@ export function LandingPage() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-24 sm:py-32 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950 dark:via-orange-950 dark:to-yellow-950 relative overflow-hidden">
+      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
         {/* Animated background pattern */}
-        <div className="absolute inset-0 opacity-10 dark:opacity-5">
+        <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
             backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
             backgroundSize: '40px 40px'
@@ -382,10 +382,10 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
               Why Choose PesaFlow?
             </h2>
-            <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">
+            <p className="mt-4 text-lg text-zinc-600">
               Powerful features that make subscription billing effortless
             </p>
           </div>
@@ -443,7 +443,7 @@ export function LandingPage() {
               ].map((benefit, index) => (
                 <div
                   key={benefit.title}
-                  className="group relative rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-6 border border-amber-200/50 dark:border-amber-800/50 hover:border-amber-300 dark:hover:border-amber-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                  className="group relative rounded-2xl bg-white/80 backdrop-blur-sm p-6 border border-amber-200/50 hover:border-amber-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
                 >
                   {/* Gradient accent on hover */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${benefit.color} rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
@@ -457,10 +457,10 @@ export function LandingPage() {
                   </div>
                   
                   {/* Content */}
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+                  <h3 className="text-lg font-semibold text-zinc-900 mb-2">
                     {benefit.title}
                   </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  <p className="text-sm text-zinc-600 leading-relaxed">
                     {benefit.description}
                   </p>
                   
@@ -474,13 +474,13 @@ export function LandingPage() {
       </section>
 
       {/* Screenshots/Workflow Section */}
-      <section className="py-24 sm:py-32 bg-gradient-to-br from-slate-50 via-zinc-50 to-neutral-50 dark:from-slate-950 dark:via-zinc-950 dark:to-neutral-950 relative overflow-hidden">
+      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
               See It In Action
             </h2>
-            <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">
+            <p className="mt-4 text-lg text-zinc-600">
               Experience the complete subscription billing workflow
             </p>
           </div>
@@ -498,18 +498,18 @@ export function LandingPage() {
               <div className="flex-1">
                 <div className="relative group">
                   {/* Screenshot placeholder - Replace with actual screenshot */}
-                  <div className="relative rounded-2xl bg-white dark:bg-zinc-900 border-4 border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-blue-500/20 group-hover:scale-[1.02] group-hover:border-blue-300 dark:group-hover:border-blue-700">
-                    <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-3 flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-700">
+                  <div className="relative rounded-2xl bg-white border-4 border-zinc-200 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-blue-500/20 group-hover:scale-[1.02] group-hover:border-blue-300">
+                    <div className="bg-zinc-100 px-4 py-3 flex items-center gap-2 border-b border-zinc-200">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
                       <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <div className="ml-4 text-xs text-zinc-500 dark:text-zinc-400">Dashboard - PesaFlow</div>
+                      <div className="ml-4 text-xs text-zinc-500">Dashboard - PesaFlow</div>
                     </div>
-                    <div className="p-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 min-h-[400px] flex items-center justify-center">
+                    <div className="p-8 bg-white min-h-[400px] flex items-center justify-center">
                       {/* TODO: Replace this div with actual dashboard screenshot */}
                       <div className="text-center">
-                        <BarChart3 className="h-16 w-16 text-zinc-400 dark:text-zinc-600 mx-auto mb-4" />
-                        <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                        <BarChart3 className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
+                        <p className="text-sm text-zinc-500">
                           Dashboard Screenshot
                           <br />
                           <span className="text-xs">Add screenshot: /app/dashboard/page.tsx</span>
@@ -528,18 +528,18 @@ export function LandingPage() {
                   ? 'opacity-100 translate-x-0'
                   : 'opacity-0 translate-x-10'
               }`}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Step 1</span>
+                  <span className="text-sm font-medium text-blue-900">Step 1</span>
                 </div>
-                <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                <h3 className="text-2xl font-bold text-zinc-900">
                   Dashboard Overview
                 </h3>
-                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                <p className="text-zinc-600 leading-relaxed">
                   Get a complete overview of your subscription business at a glance. View active subscriptions, 
                   revenue metrics, recent payments, and upcoming billing dates all in one place.
                 </p>
-                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <ul className="space-y-2 text-sm text-zinc-600">
                   {[
                     'Real-time subscription metrics',
                     'Revenue tracking and analytics',
@@ -573,18 +573,18 @@ export function LandingPage() {
             >
               <div className="flex-1">
                 <div className="relative group">
-                  <div className="relative rounded-2xl bg-white dark:bg-zinc-900 border-4 border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-green-500/20 group-hover:scale-[1.02] group-hover:border-green-300 dark:group-hover:border-green-700">
-                    <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-3 flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-700">
+                  <div className="relative rounded-2xl bg-white border-4 border-zinc-200 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-green-500/20 group-hover:scale-[1.02] group-hover:border-green-300">
+                    <div className="bg-zinc-100 px-4 py-3 flex items-center gap-2 border-b border-zinc-200">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
                       <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <div className="ml-4 text-xs text-zinc-500 dark:text-zinc-400">Subscriptions - PesaFlow</div>
+                      <div className="ml-4 text-xs text-zinc-500">Subscriptions - PesaFlow</div>
                     </div>
-                    <div className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 min-h-[400px] flex items-center justify-center">
+                    <div className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 min-h-[400px] flex items-center justify-center">
                       {/* TODO: Replace this div with actual subscriptions screenshot */}
                       <div className="text-center">
-                        <Repeat className="h-16 w-16 text-zinc-400 dark:text-zinc-600 mx-auto mb-4" />
-                        <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                        <Repeat className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
+                        <p className="text-sm text-zinc-500">
                           Subscriptions Screenshot
                           <br />
                           <span className="text-xs">Add screenshot: /app/subscriptions/page.tsx</span>
@@ -602,18 +602,18 @@ export function LandingPage() {
                   ? 'opacity-100 -translate-x-0'
                   : 'opacity-0 -translate-x-10'
               }`}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 rounded-full">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-900 dark:text-green-100">Step 2</span>
+                  <span className="text-sm font-medium text-green-900">Step 2</span>
                 </div>
-                <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                <h3 className="text-2xl font-bold text-zinc-900">
                   Manage Subscriptions
                 </h3>
-                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                <p className="text-zinc-600 leading-relaxed">
                   Create and manage all your subscription plans with ease. Set up billing cycles, 
                   trial periods, and payment methods. View subscription status, payment history, and manage customer subscriptions.
                 </p>
-                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <ul className="space-y-2 text-sm text-zinc-600">
                   {[
                     'Create subscription plans',
                     'Track subscription status',
@@ -647,18 +647,18 @@ export function LandingPage() {
             >
               <div className="flex-1">
                 <div className="relative group">
-                  <div className="relative rounded-2xl bg-white dark:bg-zinc-900 border-4 border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-purple-500/20 group-hover:scale-[1.02] group-hover:border-purple-300 dark:group-hover:border-purple-700">
-                    <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-3 flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-700">
+                  <div className="relative rounded-2xl bg-white border-4 border-zinc-200 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-purple-500/20 group-hover:scale-[1.02] group-hover:border-purple-300">
+                    <div className="bg-zinc-100 px-4 py-3 flex items-center gap-2 border-b border-zinc-200">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
                       <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <div className="ml-4 text-xs text-zinc-500 dark:text-zinc-400">Payment Methods - PesaFlow</div>
+                      <div className="ml-4 text-xs text-zinc-500">Payment Methods - PesaFlow</div>
                     </div>
-                    <div className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 min-h-[400px] flex items-center justify-center">
+                    <div className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 min-h-[400px] flex items-center justify-center">
                       {/* TODO: Replace this div with actual payment methods screenshot */}
                       <div className="text-center">
-                        <CreditCard className="h-16 w-16 text-zinc-400 dark:text-zinc-600 mx-auto mb-4" />
-                        <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                        <CreditCard className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
+                        <p className="text-sm text-zinc-500">
                           Payment Methods Screenshot
                           <br />
                           <span className="text-xs">Add screenshot: /app/payment-methods/page.tsx</span>
@@ -676,18 +676,18 @@ export function LandingPage() {
                   ? 'opacity-100 translate-x-0'
                   : 'opacity-0 translate-x-10'
               }`}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full">
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-purple-900 dark:text-purple-100">Step 3</span>
+                  <span className="text-sm font-medium text-purple-900">Step 3</span>
                 </div>
-                <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                <h3 className="text-2xl font-bold text-zinc-900">
                   Setup Payment Methods
                 </h3>
-                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                <p className="text-zinc-600 leading-relaxed">
                   Configure M-Pesa payment methods including Ratiba standing orders, STK Push, and C2B. 
                   Set up automatic recurring payments and manage payment preferences for your customers.
                 </p>
-                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <ul className="space-y-2 text-sm text-zinc-600">
                   {[
                     'M-Pesa Ratiba integration',
                     'STK Push payments',
@@ -721,18 +721,18 @@ export function LandingPage() {
             >
               <div className="flex-1">
                 <div className="relative group">
-                  <div className="relative rounded-2xl bg-white dark:bg-zinc-900 border-4 border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-amber-500/20 group-hover:scale-[1.02] group-hover:border-amber-300 dark:group-hover:border-amber-700">
-                    <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-3 flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-700">
+                  <div className="relative rounded-2xl bg-white border-4 border-zinc-200 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-amber-500/20 group-hover:scale-[1.02] group-hover:border-amber-300">
+                    <div className="bg-zinc-100 px-4 py-3 flex items-center gap-2 border-b border-zinc-200">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
                       <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <div className="ml-4 text-xs text-zinc-500 dark:text-zinc-400">Invoices - PesaFlow</div>
+                      <div className="ml-4 text-xs text-zinc-500">Invoices - PesaFlow</div>
                     </div>
-                    <div className="p-8 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 min-h-[400px] flex items-center justify-center">
+                    <div className="p-8 bg-gradient-to-br from-amber-50 to-orange-50 min-h-[400px] flex items-center justify-center">
                       {/* TODO: Replace this div with actual invoices screenshot */}
                       <div className="text-center">
-                        <Receipt className="h-16 w-16 text-zinc-400 dark:text-zinc-600 mx-auto mb-4" />
-                        <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                        <Receipt className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
+                        <p className="text-sm text-zinc-500">
                           Invoices Screenshot
                           <br />
                           <span className="text-xs">Add screenshot: /app/invoices/page.tsx</span>
@@ -750,18 +750,18 @@ export function LandingPage() {
                   ? 'opacity-100 -translate-x-0'
                   : 'opacity-0 -translate-x-10'
               }`}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 rounded-full">
                   <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-amber-900 dark:text-amber-100">Step 4</span>
+                  <span className="text-sm font-medium text-amber-900">Step 4</span>
                 </div>
-                <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                <h3 className="text-2xl font-bold text-zinc-900">
                   Automatic Invoicing
                 </h3>
-                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                <p className="text-zinc-600 leading-relaxed">
                   Automatically generate and send invoices for every billing cycle. Track payment status, 
                   view invoice history, and manage outstanding balances. All invoices are automatically created when payments are processed.
                 </p>
-                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <ul className="space-y-2 text-sm text-zinc-600">
                   {[
                     'Auto-generated invoices',
                     'Payment tracking',
@@ -788,7 +788,7 @@ export function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 sm:py-32 bg-gradient-to-br from-slate-900 via-zinc-900 to-neutral-900 dark:from-slate-950 dark:via-zinc-950 dark:to-neutral-950 relative overflow-hidden">
+      <section className="py-24 sm:py-32 bg-gradient-to-br from-slate-900 via-zinc-900 to-neutral-900 relative overflow-hidden">
         {/* Animated gradient background */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 animate-pulse"></div>
@@ -839,10 +839,10 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex items-center">
-              <Zap className="h-6 w-6 text-zinc-900 dark:text-zinc-50 mr-2" />
-              <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PesaFlow</span>
+              <Zap className="h-6 w-6 text-zinc-900 mr-2" />
+              <span className="text-lg font-semibold text-zinc-900">PesaFlow</span>
             </div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm text-zinc-600">
               © {new Date().getFullYear()} PesaFlow.io. All rights reserved.
             </p>
           </div>

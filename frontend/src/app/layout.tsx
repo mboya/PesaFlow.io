@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import { ThemeScript } from "@/components/theme-script";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TenantProvider } from "@/contexts/TenantContext";
 import "./globals.css";
@@ -27,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="light">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
@@ -83,7 +82,7 @@ export default function RootLayout({
             `,
           }}
         />
-        <ThemeScript />
+        {/* Theme script removed - always use light mode */}
         <TenantProvider>
           <AuthProvider>
             {children}
