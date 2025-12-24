@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/lib/auth-api';
 import { formatPhoneNumber } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { Settings, User, Building2, Shield } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, checkAuth } = useAuth();
@@ -185,84 +186,106 @@ export default function SettingsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="min-h-screen bg-white relative">
+        {/* Subtle background decorative elements */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
+        </div>
+        
         <Navigation />
 
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-              Settings
-            </h1>
-            <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-              Manage your account and payment preferences
-            </p>
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
+          <div className="mb-8 flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl blur opacity-50"></div>
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
+                <Settings className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
+                Settings
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-zinc-600">
+                Manage your account and payment preferences
+              </p>
+            </div>
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-zinc-50" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900" />
             </div>
           ) : (
             <>
               {/* Global Error/Success Messages */}
               {error && (
-                <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
-                  <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+                <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
+                  <p className="text-sm text-red-800">{error}</p>
                 </div>
               )}
               {success && (
-                <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 dark:bg-green-900/20 dark:border-green-800">
-                  <p className="text-sm text-green-800 dark:text-green-200">{success}</p>
+                <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4">
+                  <p className="text-sm text-green-800">{success}</p>
                 </div>
               )}
 
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {/* Profile Card */}
-              <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-                <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    Profile Information
-                  </h2>
+              <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
+                <div className="border-b border-zinc-200/50 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg blur opacity-50"></div>
+                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    <h2 className="text-lg font-semibold text-zinc-900">
+                      Profile Information
+                    </h2>
+                  </div>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                   {profileError && (
-                    <div className="rounded-lg bg-red-50 border border-red-200 p-3 dark:bg-red-900/20 dark:border-red-800">
-                      <p className="text-sm text-red-800 dark:text-red-200">{profileError}</p>
+                    <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                      <p className="text-sm text-red-800">{profileError}</p>
                     </div>
                   )}
                   {profileSuccess && (
-                    <div className="rounded-lg bg-green-50 border border-green-200 p-3 dark:bg-green-900/20 dark:border-green-800">
-                      <p className="text-sm text-green-800 dark:text-green-200">{profileSuccess}</p>
+                    <div className="rounded-lg bg-green-50 border border-green-200 p-3">
+                      <p className="text-sm text-green-800">{profileSuccess}</p>
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="block text-sm font-medium text-zinc-700">
                       Name
                     </label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="block text-sm font-medium text-zinc-700">
                       Email
                     </label>
                     <input
                       type="email"
                       value={profile?.email || ''}
                       disabled
-                      className="mt-1 block w-full rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                      className="mt-1 block w-full rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-500"
                     />
                     <p className="mt-1 text-xs text-zinc-500">Email cannot be changed</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="block text-sm font-medium text-zinc-700">
                       M-Pesa Phone Number
                     </label>
                     <input
@@ -270,9 +293,9 @@ export default function SettingsPage() {
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       placeholder="0712345678"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-white"
                     />
-                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="mt-1 text-xs text-zinc-500">
                       Used for M-Pesa payments (STK Push & Standing Orders)
                     </p>
                   </div>
@@ -281,7 +304,7 @@ export default function SettingsPage() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                      className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -290,16 +313,24 @@ export default function SettingsPage() {
               </div>
 
               {/* Account Status & Tenant Information Card */}
-              <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-                <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    Account & Tenant Information
-                  </h2>
+              <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
+                <div className="border-b border-zinc-200/50 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg blur opacity-50"></div>
+                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg">
+                        <Building2 className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    <h2 className="text-lg font-semibold text-zinc-900">
+                      Account & Tenant Information
+                    </h2>
+                  </div>
                 </div>
                 <div className="p-6 space-y-4">
                   {/* Tenant Information Section */}
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-1">
                       Tenant Subdomain
                     </label>
                     <div className="flex items-center gap-2">
@@ -307,44 +338,44 @@ export default function SettingsPage() {
                         type="text"
                         value={tenantSubdomain}
                         disabled
-                        className="flex-1 rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-900 font-mono dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                        className="flex-1 rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-900 font-mono dark:border-zinc-700 bg-zinc-100 text-zinc-900"
                       />
                     </div>
-                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="mt-1 text-xs text-zinc-500 text-zinc-600">
                       Your unique tenant identifier. This is automatically generated from your email during registration.
                     </p>
                   </div>
 
                   {user?.tenant_id && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Tenant ID</span>
-                      <span className="text-sm text-zinc-900 dark:text-zinc-50 font-mono">
+                      <span className="text-sm text-zinc-600 text-zinc-600">Tenant ID</span>
+                      <span className="text-sm text-zinc-900 text-zinc-900 font-mono">
                         {user.tenant_id}
                       </span>
                     </div>
                   )}
 
                   {/* Divider */}
-                  <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4"></div>
+                  <div className="border-t border-zinc-200 border-zinc-200 pt-4 mt-4"></div>
 
                   {/* Account Status Section */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">Status</span>
+                    <span className="text-sm text-zinc-600 text-zinc-600">Status</span>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       profile?.status === 'active' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        ? 'bg-green-100 text-green-800 bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800 bg-yellow-100 text-yellow-800'
                     }`}>
                       {profile?.status || 'Unknown'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">Standing Orders</span>
+                    <span className="text-sm text-zinc-600 text-zinc-600">Standing Orders</span>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       profile?.standing_order_enabled
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-400'
+                        ? 'bg-green-100 text-green-800 bg-green-100 text-green-800'
+                        : 'bg-zinc-100 text-zinc-800 bg-zinc-100 text-zinc-600'
                     }`}>
                       {profile?.standing_order_enabled ? 'Enabled' : 'Not Enabled'}
                     </span>
@@ -352,16 +383,16 @@ export default function SettingsPage() {
 
                   {profile?.last_payment_at && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Last Payment</span>
-                      <span className="text-sm text-zinc-900 dark:text-zinc-50">
+                      <span className="text-sm text-zinc-600 text-zinc-600">Last Payment</span>
+                      <span className="text-sm text-zinc-900 text-zinc-900">
                         {new Date(profile.last_payment_at).toLocaleDateString()}
                       </span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">Member Since</span>
-                    <span className="text-sm text-zinc-900 dark:text-zinc-50">
+                    <span className="text-sm text-zinc-600 text-zinc-600">Member Since</span>
+                    <span className="text-sm text-zinc-900 text-zinc-900">
                       {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
                     </span>
                   </div>
@@ -369,20 +400,28 @@ export default function SettingsPage() {
               </div>
 
               {/* Two-Factor Authentication Card */}
-              <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-                <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    Two-Factor Authentication
-                  </h2>
+              <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
+                <div className="border-b border-zinc-200/50 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg blur opacity-50"></div>
+                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
+                        <Shield className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    <h2 className="text-lg font-semibold text-zinc-900">
+                      Two-Factor Authentication
+                    </h2>
+                  </div>
                 </div>
                 <div className="p-6 space-y-4">
                   {/* Current Status */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">2FA Status</span>
+                    <span className="text-sm text-zinc-600 text-zinc-600">2FA Status</span>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       user?.otp_enabled
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-400'
+                        ? 'bg-green-100 text-green-800 bg-green-100 text-green-800'
+                        : 'bg-zinc-100 text-zinc-800 bg-zinc-100 text-zinc-600'
                     }`}>
                       {user?.otp_enabled ? 'Enabled' : 'Disabled'}
                     </span>
@@ -393,12 +432,12 @@ export default function SettingsPage() {
                     <>
                       {!otpSetupData ? (
                         <div>
-                          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                          <p className="text-sm text-zinc-600 text-zinc-600 mb-4">
                             Add an extra layer of security to your account by enabling two-factor authentication.
                           </p>
                           <button
                             onClick={handleEnableOtp}
-                            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 bg-zinc-900 text-white hover:bg-zinc-800"
                           >
                             Enable 2FA
                           </button>
@@ -407,7 +446,7 @@ export default function SettingsPage() {
                         /* QR Code and Verification */
                         <div className="space-y-4">
                           <div>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                            <p className="text-sm text-zinc-600 text-zinc-600 mb-2">
                               Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):
                             </p>
                             {otpSetupData.qr_code && (
@@ -417,15 +456,15 @@ export default function SettingsPage() {
                             )}
                             {otpSetupData.provisioning_uri && (
                               <div className="mb-4">
-                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Or enter this code manually:</p>
-                                <code className="block p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs break-all font-mono">
+                                <p className="text-xs text-zinc-500 text-zinc-600 mb-1">Or enter this code manually:</p>
+                                <code className="block p-2 bg-zinc-100 bg-zinc-100 rounded text-xs break-all font-mono">
                                   {otpSetupData.secret}
                                 </code>
                               </div>
                             )}
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-1">
                               Enter 6-digit code from your app
                             </label>
                             <input
@@ -434,14 +473,14 @@ export default function SettingsPage() {
                               onChange={(e) => setOtpVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                               placeholder="000000"
                               maxLength={6}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 bg-zinc-100 text-zinc-900"
                             />
                           </div>
                           <div className="flex gap-2">
                             <button
                               onClick={handleVerifyOtp}
                               disabled={otpVerifying || otpVerificationCode.length !== 6}
-                              className="flex-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                              className="flex-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 bg-zinc-900 text-white hover:bg-zinc-800"
                             >
                               {otpVerifying ? 'Verifying...' : 'Verify & Enable'}
                             </button>
@@ -451,7 +490,7 @@ export default function SettingsPage() {
                                 setOtpVerificationCode('');
                                 setError(null);
                               }}
-                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 text-zinc-600 dark:hover:text-zinc-200"
                             >
                               Cancel
                             </button>
@@ -467,22 +506,22 @@ export default function SettingsPage() {
                           <div className="space-y-2">
                             <button
                               onClick={() => setShowDisableOtp(true)}
-                              className="w-full rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                              className="w-full rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 border-red-300 text-red-700 hover:bg-red-50"
                             >
                               Disable 2FA
                             </button>
                             <button
                               onClick={() => setShowBackupCodes(!showBackupCodes)}
-                              className="w-full rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                              className="w-full rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 text-zinc-600 dark:hover:bg-zinc-800"
                             >
                               {showBackupCodes ? 'Hide Backup Codes' : 'View Backup Codes'}
                             </button>
                           </div>
 
                           {showBackupCodes && (
-                            <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                            <div className="space-y-4 pt-4 border-t border-zinc-200 border-zinc-200">
                               <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-2">
                                   Regenerate Backup Codes
                                 </label>
                                 <div className="flex gap-2">
@@ -491,12 +530,12 @@ export default function SettingsPage() {
                                     value={regeneratePassword}
                                     onChange={(e) => setRegeneratePassword(e.target.value)}
                                     placeholder="Enter your password"
-                                    className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                                    className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 bg-zinc-100 text-zinc-900"
                                   />
                                   <button
                                     onClick={handleRegenerateBackupCodes}
                                     disabled={!regeneratePassword || regeneratingBackupCodes}
-                                    className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                                    className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 bg-zinc-900 text-white hover:bg-zinc-800"
                                   >
                                     {regeneratingBackupCodes ? '...' : 'Regenerate'}
                                   </button>
@@ -504,12 +543,12 @@ export default function SettingsPage() {
                               </div>
                               {backupCodes && backupCodes.length > 0 && (
                                 <div>
-                                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+                                  <p className="text-xs text-zinc-500 text-zinc-600 mb-2">
                                     Save these codes in a secure place. You can use them to access your account if you lose your device.
                                   </p>
                                   <div className="grid grid-cols-2 gap-2">
                                     {backupCodes.map((code, index) => (
-                                      <code key={index} className="block p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs font-mono text-center">
+                                      <code key={index} className="block p-2 bg-zinc-100 bg-zinc-100 rounded text-xs font-mono text-center">
                                         {code}
                                       </code>
                                     ))}
@@ -522,22 +561,22 @@ export default function SettingsPage() {
                       ) : (
                         /* Disable 2FA Form */
                         <div className="space-y-4">
-                          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                          <p className="text-sm text-zinc-600 text-zinc-600">
                             To disable 2FA, please enter your password and a code from your authenticator app.
                           </p>
                           <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-1">
                               Password
                             </label>
                             <input
                               type="password"
                               value={disablePassword}
                               onChange={(e) => setDisablePassword(e.target.value)}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 bg-zinc-100 text-zinc-900"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-1">
                               OTP Code
                             </label>
                             <input
@@ -546,7 +585,7 @@ export default function SettingsPage() {
                               onChange={(e) => setDisableOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                               placeholder="000000 or backup code"
                               maxLength={10}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 bg-zinc-100 text-zinc-900"
                             />
                           </div>
                           <div className="flex gap-2">
@@ -564,7 +603,7 @@ export default function SettingsPage() {
                                 setDisableOtpCode('');
                                 setError(null);
                               }}
-                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 text-zinc-600 dark:hover:text-zinc-200"
                             >
                               Cancel
                             </button>
