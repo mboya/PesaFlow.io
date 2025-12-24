@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
   // Turbopack is still experimental and can cause issues in Docker builds
   // We use --webpack flag in package.json build script to force webpack
   
+  // Add empty turbopack config to silence Next.js 16 warning when webpack config is present
+  turbopack: {},
+  
   // Reduce file watching sensitivity in Docker
   webpack: (config, { dev, isServer }) => {
     // Increase memory limit for webpack builds
