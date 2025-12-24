@@ -1,16 +1,13 @@
 # Frontend Dockerfile for production deployment
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Install build dependencies for native modules (lightningcss)
-RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
-# Rebuild native modules for Alpine Linux
-RUN npm ci && npm rebuild
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -34,8 +31,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs --create-home nextjs
 
 # Copy necessary files from standalone build
 COPY --from=builder /app/public ./public

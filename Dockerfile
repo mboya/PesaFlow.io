@@ -1,16 +1,12 @@
 # Combined Dockerfile for deploying both backend and frontend together
 # This uses a process manager (supervisord) to run both services
 
-FROM node:20-alpine AS frontend-base
+FROM node:20-slim AS frontend-base
 WORKDIR /app/frontend
-
-# Install build dependencies for native modules (lightningcss)
-RUN apk add --no-cache python3 make g++
 
 # Install frontend dependencies
 COPY frontend/package.json frontend/package-lock.json* ./
-# Rebuild native modules for Alpine Linux
-RUN npm ci && npm rebuild
+RUN npm ci
 
 # Build frontend
 COPY frontend/ ./
