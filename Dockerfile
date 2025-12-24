@@ -4,9 +4,13 @@
 FROM node:20-alpine AS frontend-base
 WORKDIR /app/frontend
 
+# Install build dependencies for native modules (lightningcss)
+RUN apk add --no-cache python3 make g++
+
 # Install frontend dependencies
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci
+# Rebuild native modules for Alpine Linux
+RUN npm ci && npm rebuild
 
 # Build frontend
 COPY frontend/ ./
