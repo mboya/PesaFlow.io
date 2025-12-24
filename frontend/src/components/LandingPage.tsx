@@ -807,10 +807,10 @@ export function LandingPage() {
               </div>
             </div>
             
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
               Ready to streamline your subscription billing?
             </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-zinc-300">
+            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-zinc-600">
               Join businesses already using PesaFlow to automate their recurring payments and grow their revenue.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
@@ -823,7 +823,7 @@ export function LandingPage() {
               </Link>
               <Link
                 href="/login"
-                className="group text-base font-semibold leading-6 text-white hover:text-blue-300 transition-colors flex items-center gap-2"
+                className="group text-base font-semibold leading-6 text-zinc-900 hover:text-zinc-700 transition-colors flex items-center gap-2"
               >
                 Sign In 
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
