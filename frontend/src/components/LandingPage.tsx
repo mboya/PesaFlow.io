@@ -580,7 +580,7 @@ export function LandingPage() {
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                       <div className="ml-4 text-xs text-zinc-500">Subscriptions - PesaFlow</div>
                     </div>
-                    <div className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 min-h-[400px] flex items-center justify-center">
+                    <div className="p-8 bg-white min-h-[400px] flex items-center justify-center">
                       {/* TODO: Replace this div with actual subscriptions screenshot */}
                       <div className="text-center">
                         <Repeat className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
@@ -654,7 +654,7 @@ export function LandingPage() {
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                       <div className="ml-4 text-xs text-zinc-500">Payment Methods - PesaFlow</div>
                     </div>
-                    <div className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 min-h-[400px] flex items-center justify-center">
+                    <div className="p-8 bg-white min-h-[400px] flex items-center justify-center">
                       {/* TODO: Replace this div with actual payment methods screenshot */}
                       <div className="text-center">
                         <CreditCard className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
@@ -728,7 +728,7 @@ export function LandingPage() {
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                       <div className="ml-4 text-xs text-zinc-500">Invoices - PesaFlow</div>
                     </div>
-                    <div className="p-8 bg-gradient-to-br from-amber-50 to-orange-50 min-h-[400px] flex items-center justify-center">
+                    <div className="p-8 bg-white min-h-[400px] flex items-center justify-center">
                       {/* TODO: Replace this div with actual invoices screenshot */}
                       <div className="text-center">
                         <Receipt className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
