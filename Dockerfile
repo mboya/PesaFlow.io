@@ -4,9 +4,20 @@
 FROM node:20-slim AS frontend-base
 WORKDIR /app/frontend
 
+# Install build dependencies for native modules (lightningcss)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install frontend dependencies
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci
+
+# Install dependencies and explicitly rebuild lightningcss for native bindings
+RUN npm ci --include=optional && \
+    npm rebuild lightningcss
 
 # Build frontend
 COPY frontend/ ./
