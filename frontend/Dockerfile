@@ -16,8 +16,9 @@ RUN apt-get update && apt-get install -y \
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies - use npm install to allow rebuilding native modules
+# Install dependencies - explicitly install lightningcss and build native bindings
 RUN npm install --include=optional && \
+    npm install lightningcss --save-dev --force && \
     npm rebuild lightningcss
 
 # Rebuild the source code only when needed
@@ -35,12 +36,14 @@ RUN apt-get update && apt-get install -y \
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Verify and rebuild lightningcss native bindings in builder stage
-RUN npm rebuild lightningcss && \
-    ls -la node_modules/lightningcss/lightningcss.linux-x64-gnu.node || \
-    (echo "Native binding not found, attempting manual build..." && \
-     cd node_modules/lightningcss && \
-     npm run build 2>&1 || echo "Manual build failed, continuing...")
+# Verify lightningcss native bindings exist, rebuild if needed
+RUN if [ ! -f "node_modules/lightningcss/lightningcss.linux-x64-gnu.node" ]; then \
+      echo "Native binding not found, rebuilding..." && \
+      npm rebuild lightningcss --verbose; \
+    fi && \
+    echo "Checking for native bindings..." && \
+    find node_modules/lightningcss -name "*.node" -type f || echo "No .node files found" && \
+    ls -la node_modules/lightningcss/ || echo "lightningcss directory not found"
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
