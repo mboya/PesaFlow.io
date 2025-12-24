@@ -67,6 +67,16 @@ services:
       # App Host (for generating callback URLs)
       - key: APP_HOST
         sync: false  # Set to your Render backend URL
+      # Frontend URL for CORS (auto-set from frontend service)
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: pesaflow-frontend
+          property: host
+        transform: "https://${host}"
+      # Port (Render sets this automatically, but we can override)
+      - key: PORT
+        value: "3000"
 
   # Sidekiq Worker (Background Jobs)
   - type: worker

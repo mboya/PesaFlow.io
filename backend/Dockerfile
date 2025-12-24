@@ -62,5 +62,7 @@ USER 1000:1000
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 # Start the server by default, this can be overwritten at runtime
+# Render sets PORT environment variable automatically
 EXPOSE 3000
-CMD ["./bin/rails", "server"]
+# Bind to 0.0.0.0 to accept connections from Render's load balancer
+CMD ["./bin/rails", "server", "-b", "0.0.0.0"]
