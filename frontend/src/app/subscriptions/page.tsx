@@ -6,6 +6,7 @@ import { subscriptionsApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Repeat } from 'lucide-react';
 import type { Subscription } from '@/lib/types';
 
 export default function SubscriptionsPage() {

@@ -5,6 +5,7 @@ import { Navigation } from '@/components/Navigation';
 import { invoicesApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Receipt } from 'lucide-react';
 import type { Invoice } from '@/lib/types';
 
 export default function InvoicesPage() {

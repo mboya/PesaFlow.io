@@ -5,6 +5,7 @@ import { Navigation } from '@/components/Navigation';
 import { refundsApi, paymentsApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ArrowLeftRight } from 'lucide-react';
 import type { Refund, Payment } from '@/lib/types';
 
 export default function RefundsPage() {

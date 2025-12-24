@@ -4,6 +4,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { Navigation } from '@/components/Navigation';
 import { paymentMethodsApi } from '@/lib/api';
 import { useState } from 'react';
+import { CreditCard } from 'lucide-react';
 
 export default function PaymentMethodsPage() {
   const [activeTab, setActiveTab] = useState<'ratiba' | 'stk_push'>('ratiba');
