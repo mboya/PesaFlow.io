@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { LandingPage } from '@/components/LandingPage';
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
@@ -16,14 +17,16 @@ export default function Home() {
       if (pathname !== '/dashboard') {
         router.replace('/dashboard');
       }
-    } else {
-      if (pathname !== '/login') {
-        router.replace('/login');
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, loading, pathname]);
 
+  // Show landing page for unauthenticated users
+  if (!isAuthenticated && !loading) {
+    return <LandingPage />;
+  }
+
+  // Show loading state while checking authentication
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
