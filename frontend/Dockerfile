@@ -21,9 +21,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # Increase Node.js memory limit for build and explicitly use webpack
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Force webpack instead of turbopack (turbopack can cause build issues in Docker)
+ENV NEXT_PRIVATE_SKIP_TURBOPACK=1
 
-# Build the application (explicitly use webpack to avoid turbopack issues)
-RUN npm run build -- --webpack
+# Build the application
+RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
