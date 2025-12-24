@@ -338,7 +338,7 @@ export default function SettingsPage() {
                         type="text"
                         value={tenantSubdomain}
                         disabled
-                        className="flex-1 rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-900 font-mono dark:border-zinc-700 bg-zinc-100 text-zinc-900"
+                        className="flex-1 rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-900 font-mono bg-zinc-100 text-zinc-900"
                       />
                     </div>
                     <p className="mt-1 text-xs text-zinc-500 text-zinc-600">
@@ -451,7 +451,7 @@ export default function SettingsPage() {
                             </p>
                             {otpSetupData.qr_code && (
                               <div className="flex justify-center mb-4">
-                                <img src={otpSetupData.qr_code} alt="2FA QR Code" className="w-48 h-48 border border-zinc-300 dark:border-zinc-700" />
+                                <img src={otpSetupData.qr_code} alt="2FA QR Code" className="w-48 h-48 border border-zinc-300" />
                               </div>
                             )}
                             {otpSetupData.provisioning_uri && (
@@ -473,7 +473,7 @@ export default function SettingsPage() {
                               onChange={(e) => setOtpVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                               placeholder="000000"
                               maxLength={6}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 bg-zinc-100 text-zinc-900"
+                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-zinc-100 text-zinc-900"
                             />
                           </div>
                           <div className="flex gap-2">
@@ -490,7 +490,7 @@ export default function SettingsPage() {
                                 setOtpVerificationCode('');
                                 setError(null);
                               }}
-                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 text-zinc-600 dark:hover:text-zinc-200"
+                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 text-zinc-600 hover:text-zinc-900"
                             >
                               Cancel
                             </button>
@@ -512,7 +512,7 @@ export default function SettingsPage() {
                             </button>
                             <button
                               onClick={() => setShowBackupCodes(!showBackupCodes)}
-                              className="w-full rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 text-zinc-600 dark:hover:bg-zinc-800"
+                              className="w-full rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 text-zinc-600"
                             >
                               {showBackupCodes ? 'Hide Backup Codes' : 'View Backup Codes'}
                             </button>
@@ -530,7 +530,7 @@ export default function SettingsPage() {
                                     value={regeneratePassword}
                                     onChange={(e) => setRegeneratePassword(e.target.value)}
                                     placeholder="Enter your password"
-                                    className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 bg-zinc-100 text-zinc-900"
+                                    className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-zinc-100 text-zinc-900"
                                   />
                                   <button
                                     onClick={handleRegenerateBackupCodes}
@@ -572,7 +572,7 @@ export default function SettingsPage() {
                               type="password"
                               value={disablePassword}
                               onChange={(e) => setDisablePassword(e.target.value)}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 bg-zinc-100 text-zinc-900"
+                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-zinc-100 text-zinc-900"
                             />
                           </div>
                           <div>
@@ -585,7 +585,7 @@ export default function SettingsPage() {
                               onChange={(e) => setDisableOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                               placeholder="000000 or backup code"
                               maxLength={10}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 bg-zinc-100 text-zinc-900"
+                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-zinc-100 text-zinc-900"
                             />
                           </div>
                           <div className="flex gap-2">
@@ -603,7 +603,7 @@ export default function SettingsPage() {
                                 setDisableOtpCode('');
                                 setError(null);
                               }}
-                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 text-zinc-600 dark:hover:text-zinc-200"
+                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 text-zinc-600 hover:text-zinc-900"
                             >
                               Cancel
                             </button>
