@@ -215,11 +215,11 @@ export default function SubscriptionDetailPage() {
                       {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
                     </dd>
                   </div>
-                  {subscription.trial_end && (
+                  {subscription.trial_ends_at && (
                     <div>
                       <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Trial End</dt>
                       <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                        {formatDate(subscription.trial_end)}
+                        {formatDate(subscription.trial_ends_at)}
                       </dd>
                     </div>
                   )}
