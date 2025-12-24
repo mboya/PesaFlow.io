@@ -144,12 +144,19 @@ See [FLY_DEPLOYMENT.md](FLY_DEPLOYMENT.md) for detailed instructions or [QUICK_S
 
 ### Docker Production Builds
 
-For production builds using Docker Compose:
+For production builds, use the production Dockerfiles directly:
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+# Build backend
+cd backend
+docker build -t pesaflow-backend .
+
+# Build frontend
+cd frontend
+docker build -t pesaflow-frontend .
 ```
+
+**Note**: For production deployment, we recommend using Fly.io (see Fly.io deployment section above).
 ## Project Structure
 
 ```

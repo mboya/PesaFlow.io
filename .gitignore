@@ -301,5 +301,4 @@ backend/config/database.yml
 /backend/tmp/
 /backend/vendor/
 /backend/docker-compose.override.yml
-/docker-compose.prod.yml
 /FRONTEND_TENANCY_CHANGES.md
