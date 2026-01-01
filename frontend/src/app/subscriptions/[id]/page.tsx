@@ -6,12 +6,14 @@ import { subscriptionsApi, paymentsApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useToast } from '@/contexts/ToastContext';
 import type { Subscription, Payment } from '@/lib/types';
 
 export default function SubscriptionDetailPage() {
   const router = useRouter();
   const params = useParams();
   const subscriptionId = params.id as string;
+  const { success: showSuccess, error: showError } = useToast();
   
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -49,9 +51,10 @@ export default function SubscriptionDetailPage() {
     try {
       setActionLoading('cancel');
       await subscriptionsApi.cancel(subscription.id, { reason: 'Customer requested' });
+      showSuccess('Subscription cancelled successfully');
       router.push('/subscriptions');
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to cancel subscription');
+      showError(err.response?.data?.error || 'Failed to cancel subscription');
     } finally {
       setActionLoading(null);
     }
@@ -63,10 +66,11 @@ export default function SubscriptionDetailPage() {
     try {
       setActionLoading('reactivate');
       await subscriptionsApi.reactivate(subscription.id);
+      showSuccess('Subscription reactivated successfully');
       // Refresh subscription data instead of full page reload
       fetchSubscription();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to reactivate subscription');
+      showError(err.response?.data?.error || 'Failed to reactivate subscription');
     } finally {
       setActionLoading(null);
     }
