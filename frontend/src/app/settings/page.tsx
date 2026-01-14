@@ -5,6 +5,7 @@ import { Navigation } from '@/components/Navigation';
 import { profileApi } from '@/lib/api';
 import { Customer } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { authApi } from '@/lib/auth-api';
 import { formatPhoneNumber } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { Settings, User, Building2, Shield } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, checkAuth } = useAuth();
+  const { success: showSuccess, error: showError } = useToast();
   const [profile, setProfile] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -90,8 +92,11 @@ export default function SettingsPage() {
       setProfile(data);
       setPhoneNumber(data.phone_number || '');
       setProfileSuccess('Profile updated successfully!');
+      showSuccess('Profile updated successfully!');
     } catch (err: any) {
-      setProfileError(err.response?.data?.errors?.join(', ') || 'Failed to update profile');
+      const errorMessage = err.response?.data?.errors?.join(', ') || 'Failed to update profile';
+      setProfileError(errorMessage);
+      showError(errorMessage);
       console.error('Profile update error:', err);
     } finally {
       setSaving(false);
@@ -105,9 +110,13 @@ export default function SettingsPage() {
       setSuccess(null);
       const response = await authApi.enableOtp();
       setOtpSetupData(response.data);
-      setSuccess('QR code generated. Scan it with your authenticator app.');
+      const successMessage = 'QR code generated. Scan it with your authenticator app.';
+      setSuccess(successMessage);
+      showSuccess(successMessage);
     } catch (err: any) {
-      setError(err.response?.data?.status?.message || 'Failed to enable 2FA');
+      const errorMessage = err.response?.data?.status?.message || 'Failed to enable 2FA';
+      setError(errorMessage);
+      showError(errorMessage);
       console.error('Enable OTP error:', err);
     }
   };
@@ -126,7 +135,9 @@ export default function SettingsPage() {
       setShowBackupCodes(true);
       setOtpSetupData(null);
       setOtpVerificationCode('');
-      setSuccess('2FA enabled successfully! Please save your backup codes.');
+      const successMessage = '2FA enabled successfully! Please save your backup codes.';
+      setSuccess(successMessage);
+      showSuccess(successMessage);
       // Refresh user data to update otp_enabled status
       await checkAuth();
     } catch (err: any) {
@@ -134,6 +145,7 @@ export default function SettingsPage() {
       console.error('Error response:', err.response?.data);
       const errorMessage = err.response?.data?.status?.message || err.response?.data?.message || err.message || 'Invalid OTP code';
       setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setOtpVerifying(false);
     }
@@ -152,11 +164,15 @@ export default function SettingsPage() {
       setShowDisableOtp(false);
       setDisablePassword('');
       setDisableOtpCode('');
-      setSuccess('2FA disabled successfully');
+      const successMessage = '2FA disabled successfully';
+      setSuccess(successMessage);
+      showSuccess(successMessage);
       // Refresh user data
       await checkAuth();
     } catch (err: any) {
-      setError(err.response?.data?.status?.message || 'Failed to disable 2FA');
+      const errorMessage = err.response?.data?.status?.message || 'Failed to disable 2FA';
+      setError(errorMessage);
+      showError(errorMessage);
       console.error('Disable OTP error:', err);
     } finally {
       setDisablingOtp(false);
@@ -175,9 +191,13 @@ export default function SettingsPage() {
       const codes = await authApi.generateBackupCodes(regeneratePassword);
       setBackupCodes(codes);
       setRegeneratePassword('');
-      setSuccess('Backup codes regenerated. Please save them now.');
+      const successMessage = 'Backup codes regenerated. Please save them now.';
+      setSuccess(successMessage);
+      showSuccess(successMessage);
     } catch (err: any) {
-      setError(err.response?.data?.status?.message || 'Failed to regenerate backup codes');
+      const errorMessage = err.response?.data?.status?.message || 'Failed to regenerate backup codes';
+      setError(errorMessage);
+      showError(errorMessage);
       console.error('Regenerate backup codes error:', err);
     } finally {
       setRegeneratingBackupCodes(false);

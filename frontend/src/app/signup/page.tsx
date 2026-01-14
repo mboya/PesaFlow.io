@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import Link from 'next/link';
 import { Zap, Mail, Lock, UserPlus, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
@@ -15,6 +16,7 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
+  const { success: showSuccess, error: showError } = useToast();
   const router = useRouter();
 
   // Redirect if already authenticated
@@ -47,12 +49,15 @@ export default function SignupPage() {
     try {
       // No tenant subdomain needed - backend will auto-generate from email
       await signup(email, password);
+      showSuccess('Account created successfully! Redirecting...');
       router.push('/dashboard');
     } catch (err: any) {
       // Handle rate limit errors gracefully
       const rateLimitInfo = extractRateLimitInfo(err);
       if (rateLimitInfo) {
-        setError(getRateLimitErrorMessage(err));
+        const errorMessage = getRateLimitErrorMessage(err);
+        setError(errorMessage);
+        showError(errorMessage);
       } else {
         const errorMessage = err.response?.data?.status?.message || 
                             err.response?.data?.message ||
@@ -60,6 +65,7 @@ export default function SignupPage() {
                             err.message || 
                             'Signup failed';
         setError(errorMessage);
+        showError(errorMessage);
       }
     } finally {
       setLoading(false);

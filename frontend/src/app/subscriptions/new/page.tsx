@@ -6,10 +6,12 @@ import { subscriptionsApi } from '@/lib/api';
 import { formatPhoneNumber } from '@/lib/utils';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/contexts/ToastContext';
 import Link from 'next/link';
 
 export default function NewSubscriptionPage() {
   const router = useRouter();
+  const { success: showSuccess, error: showError } = useToast();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
@@ -53,9 +55,12 @@ export default function NewSubscriptionPage() {
         },
         payment_method: paymentMethod,
       });
+      showSuccess('Subscription created successfully');
       router.push('/subscriptions');
     } catch (err: any) {
-      setError(err.response?.data?.error || err.response?.data?.errors || 'Failed to create subscription');
+      const errorMessage = err.response?.data?.error || err.response?.data?.errors || 'Failed to create subscription';
+      setError(errorMessage);
+      showError(errorMessage);
       console.error('Create subscription error:', err);
     } finally {
       setSubmitting(false);
