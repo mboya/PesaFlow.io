@@ -74,6 +74,29 @@ Rails.application.configure do
   # caching is enabled.
   config.action_mailer.perform_caching = false
 
+  # Configure Action Mailer default URL options
+  config.action_mailer.default_url_options = {
+    host: ENV.fetch("APP_HOST", "localhost"),
+    protocol: "https"
+  }
+
+  # Configure SMTP for production email delivery
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+    address: ENV.fetch("SMTP_HOST", "localhost"),
+    port: ENV.fetch("SMTP_PORT", "587").to_i,
+    domain: ENV.fetch("SMTP_DOMAIN", ENV.fetch("APP_HOST", "localhost")),
+    user_name: ENV.fetch("SMTP_USERNAME", nil),
+    password: ENV.fetch("SMTP_PASSWORD", nil),
+    authentication: :plain,
+    enable_starttls_auto: true
+  }
+
+  # Set default from address
+  config.action_mailer.default_options = {
+    from: ENV.fetch("SMTP_FROM_EMAIL", "noreply@localhost")
+  }
+
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false

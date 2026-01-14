@@ -13,7 +13,7 @@ class SubscriptionMailer < ApplicationMailer
   def service_suspended(subscription)
     @subscription = subscription
     @customer = subscription.customer
-    @paybill = ENV.fetch("MPESA_PAYBILL", ENV.fetch("business_short_code", "N/A"))
+    @paybill = ENV.fetch("MPESA_BUSINESS_SHORT_CODE", ENV.fetch("MPESA_PAYBILL", ENV.fetch("business_short_code", "N/A")))
 
     mail(
       to: @customer.email,

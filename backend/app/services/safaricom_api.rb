@@ -47,12 +47,13 @@ class SafaricomApi
       amount_str = amount.to_s
 
       # Build hash with required parameters
+      # Note: The gem expects lowercase keys, but we use MPESA_* env vars
       params = {
-        "key" => ENV.fetch("key", nil),
-        "secret" => ENV.fetch("secret", nil),
-        "business_short_code" => ENV.fetch("business_short_code", nil),
-        "business_passkey" => ENV.fetch("business_passkey", nil),
-        "callback_url" => callback_url || ENV.fetch("callback_url", nil),
+        "key" => ENV.fetch("MPESA_CONSUMER_KEY", ENV.fetch("key", nil)),
+        "secret" => ENV.fetch("MPESA_CONSUMER_SECRET", ENV.fetch("secret", nil)),
+        "business_short_code" => ENV.fetch("MPESA_BUSINESS_SHORT_CODE", ENV.fetch("business_short_code", nil)),
+        "business_passkey" => ENV.fetch("MPESA_PASSKEY", ENV.fetch("business_passkey", nil)),
+        "callback_url" => callback_url || ENV.fetch("MPESA_CALLBACK_URL", ENV.fetch("callback_url", nil)),
         "account_reference" => account_reference,
         "transaction_desc" => transaction_desc
       }
@@ -60,7 +61,7 @@ class SafaricomApi
       # Call appropriate method based on payment type
       response = case payment_type.to_s
       when "buy_goods", "till_number"
-        params["till_number"] = ENV.fetch("till_number", ENV.fetch("business_short_code", nil))
+        params["till_number"] = ENV.fetch("till_number", ENV.fetch("MPESA_BUSINESS_SHORT_CODE", ENV.fetch("business_short_code", nil)))
         MpesaStk::Push.buy_goods(amount_str, phone_number, params)
       else
         MpesaStk::Push.pay_bill(amount_str, phone_number, params)
@@ -75,10 +76,10 @@ class SafaricomApi
   class StkPushQueryClient
     def query(checkout_request_id:)
       params = {
-        "business_short_code" => ENV.fetch("business_short_code", nil),
-        "business_passkey" => ENV.fetch("business_passkey", nil),
-        "key" => ENV.fetch("key", nil),
-        "secret" => ENV.fetch("secret", nil)
+        "business_short_code" => ENV.fetch("MPESA_BUSINESS_SHORT_CODE", ENV.fetch("business_short_code", nil)),
+        "business_passkey" => ENV.fetch("MPESA_PASSKEY", ENV.fetch("business_passkey", nil)),
+        "key" => ENV.fetch("MPESA_CONSUMER_KEY", ENV.fetch("key", nil)),
+        "secret" => ENV.fetch("MPESA_CONSUMER_SECRET", ENV.fetch("secret", nil))
       }
 
       response = MpesaStk::StkPushQuery.query(checkout_request_id, params)
@@ -102,9 +103,9 @@ class SafaricomApi
 
       # Build hash with all required parameters
       params = {
-        "key" => ENV.fetch("key", nil),
-        "secret" => ENV.fetch("secret", nil),
-        "business_short_code" => ENV.fetch("business_short_code", nil),
+        "key" => ENV.fetch("MPESA_CONSUMER_KEY", ENV.fetch("key", nil)),
+        "secret" => ENV.fetch("MPESA_CONSUMER_SECRET", ENV.fetch("secret", nil)),
+        "business_short_code" => ENV.fetch("MPESA_BUSINESS_SHORT_CODE", ENV.fetch("business_short_code", nil)),
         "standing_order_name" => standing_order_name,
         "amount" => amount_str,
         "party_a" => phone_number,
@@ -113,7 +114,7 @@ class SafaricomApi
         "end_date" => end_date_str,
         "account_reference" => account_reference,
         "transaction_desc" => transaction_desc,
-        "callback_url" => callback_url || ENV.fetch("callback_url", nil)
+        "callback_url" => callback_url || ENV.fetch("MPESA_CALLBACK_URL", ENV.fetch("callback_url", nil))
       }
 
       response = MpesaStk::Ratiba.create_standing_order(params)
@@ -144,8 +145,8 @@ class SafaricomApi
 
       # Build hash with required parameters
       params = {
-        "key" => ENV.fetch("key", nil),
-        "secret" => ENV.fetch("secret", nil),
+        "key" => ENV.fetch("MPESA_CONSUMER_KEY", ENV.fetch("key", nil)),
+        "secret" => ENV.fetch("MPESA_CONSUMER_SECRET", ENV.fetch("secret", nil)),
         "initiator_name" => ENV.fetch("initiator_name", ENV.fetch("initiator", nil)),
         "security_credential" => ENV.fetch("security_credential", nil),
         "command_id" => command_id,
@@ -166,9 +167,9 @@ class SafaricomApi
   class C2bClient
     def register_urls(confirmation_url:, validation_url: nil, response_type: "Completed")
       params = {
-        "key" => ENV.fetch("key", nil),
-        "secret" => ENV.fetch("secret", nil),
-        "short_code" => ENV.fetch("business_short_code", nil),
+        "key" => ENV.fetch("MPESA_CONSUMER_KEY", ENV.fetch("key", nil)),
+        "secret" => ENV.fetch("MPESA_CONSUMER_SECRET", ENV.fetch("secret", nil)),
+        "short_code" => ENV.fetch("MPESA_BUSINESS_SHORT_CODE", ENV.fetch("business_short_code", nil)),
         "confirmation_url" => confirmation_url,
         "validation_url" => validation_url,
         "response_type" => response_type
@@ -183,9 +184,9 @@ class SafaricomApi
       amount_str = amount.to_s
 
       params = {
-        "key" => ENV.fetch("key", nil),
-        "secret" => ENV.fetch("secret", nil),
-        "short_code" => ENV.fetch("business_short_code", nil),
+        "key" => ENV.fetch("MPESA_CONSUMER_KEY", ENV.fetch("key", nil)),
+        "secret" => ENV.fetch("MPESA_CONSUMER_SECRET", ENV.fetch("secret", nil)),
+        "short_code" => ENV.fetch("MPESA_BUSINESS_SHORT_CODE", ENV.fetch("business_short_code", nil)),
         "command_id" => command_id,
         "bill_ref_number" => bill_ref_number
       }
