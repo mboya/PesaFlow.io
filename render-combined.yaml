@@ -1,13 +1,7 @@
 # Render Blueprint for PesaFlow.io
 # This file defines the infrastructure for deploying to Render
-
-databases:
-  # PostgreSQL Database
-  - name: pesaflow-database
-    databaseName: pesaflow_production
-    user: pesaflow_user
-    plan: free
-    ipAllowList: []  # Empty array allows all IPs
+# Note: Database is provided by Neon (https://neon.com/)
+# Set DATABASE_URL environment variable with your Neon connection string
 
 services:
   # Redis Instance
@@ -30,9 +24,9 @@ services:
       - key: RAILS_MASTER_KEY
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: pesaflow-database
-          property: connectionString
+        sync: false
+        # Set this to your Neon database connection string
+        # Format: postgresql://user:password@host/database?sslmode=require
       - key: REDIS_URL
         fromService:
           type: redis
@@ -82,9 +76,9 @@ services:
       - key: RAILS_MASTER_KEY
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: pesaflow-database
-          property: connectionString
+        sync: false
+        # Set this to your Neon database connection string
+        # Format: postgresql://user:password@host/database?sslmode=require
       - key: REDIS_URL
         fromService:
           type: redis
