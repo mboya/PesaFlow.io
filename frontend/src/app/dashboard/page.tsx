@@ -6,8 +6,11 @@ import { Navigation } from '@/components/Navigation';
 import { dashboardApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Repeat, DollarSign, CheckCircle2, CreditCard, Clock } from 'lucide-react';
+import { Repeat, DollarSign, CheckCircle2, CreditCard, Clock, TrendingUp, BarChart3 } from 'lucide-react';
 import type { DashboardData, Subscription, Payment } from '@/lib/types';
+import { RevenueChart } from '@/components/charts/RevenueChart';
+import { PaymentSuccessChart } from '@/components/charts/PaymentSuccessChart';
+import { SubscriptionGrowthChart } from '@/components/charts/SubscriptionGrowthChart';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -172,6 +175,78 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Analytics Section */}
+              {dashboardData.analytics && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg blur opacity-50"></div>
+                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
+                        <BarChart3 className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    <h2 className="text-lg font-semibold text-zinc-900">
+                      Analytics & Insights
+                    </h2>
+                  </div>
+
+                  {/* Analytics Summary Cards */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-blue-600" />
+                        <h3 className="text-sm font-medium text-blue-900">Monthly Recurring Revenue</h3>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {formatCurrency(dashboardData.analytics.mrr)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        <h3 className="text-sm font-medium text-green-900">Total Revenue</h3>
+                      </div>
+                      <p className="text-2xl font-bold text-green-900">
+                        {formatCurrency(dashboardData.analytics.total_revenue)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600" />
+                        <h3 className="text-sm font-medium text-purple-900">Payment Success Rate</h3>
+                      </div>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {dashboardData.analytics.payment_success_rate}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Charts Grid */}
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    {/* Revenue Trends Chart */}
+                    <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm p-6">
+                      <h3 className="text-base font-semibold text-zinc-900 mb-4">Revenue Trends (Last 14 Days)</h3>
+                      <RevenueChart data={dashboardData.analytics.revenue_trends} />
+                    </div>
+
+                    {/* Payment Success Chart */}
+                    <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm p-6">
+                      <h3 className="text-base font-semibold text-zinc-900 mb-4">Payment Status</h3>
+                      <PaymentSuccessChart
+                        successRate={dashboardData.analytics.payment_success_rate}
+                        stats={dashboardData.analytics.payment_stats}
+                      />
+                    </div>
+
+                    {/* Subscription Growth Chart */}
+                    <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm p-6 lg:col-span-2">
+                      <h3 className="text-base font-semibold text-zinc-900 mb-4">Subscription Growth (Last 14 Days)</h3>
+                      <SubscriptionGrowthChart data={dashboardData.analytics.subscription_growth} />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Active Subscriptions */}
               <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">

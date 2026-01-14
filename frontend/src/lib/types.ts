@@ -101,12 +101,27 @@ export interface Refund {
   payment?: Payment;
 }
 
+export interface AnalyticsData {
+  revenue_trends: Array<{ date: string; revenue: number }>;
+  payment_success_rate: number;
+  payment_stats: {
+    completed: number;
+    total: number;
+    refunded: number;
+    disputed: number;
+  };
+  subscription_growth: Array<{ date: string; count: number }>;
+  mrr: number;
+  total_revenue: number;
+}
+
 export interface DashboardData {
   customer: Customer;
   active_subscriptions: Subscription[];
   total_outstanding: number;
   recent_payments: Payment[];
   upcoming_billing: Subscription[];
+  analytics?: AnalyticsData;
 }
 
 export interface ApiError {
