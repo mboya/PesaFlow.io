@@ -1,16 +1,24 @@
 'use client';
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { subscriptionsApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Repeat } from 'lucide-react';
+
+import {
+  AuthGuard,
+  Navigation,
+  StatusBadge,
+  PageHeader,
+  BackgroundDecorations,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+} from '@/components';
+import { subscriptionsApi } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Subscription } from '@/lib/types';
 
 export default function SubscriptionsPage() {
-  const router = useRouter();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,21 +40,6 @@ export default function SubscriptionsPage() {
     fetchSubscriptions();
   }, []);
 
-  const formatCurrency = (amount: number, currency: string = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-KE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   const formatPaymentMethod = (method: string | null | undefined) => {
     if (!method) return 'Not set';
     const methodMap: Record<string, string> = {
@@ -57,84 +50,40 @@ export default function SubscriptionsPage() {
     return methodMap[method] || method.toUpperCase();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'trial':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'suspended':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      default:
-        return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400';
-    }
-  };
-
   return (
     <AuthGuard>
       <div className="min-h-screen bg-white relative">
-        {/* Subtle background decorative elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-        </div>
-        
+        <BackgroundDecorations />
         <Navigation />
 
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
-          <div className="mb-8 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl blur opacity-50"></div>
-                <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
-                  <Repeat className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-                  Subscriptions
-                </h1>
-                <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  Manage your recurring payments and subscriptions
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/subscriptions/new"
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              New Subscription
-            </Link>
-          </div>
+          <PageHeader
+            title="Subscriptions"
+            description="Manage your recurring payments and subscriptions"
+            icon={Repeat}
+            iconGradient="from-blue-500 to-purple-500"
+            action={
+              <Link
+                href="/subscriptions/new"
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                New Subscription
+              </Link>
+            }
+          />
 
-          {loading && (
-            <div className="rounded-lg bg-white p-8 shadow dark:bg-zinc-900">
-              <p className="text-zinc-600 dark:text-zinc-400">Loading subscriptions...</p>
-            </div>
-          )}
+          {loading && <LoadingState message="Loading subscriptions..." />}
 
-          {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
-              <p className="text-red-800 dark:text-red-200">{error}</p>
-            </div>
-          )}
+          {error && <ErrorState message={error} onDismiss={() => setError(null)} />}
 
           {!loading && !error && (
             <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
               {subscriptions.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-                    You don't have any subscriptions yet.
-                  </p>
-                  <Link
-                    href="/subscriptions/new"
-                    className="inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
-                  >
-                    Create Subscription
-                  </Link>
-                </div>
+                <EmptyState
+                  message="You don't have any subscriptions yet."
+                  actionLabel="Create Subscription"
+                  actionHref="/subscriptions/new"
+                />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
@@ -174,9 +123,7 @@ export default function SubscriptionsPage() {
                             </div>
                           </td>
                           <td className="whitespace-nowrap px-6 py-4">
-                            <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(subscription.status)}`}>
-                              {subscription.status}
-                            </span>
+                            <StatusBadge status={subscription.status} type="subscription" />
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-zinc-50">
                             {formatCurrency(subscription.amount || 0)}

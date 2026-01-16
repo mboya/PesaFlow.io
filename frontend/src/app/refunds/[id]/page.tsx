@@ -1,11 +1,18 @@
 'use client';
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { refundsApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+
+import {
+  AuthGuard,
+  Navigation,
+  StatusBadge,
+  LoadingState,
+  ErrorState,
+} from '@/components';
+import { refundsApi } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Refund } from '@/lib/types';
 
 export default function RefundDetailPage() {
@@ -35,35 +42,6 @@ export default function RefundDetailPage() {
     }
   }, [refundId]);
 
-  const formatCurrency = (amount: number, currency: string = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-KE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'failed':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      default:
-        return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400';
-    }
-  };
 
   if (loading) {
     return (
@@ -71,7 +49,7 @@ export default function RefundDetailPage() {
         <div className="min-h-screen bg-zinc-50 dark:bg-black">
           <Navigation />
           <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
+            <LoadingState />
           </main>
         </div>
       </AuthGuard>
@@ -84,9 +62,7 @@ export default function RefundDetailPage() {
         <div className="min-h-screen bg-zinc-50 dark:bg-black">
           <Navigation />
           <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
-              <p className="text-red-800 dark:text-red-200">{error || 'Refund not found'}</p>
-            </div>
+            <ErrorState message={error || 'Refund not found'} />
             <Link href="/refunds" className="mt-4 inline-block text-blue-600 hover:underline">
               ← Back to Refunds
             </Link>
@@ -120,9 +96,7 @@ export default function RefundDetailPage() {
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   Refund Details
                 </h2>
-                <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(refund.status)}`}>
-                  {refund.status}
-                </span>
+                <StatusBadge status={refund.status} type="refund" size="md" />
               </div>
             </div>
             <div className="p-6">
@@ -148,9 +122,7 @@ export default function RefundDetailPage() {
                 <div>
                   <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</dt>
                   <dd className="mt-1">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(refund.status)}`}>
-                      {refund.status}
-                    </span>
+                    <StatusBadge status={refund.status} type="refund" />
                   </dd>
                 </div>
                 <div className="sm:col-span-2">
@@ -171,7 +143,7 @@ export default function RefundDetailPage() {
                   <div>
                     <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Processed At</dt>
                     <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                      {formatDate(refund.processed_at)}
+                      {formatDateLong(refund.processed_at)}
                     </dd>
                   </div>
                 )}
@@ -186,7 +158,7 @@ export default function RefundDetailPage() {
                 <div>
                   <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Created</dt>
                   <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                    {formatDate(refund.created_at)}
+                    {formatDateLong(refund.created_at)}
                   </dd>
                 </div>
               </dl>

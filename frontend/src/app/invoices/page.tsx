@@ -1,11 +1,21 @@
 'use client';
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { invoicesApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Receipt } from 'lucide-react';
+
+import {
+  AuthGuard,
+  Navigation,
+  StatusBadge,
+  PageHeader,
+  BackgroundDecorations,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+} from '@/components';
+import { invoicesApi } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Invoice } from '@/lib/types';
 
 export default function InvoicesPage() {
@@ -30,85 +40,28 @@ export default function InvoicesPage() {
     fetchInvoices();
   }, []);
 
-  const formatCurrency = (amount: number, currency: string = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-KE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'overdue':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      case 'sent':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'draft':
-        return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400';
-      default:
-        return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400';
-    }
-  };
-
   return (
     <AuthGuard>
       <div className="min-h-screen bg-white relative">
-        {/* Subtle background decorative elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-        </div>
-        
+        <BackgroundDecorations />
         <Navigation />
 
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
-          <div className="mb-8 flex items-center gap-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl blur opacity-50"></div>
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg">
-                <Receipt className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-                Invoices
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-zinc-600">
-                View and manage your invoices
-              </p>
-            </div>
-          </div>
+          <PageHeader
+            title="Invoices"
+            description="View and manage your invoices"
+            icon={Receipt}
+            iconGradient="from-purple-500 to-pink-500"
+          />
 
-          {loading && (
-            <div className="rounded-lg bg-white p-8 shadow dark:bg-zinc-900">
-              <p className="text-zinc-600 dark:text-zinc-400">Loading invoices...</p>
-            </div>
-          )}
+          {loading && <LoadingState message="Loading invoices..." />}
 
-          {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
-              <p className="text-red-800 dark:text-red-200">{error}</p>
-            </div>
-          )}
+          {error && <ErrorState message={error} onDismiss={() => setError(null)} />}
 
           {!loading && !error && (
             <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
               {invoices.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="text-zinc-600 dark:text-zinc-400">
-                    You don't have any invoices yet.
-                  </p>
-                </div>
+                <EmptyState message="You don't have any invoices yet." />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
@@ -154,9 +107,7 @@ export default function InvoicesPage() {
                             {formatDate(invoice.due_date)}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4">
-                            <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(invoice.status)}`}>
-                              {invoice.status}
-                            </span>
+                            <StatusBadge status={invoice.status} type="invoice" />
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                             <Link

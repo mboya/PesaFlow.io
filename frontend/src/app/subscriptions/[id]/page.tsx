@@ -1,12 +1,19 @@
 'use client';
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { subscriptionsApi, paymentsApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+
+import {
+  AuthGuard,
+  Navigation,
+  StatusBadge,
+  LoadingState,
+  ErrorState,
+} from '@/components';
 import { useToast } from '@/contexts/ToastContext';
+import { subscriptionsApi, paymentsApi } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Subscription, Payment } from '@/lib/types';
 
 export default function SubscriptionDetailPage() {
@@ -76,21 +83,6 @@ export default function SubscriptionDetailPage() {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-KE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   const formatPaymentMethod = (method: string | null | undefined) => {
     if (!method) return 'Not set';
     const methodMap: Record<string, string> = {
@@ -101,28 +93,13 @@ export default function SubscriptionDetailPage() {
     return methodMap[method] || method.toUpperCase();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'trial':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'suspended':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      default:
-        return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400';
-    }
-  };
-
   if (loading) {
     return (
       <AuthGuard>
         <div className="min-h-screen bg-zinc-50 dark:bg-black">
           <Navigation />
           <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
+            <LoadingState />
           </main>
         </div>
       </AuthGuard>
@@ -135,9 +112,7 @@ export default function SubscriptionDetailPage() {
         <div className="min-h-screen bg-zinc-50 dark:bg-black">
           <Navigation />
           <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
-              <p className="text-red-800 dark:text-red-200">{error || 'Subscription not found'}</p>
-            </div>
+            <ErrorState message={error || 'Subscription not found'} />
             <Link href="/subscriptions" className="mt-4 inline-block text-blue-600 hover:underline">
               ← Back to Subscriptions
             </Link>
@@ -173,9 +148,7 @@ export default function SubscriptionDetailPage() {
                   <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                     Subscription Information
                   </h2>
-                  <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(subscription.status)}`}>
-                    {subscription.status}
-                  </span>
+                  <StatusBadge status={subscription.status} type="subscription" size="md" />
                 </div>
               </div>
               <div className="p-6">
@@ -308,13 +281,7 @@ export default function SubscriptionDetailPage() {
                               {formatCurrency(payment.amount, payment.currency)}
                             </td>
                             <td className="whitespace-nowrap px-6 py-4">
-                              <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                                payment.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                                payment.status === 'failed' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
-                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                              }`}>
-                                {payment.status}
-                              </span>
+                              <StatusBadge status={payment.status} type="payment" />
                             </td>
                             <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                               {payment.payment_method}

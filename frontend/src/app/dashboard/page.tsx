@@ -1,16 +1,25 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { dashboardApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Repeat, DollarSign, CheckCircle2, CreditCard, Clock, TrendingUp, BarChart3 } from 'lucide-react';
+
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  AuthGuard,
+  Navigation,
+  BackgroundDecorations,
+  LoadingState,
+  ErrorState,
+} from '@/components';
+import {
+  RevenueChart,
+  PaymentSuccessChart,
+  SubscriptionGrowthChart,
+} from '@/components/charts';
+import { dashboardApi } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import type { DashboardData, Subscription, Payment } from '@/lib/types';
-import { RevenueChart } from '@/components/charts/RevenueChart';
-import { PaymentSuccessChart } from '@/components/charts/PaymentSuccessChart';
-import { SubscriptionGrowthChart } from '@/components/charts/SubscriptionGrowthChart';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -65,30 +74,11 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [user, authLoading]);
 
-  const formatCurrency = (amount: number, currency: string = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-KE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   return (
     <AuthGuard>
       <div className="min-h-screen bg-white relative">
-        {/* Subtle background decorative elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-        </div>
-        
+        <BackgroundDecorations />
         <Navigation />
 
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
@@ -101,17 +91,9 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {loading && (
-            <div className="rounded-lg bg-white p-8 shadow dark:bg-zinc-900">
-              <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
-            </div>
-          )}
+          {loading && <LoadingState />}
 
-          {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
-              <p className="text-red-800 dark:text-red-200">{error}</p>
-            </div>
-          )}
+          {error && <ErrorState message={error} onDismiss={() => setError(null)} />}
 
           {dashboardData && !loading && (
             <div className="space-y-6">

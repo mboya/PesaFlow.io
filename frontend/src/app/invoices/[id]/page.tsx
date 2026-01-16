@@ -1,11 +1,18 @@
 'use client';
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { invoicesApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+
+import {
+  AuthGuard,
+  Navigation,
+  StatusBadge,
+  LoadingState,
+  ErrorState,
+} from '@/components';
+import { invoicesApi } from '@/lib/api';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Invoice } from '@/lib/types';
 
 export default function InvoiceDetailPage() {
@@ -35,34 +42,13 @@ export default function InvoiceDetailPage() {
     }
   }, [invoiceId]);
 
-  const formatCurrency = (amount: number, currency: string = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-KE', {
+  // Use formatDate with custom options for long month format
+  const formatDateLong = (dateString: string) => {
+    return formatDate(dateString, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'overdue':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      case 'sent':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'draft':
-        return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400';
-      default:
-        return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400';
-    }
   };
 
   if (loading) {
@@ -71,7 +57,7 @@ export default function InvoiceDetailPage() {
         <div className="min-h-screen bg-zinc-50 dark:bg-black">
           <Navigation />
           <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
+            <LoadingState />
           </main>
         </div>
       </AuthGuard>
@@ -84,9 +70,7 @@ export default function InvoiceDetailPage() {
         <div className="min-h-screen bg-zinc-50 dark:bg-black">
           <Navigation />
           <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
-              <p className="text-red-800 dark:text-red-200">{error || 'Invoice not found'}</p>
-            </div>
+            <ErrorState message={error || 'Invoice not found'} />
             <Link href="/invoices" className="mt-4 inline-block text-blue-600 hover:underline">
               ← Back to Invoices
             </Link>
@@ -120,9 +104,7 @@ export default function InvoiceDetailPage() {
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   Invoice Details
                 </h2>
-                <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(invoice.status)}`}>
-                  {invoice.status}
-                </span>
+                <StatusBadge status={invoice.status} type="invoice" size="md" />
               </div>
             </div>
             <div className="p-6">
@@ -142,15 +124,13 @@ export default function InvoiceDetailPage() {
                 <div>
                   <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Due Date</dt>
                   <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                    {formatDate(invoice.due_date)}
+                    {formatDateLong(invoice.due_date)}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</dt>
                   <dd className="mt-1">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(invoice.status)}`}>
-                      {invoice.status}
-                    </span>
+                    <StatusBadge status={invoice.status} type="invoice" />
                   </dd>
                 </div>
                 {invoice.subscription && (
@@ -170,14 +150,14 @@ export default function InvoiceDetailPage() {
                   <div>
                     <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Paid At</dt>
                     <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                      {formatDate(invoice.paid_at)}
+                      {formatDateLong(invoice.paid_at)}
                     </dd>
                   </div>
                 )}
                 <div>
                   <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Created</dt>
                   <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                    {formatDate(invoice.created_at)}
+                    {formatDateLong(invoice.created_at)}
                   </dd>
                 </div>
               </dl>

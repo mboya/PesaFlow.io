@@ -1,10 +1,16 @@
 'use client';
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { paymentMethodsApi } from '@/lib/api';
 import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
+
+import {
+  AuthGuard,
+  Navigation,
+  PageHeader,
+  BackgroundDecorations,
+  ErrorState,
+} from '@/components';
+import { paymentMethodsApi } from '@/lib/api';
 
 export default function PaymentMethodsPage() {
   const [activeTab, setActiveTab] = useState<'ratiba' | 'stk_push'>('ratiba');
@@ -71,31 +77,16 @@ export default function PaymentMethodsPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-white relative">
-        {/* Subtle background decorative elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-        </div>
-        
+        <BackgroundDecorations />
         <Navigation />
 
         <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 relative">
-          <div className="mb-8 flex items-center gap-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl blur opacity-50"></div>
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
-                <CreditCard className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-                Payment Methods
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-zinc-600">
-                Set up your payment methods for subscriptions
-              </p>
-            </div>
-          </div>
+          <PageHeader
+            title="Payment Methods"
+            description="Set up your payment methods for subscriptions"
+            icon={CreditCard}
+            iconGradient="from-green-500 to-emerald-500"
+          />
 
           {/* Tabs */}
           <div className="mb-6 border-b border-zinc-200 dark:border-zinc-800">
@@ -124,8 +115,8 @@ export default function PaymentMethodsPage() {
           </div>
 
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
-              <p className="text-red-800 dark:text-red-200">{error}</p>
+            <div className="mb-6">
+              <ErrorState message={error} onDismiss={() => setError(null)} />
             </div>
           )}
 

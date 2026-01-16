@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getStatusColor } from '@/lib/utils';
 
 interface HealthStatus {
   status: string;
@@ -120,16 +121,6 @@ export default function SystemStatusPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ok':
-        return 'text-green-600 dark:text-green-400';
-      case 'error':
-        return 'text-red-600 dark:text-red-400';
-      default:
-        return 'text-yellow-600 dark:text-yellow-400';
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const isOk = status === 'ok';
@@ -182,7 +173,7 @@ export default function SystemStatusPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-zinc-500 dark:text-zinc-400">Status:</span>
-                      <span className={`ml-2 font-medium ${getStatusColor(frontendHealth.status)}`}>
+                      <span className={`ml-2 font-medium ${getStatusColor(frontendHealth.status, 'system')}`}>
                         {frontendHealth.status.toUpperCase()}
                       </span>
                     </div>
@@ -243,7 +234,7 @@ export default function SystemStatusPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-zinc-500 dark:text-zinc-400">Status:</span>
-                      <span className={`ml-2 font-medium ${getStatusColor(backendHealth.status)}`}>
+                      <span className={`ml-2 font-medium ${getStatusColor(backendHealth.status, 'system')}`}>
                         {backendHealth.status.toUpperCase()}
                       </span>
                     </div>
