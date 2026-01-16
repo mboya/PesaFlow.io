@@ -1,15 +1,16 @@
 'use client';
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { profileApi } from '@/lib/api';
-import { Customer } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import { Settings, User, Building2, Shield, Activity } from 'lucide-react';
+import Link from 'next/link';
+
+import { AuthGuard, Navigation } from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { profileApi } from '@/lib/api';
 import { authApi } from '@/lib/auth-api';
 import { formatPhoneNumber } from '@/lib/utils';
-import { useState, useEffect } from 'react';
-import { Settings, User, Building2, Shield } from 'lucide-react';
+import type { Customer } from '@/lib/types';
 
 export default function SettingsPage() {
   const { user, checkAuth } = useAuth();
@@ -415,6 +416,26 @@ export default function SettingsPage() {
                     <span className="text-sm text-zinc-900">
                       {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
                     </span>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-zinc-200 pt-4 mt-4"></div>
+
+                  {/* System Status Link */}
+                  <div>
+                    <Link
+                      href="/system-status"
+                      className="flex items-center justify-between w-full rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:border-zinc-400 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-zinc-500" />
+                        <span>System Status</span>
+                      </div>
+                      <span className="text-zinc-400">→</span>
+                    </Link>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      View frontend and backend health status
+                    </p>
                   </div>
                 </div>
               </div>
