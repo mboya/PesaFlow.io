@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/contexts/ToastContext';
-import { AuthGuard } from '@/components/AuthGuard';
 import Link from 'next/link';
 import { Zap, Mail, Lock, UserPlus, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
+
+import { AuthGuard } from '@/components';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { getRateLimitErrorMessage, extractRateLimitInfo } from '@/lib/rate-limit-helper';
 
 export default function SignupPage() {

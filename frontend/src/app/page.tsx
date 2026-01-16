@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+
+import { LandingPage } from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
-import { LandingPage } from '@/components/LandingPage';
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();

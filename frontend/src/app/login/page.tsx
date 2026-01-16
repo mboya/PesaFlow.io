@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { AuthGuard } from '@/components/AuthGuard';
 import Link from 'next/link';
 import { Zap, Mail, Lock, Shield, ArrowRight, Clock } from 'lucide-react';
+
+import { AuthGuard } from '@/components';
+import { useAuth } from '@/contexts/AuthContext';
 import { getRateLimitErrorMessage, extractRateLimitInfo } from '@/lib/rate-limit-helper';
 
 export default function LoginPage() {

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+
+import { ToastContainer } from "@/components";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { TenantProvider } from "@/contexts/TenantContext";
 import { ToastProvider } from "@/contexts/ToastContext";
-import { ToastContainer } from "@/components/ToastContainer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -85,14 +85,12 @@ export default function RootLayout({
           }}
         />
         {/* Theme script removed - always use light mode */}
-        <TenantProvider>
-          <AuthProvider>
-            <ToastProvider>
-              {children}
-              <ToastContainer />
-            </ToastProvider>
-          </AuthProvider>
-        </TenantProvider>
+        <AuthProvider>
+          <ToastProvider>
+            {children}
+            <ToastContainer />
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

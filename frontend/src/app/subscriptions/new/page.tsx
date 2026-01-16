@@ -1,13 +1,13 @@
 'use client';
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { Navigation } from '@/components/Navigation';
-import { subscriptionsApi } from '@/lib/api';
-import { formatPhoneNumber } from '@/lib/utils';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/contexts/ToastContext';
 import Link from 'next/link';
+
+import { AuthGuard, Navigation } from '@/components';
+import { useToast } from '@/contexts/ToastContext';
+import { subscriptionsApi } from '@/lib/api';
+import { formatPhoneNumber } from '@/lib/utils';
 
 export default function NewSubscriptionPage() {
   const router = useRouter();
