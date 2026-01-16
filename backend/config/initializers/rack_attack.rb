@@ -9,8 +9,27 @@ class Rack::Attack
   )
 
   # Enable logging
-  ActiveSupport::Notifications.subscribe("rack.attack") do |_name, _start, _finish, _request_id, req|
-    Rails.logger.warn("[Rack::Attack] Blocked request: #{req.env['rack.attack.match_type']} - #{req.path} - IP: #{req.ip}")
+  ActiveSupport::Notifications.subscribe("rack.attack") do |_name, _start, _finish, _request_id, request|
+    # The request parameter can be a Rack::Request object or a Hash depending on Rack::Attack version
+    begin
+      if request.is_a?(Hash)
+        # If it's a hash (newer Rack::Attack versions), extract values from hash
+        match_type = request['rack.attack.match_type'] || request[:match_type] || 'unknown'
+        path = request['PATH_INFO'] || request[:path] || request['path'] || 'unknown'
+        ip = request['REMOTE_ADDR'] || request[:ip] || request['ip'] || 'unknown'
+        Rails.logger.warn("[Rack::Attack] Blocked request: #{match_type} - #{path} - IP: #{ip}")
+      elsif request.respond_to?(:env) && request.respond_to?(:path) && request.respond_to?(:ip)
+        # Standard Rack::Request object (older versions)
+        match_type = request.env['rack.attack.match_type'] || 'unknown'
+        Rails.logger.warn("[Rack::Attack] Blocked request: #{match_type} - #{request.path} - IP: #{request.ip}")
+      else
+        # Fallback logging if format is unexpected
+        Rails.logger.warn("[Rack::Attack] Blocked request (request_id: #{_request_id}, type: #{request.class})")
+      end
+    rescue => e
+      # Don't let logging errors break the application
+      Rails.logger.error("[Rack::Attack] Error logging blocked request: #{e.class} - #{e.message}")
+    end
   end
 
   # Safelist - allow these requests to bypass rate limiting
