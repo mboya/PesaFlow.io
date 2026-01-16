@@ -11,8 +11,17 @@ module Api
         email = user_params[:email]
         password = user_params[:password]
 
+        # Normalize email (lowercase and strip whitespace)
+        normalized_email = email&.downcase&.strip
+
         # Find user by email - use without_tenant to avoid scoping issues
-        user = ActsAsTenant.without_tenant { User.find_by(email: email) }
+        # Also normalize email in database query for case-insensitive lookup
+        user = ActsAsTenant.without_tenant do
+          User.where("LOWER(email) = ?", normalized_email).first
+        end
+
+        # Log authentication attempt (without sensitive data)
+        Rails.logger.info("[Login] Attempting login for email: #{normalized_email}, User found: #{user.present?}, Has encrypted_password: #{user&.encrypted_password.present?}")
 
         # Authenticate user
         if user && user.valid_password?(password)
@@ -47,6 +56,13 @@ module Api
             }, status: :ok
           end
         else
+          # Invalid credentials - log reason for debugging
+          if user.nil?
+            Rails.logger.warn("[Login] User not found for email: #{normalized_email}")
+          elsif !user.valid_password?(password)
+            Rails.logger.warn("[Login] Invalid password for user: #{user.id} (#{normalized_email})")
+          end
+
           # Invalid credentials
           render json: {
             status: {

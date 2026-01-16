@@ -42,9 +42,19 @@ module Api
           }, status: :unprocessable_entity
         end
 
+        # Log password presence before save (for debugging)
+        Rails.logger.info("[Signup] User email: #{resource.email}, Password present: #{resource.password.present?}, Encrypted password present: #{resource.encrypted_password.present?}")
+
         # Save the resource - tenant_id is already set
         # Save within tenant context to ensure proper scoping during save
         resource.save
+
+        # Log after save to verify password was encrypted
+        if resource.persisted?
+          Rails.logger.info("[Signup] User saved successfully. ID: #{resource.id}, Encrypted password present: #{resource.encrypted_password.present?}")
+        else
+          Rails.logger.error("[Signup] User save failed. Errors: #{resource.errors.full_messages.join(', ')}")
+        end
         if resource.persisted?
           # Reload to ensure tenant is persisted
           resource.reload
