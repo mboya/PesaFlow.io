@@ -287,8 +287,14 @@ backend/config/environments/development.rb
 backend/config/environments/test.rb
 backend/config/database.yml
 
-/docker/BUILD_OPTIMIZATION.md
-/docker/OPTIMIZATION.md
+# ============================================
+# DOCUMENTATION FILES (except README)
+# ============================================
+# Ignore all .md files except README files
+*.md
+!README.md
+!**/README.md
+
 /backend/config/environments/development.rb
 /backend/config/environments/test.rb
 /backend/config/database.local.yml
@@ -302,4 +308,3 @@ backend/config/database.yml
 /backend/vendor/
 /backend/docker-compose.override.yml
 /docker-compose.prod.yml
-/FRONTEND_TENANCY_CHANGES.md
