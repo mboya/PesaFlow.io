@@ -187,9 +187,13 @@ Make sure to:
 
 **Frontend Service (`pesaflow-frontend`):**
 - `NODE_ENV`: `production`
-- `NEXT_PUBLIC_API_URL`: `https://your-backend-url.onrender.com/api`
-- `BACKEND_INTERNAL_URL`: `http://pesaflow-backend:10000` (internal Render network)
-- `NEXT_PUBLIC_WS_URL`: `wss://your-backend-url.onrender.com/cable`
+- `NEXT_PUBLIC_API_URL`: `https://pesaflow-frontend.onrender.com/api/proxy` (frontend's own URL + /api/proxy)
+- `BACKEND_INTERNAL_URL`: `https://pesaflow-backend.onrender.com` (backend's public URL)
+- `NEXT_PUBLIC_WS_URL`: `wss://pesaflow-frontend.onrender.com/api/proxy/ws` (frontend's own URL + /api/proxy/ws)
+
+**Important:** Replace `pesaflow-frontend.onrender.com` and `pesaflow-backend.onrender.com` with your actual Render service URLs.
+
+See `RENDER_FRONTEND_BACKEND_CONNECTION.md` for detailed connection instructions.
 
 ## Post-Deployment Steps
 

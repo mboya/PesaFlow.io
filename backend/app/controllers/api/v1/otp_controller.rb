@@ -184,7 +184,8 @@ module Api
               code: 200,
               message: "Logged in successfully"
             },
-            data: Api::V1::UserSerializer.serialize(user)
+            data: Api::V1::UserSerializer.serialize(user),
+            token: token  # Include token in response body as fallback (for proxies that strip headers)
           }, status: :ok
         else
           render json: {

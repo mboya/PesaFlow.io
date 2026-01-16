@@ -27,14 +27,24 @@ export const apiClient = axios.create({
 // Add response interceptor to extract and store JWT tokens
 apiClient.interceptors.response.use(
     (response) => {
-        // Extract token from response headers if present (client-side only)
+        // Extract token from response headers or body (client-side only)
         if (typeof window !== 'undefined') {
+            let token: string | null = null;
+            
+            // Try to get token from response header first
             const authHeader = response.headers?.['authorization'] || response.headers?.['Authorization'];
             if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-                const token = authHeader.substring(7);
-                if (token) {
-                    localStorage.setItem('authToken', token);
-                }
+                token = authHeader.substring(7);
+            }
+            
+            // Fallback: get token from response body (for proxies that strip headers like Render/Cloudflare)
+            if (!token && response.data?.token) {
+                token = response.data.token;
+            }
+            
+            // Store token if found
+            if (token) {
+                localStorage.setItem('authToken', token);
             }
         }
         return response;

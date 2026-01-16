@@ -113,7 +113,13 @@ services:
         value: production
       - key: NEXT_PUBLIC_API_URL
         sync: false
+        # Set to: https://pesaflow-frontend.onrender.com/api/proxy
+        # This is the frontend's own URL + /api/proxy (frontend proxies requests to backend)
       - key: BACKEND_INTERNAL_URL
         sync: false
+        # Set to: https://pesaflow-backend.onrender.com
+        # This is the backend's public URL (Render services communicate via public URLs)
       - key: NEXT_PUBLIC_WS_URL
         sync: false
+        # Set to: wss://pesaflow-frontend.onrender.com/api/proxy/ws
+        # This is the frontend's own URL + /api/proxy/ws (WebSocket proxy)

@@ -173,15 +173,18 @@ async function proxyRequest(
     });
 
     // Extract Authorization header from response first (before forEach loop) to ensure we don't lose it
-    // Only log warnings for login/signup endpoints where we expect the header
+    // Note: Render/Cloudflare proxies may strip the Authorization header, so the backend also includes
+    // the token in the response body as a fallback (see response.data.token)
     const isAuthEndpoint = backendPath.includes('/login') || backendPath.includes('/signup') || backendPath.includes('/otp/verify_login');
     const responseAuthHeader = response.headers.get('authorization') || response.headers.get('Authorization');
     if (responseAuthHeader) {
       console.log('[Proxy] Found Authorization header from backend, forwarding to frontend');
       proxiedResponse.headers.set('Authorization', responseAuthHeader);
     } else if (isAuthEndpoint) {
-      // Only warn for auth endpoints where we expect the header
-      console.warn('[Proxy] No Authorization header found in backend response for auth endpoint. Available headers:', Array.from(response.headers.keys()));
+      // Authorization header may be stripped by Render/Cloudflare proxy
+      // The backend includes the token in the response body as a fallback
+      // The frontend will extract it from response.data.token
+      console.log('[Proxy] Authorization header not found (likely stripped by proxy). Token should be in response body.');
     }
 
     // Forward response headers (excluding CORS and cache headers)
