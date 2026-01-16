@@ -178,13 +178,17 @@ async function proxyRequest(
     const isAuthEndpoint = backendPath.includes('/login') || backendPath.includes('/signup') || backendPath.includes('/otp/verify_login');
     const responseAuthHeader = response.headers.get('authorization') || response.headers.get('Authorization');
     if (responseAuthHeader) {
-      console.log('[Proxy] Found Authorization header from backend, forwarding to frontend');
+      // Only log in development to reduce production log noise
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Proxy] Found Authorization header from backend, forwarding to frontend');
+      }
       proxiedResponse.headers.set('Authorization', responseAuthHeader);
     } else if (isAuthEndpoint) {
       // Authorization header may be stripped by Render/Cloudflare proxy
       // The backend includes the token in the response body as a fallback
       // The frontend will extract it from response.data.token
-      console.log('[Proxy] Authorization header not found (likely stripped by proxy). Token should be in response body.');
+      // This is expected behavior on Render - no logging needed in production
+      // Token extraction happens automatically in the frontend API client
     }
 
     // Forward response headers (excluding CORS and cache headers)

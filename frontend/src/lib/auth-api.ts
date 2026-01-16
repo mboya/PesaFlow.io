@@ -57,14 +57,22 @@ export interface OtpVerifyResponse {
 }
 
 /**
- * Extract JWT token from Axios response headers
+ * Extract JWT token from Axios response headers or body
  * Axios normalizes headers to lowercase, so we check both cases
+ * On Render/Cloudflare, headers may be stripped, so we also check response body
  */
 const extractToken = (response: any): string | null => {
+  // Try to get token from response header first
   const authHeader = response.headers?.['authorization'] || response.headers?.['Authorization'];
   if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
+  
+  // Fallback: get token from response body (for proxies that strip headers like Render/Cloudflare)
+  if (response.data?.token) {
+    return response.data.token;
+  }
+  
   return null;
 };
 
@@ -119,9 +127,17 @@ export const authApi = {
     // but store it here as well to ensure it's saved
     if (token && typeof window !== 'undefined') {
       localStorage.setItem('authToken', token);
-      console.log('[Auth API] Stored auth token after login');
+      // Only log in development to reduce production log noise
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Auth API] Stored auth token after login');
+      }
     } else if (!token && typeof window !== 'undefined') {
-      console.warn('[Auth API] No token extracted from login response. Headers:', Object.keys(response.headers || {}));
+      // This should not happen if backend is configured correctly
+      console.error('[Auth API] No token extracted from login response. Response data:', {
+        hasToken: !!response.data?.token,
+        hasHeader: !!(response.headers?.['authorization'] || response.headers?.['Authorization']),
+        status: response.status
+      });
     }
     
     // Store tenant subdomain from user data if available
@@ -137,7 +153,14 @@ export const authApi = {
     const response = await apiClient.post('/otp/verify_login', data);
     const token = extractToken(response);
     if (!token) {
-      throw new Error('No token received from server');
+      // Log detailed error for debugging
+      console.error('[Auth API] No token in OTP verification response:', {
+        hasToken: !!response.data?.token,
+        hasHeader: !!(response.headers?.['authorization'] || response.headers?.['Authorization']),
+        status: response.status,
+        data: response.data
+      });
+      throw new Error('No token received from server. Check backend configuration.');
     }
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', token);
