@@ -6,7 +6,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://backend:3000';
 const EXCLUDED_REQUEST_HEADERS = ['host', 'connection', 'content-length'];
-const EXCLUDED_RESPONSE_HEADERS = ['access-control-allow-origin', 'connection', 'etag', 'last-modified', 'cache-control'];
+const EXCLUDED_RESPONSE_HEADERS = [
+  'access-control-allow-origin', 
+  'connection', 
+  'etag', 
+  'last-modified', 
+  'cache-control',
+  'content-encoding',  // Exclude Content-Encoding since response.text() decompresses automatically
+  'content-length',    // Exclude Content-Length as it may be incorrect after decompression
+  'transfer-encoding' // Exclude Transfer-Encoding as it's handled by fetch API
+];
 const TENANT_HEADERS = {
   SUBDOMAIN: 'X-Tenant-Subdomain',
   ID: 'X-Tenant-ID',
