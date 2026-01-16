@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Mail, Lock, Shield, ArrowRight, Clock } from 'lucide-react';
+import { Zap, Mail, Lock, Shield, ArrowRight, Clock, Home } from 'lucide-react';
 
 import { AuthGuard } from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
@@ -103,6 +103,17 @@ export default function LoginPage() {
         </div>
         
         <div className="w-full max-w-md space-y-8 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 shadow-2xl border border-white/20 dark:border-zinc-800/50 relative z-10">
+          {/* Back to home link */}
+          <div className="flex justify-start">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              <span>Back to home</span>
+            </Link>
+          </div>
+
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg">
               <Shield className="h-8 w-8 text-white" />
@@ -189,6 +200,17 @@ export default function LoginPage() {
         </div>
         
         <div className="w-full max-w-md space-y-8 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 shadow-2xl border border-white/20 dark:border-zinc-800/50 relative z-10 animate-scale-in">
+          {/* Back to home link */}
+          <div className="flex justify-start">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              <span>Back to home</span>
+            </Link>
+          </div>
+
           <div className="text-center">
             {/* Logo/Brand */}
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg">
