@@ -42,6 +42,15 @@ export default function RefundDetailPage() {
     }
   }, [refundId]);
 
+  // Use formatDate with custom options for long month format
+  const formatDateLong = (dateString: string) => {
+    return formatDate(dateString, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
 
   if (loading) {
     return (
