@@ -19,3 +19,15 @@ end
 
 puts "Seeding complete!"
 puts "Subscriptions are created directly by users with custom details."
+
+# Optional: generate realistic demo transaction history for one existing user.
+# Usage:
+#   SIMULATE_TRANSACTIONS=true SIM_TX_USER_EMAIL=user@example.com rails db:seed
+#   SIMULATE_TRANSACTIONS=true SIM_TX_USER_ID=1 SIM_TX_MONTHS=3 rails db:seed
+simulate_transactions = ActiveModel::Type::Boolean.new.cast(ENV.fetch("SIMULATE_TRANSACTIONS", "false"))
+if simulate_transactions
+  require_relative "seeds/transaction_simulation"
+  Seeds::TransactionSimulation.run_from_env
+else
+  puts "Tip: set SIMULATE_TRANSACTIONS=true to seed demo transactions for an existing user."
+end
