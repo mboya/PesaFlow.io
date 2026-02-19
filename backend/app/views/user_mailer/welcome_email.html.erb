@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h1>Welcome to <%= @app_name %></h1>
+
+    <p>Hi <%= @user.email %>,</p>
+
+    <p>Your account has been created successfully.</p>
+
+    <p>
+      You can now sign in, create subscriptions, track invoices, and monitor payments from your dashboard.
+    </p>
+
+    <p>
+      <a href="<%= @dashboard_url %>">Open Dashboard</a>
+    </p>
+
+    <p>Thanks for joining <%= @app_name %>.</p>
+  </body>
+</html>

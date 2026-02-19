@@ -65,6 +65,7 @@ module Api
           end
           # Create associated Customer record (1:1 relationship)
           create_customer_for_user(resource)
+          send_signup_welcome_email(resource)
 
           if resource.active_for_authentication?
             # Sign in the user (session is null store, so no data is stored)
@@ -211,6 +212,16 @@ module Api
       rescue StandardError => e
         # Log error but don't fail signup if customer creation fails
         Rails.logger.error("Failed to create customer for user #{user.id}: #{e.message}")
+        Rails.logger.error(e.backtrace.join("\n"))
+      end
+
+      def send_signup_welcome_email(user)
+        return unless user.email.present?
+
+        UserMailer.welcome_email(user).deliver_later
+      rescue StandardError => e
+        # Email delivery is non-blocking for signup.
+        Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{e.message}")
         Rails.logger.error(e.backtrace.join("\n"))
       end
     end
