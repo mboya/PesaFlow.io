@@ -76,6 +76,10 @@ Rails.application.routes.draw do
     end
   end
 
+  devise_scope :api_v1_user do
+    post "api/v1/google_login", to: "api/v1/sessions#google"
+  end
+
   # Webhooks
   namespace :webhooks do
     post "ratiba/callback", to: "ratiba#callback"
