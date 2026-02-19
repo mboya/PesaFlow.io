@@ -28,6 +28,10 @@ module Backend
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # This repository keeps production environment config committed and may omit
+    # development/test files locally, so set a safe eager-load default.
+    config.eager_load = Rails.env.production?
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
@@ -61,6 +65,30 @@ module Backend
 
     # Configure Active Job to use Sidekiq
     config.active_job.queue_adapter = :sidekiq
+
+    # Configure Action Mailer SMTP so web and Sidekiq containers do not fall back
+    # to localhost:25 in development.
+    if Rails.env.test?
+      config.action_mailer.delivery_method = :test
+    else
+      config.action_mailer.delivery_method = :smtp
+      config.action_mailer.default_url_options = {
+        host: ENV.fetch("APP_HOST", "localhost"),
+        port: ENV.fetch("APP_PORT", 3001).to_i,
+        protocol: ENV.fetch("APP_PROTOCOL", "http")
+      }
+
+      smtp_settings = {
+        address: ENV.fetch("SMTP_HOST", "localhost"),
+        port: ENV.fetch("SMTP_PORT", 25).to_i,
+        enable_starttls_auto: ENV.fetch("SMTP_ENABLE_STARTTLS_AUTO", "false") == "true"
+      }
+      smtp_settings[:domain] = ENV["SMTP_DOMAIN"] if ENV["SMTP_DOMAIN"].present?
+      smtp_settings[:user_name] = ENV["SMTP_USERNAME"] if ENV["SMTP_USERNAME"].present?
+      smtp_settings[:password] = ENV["SMTP_PASSWORD"] if ENV["SMTP_PASSWORD"].present?
+      smtp_settings[:authentication] = ENV["SMTP_AUTHENTICATION"].to_sym if ENV["SMTP_AUTHENTICATION"].present?
+      config.action_mailer.smtp_settings = smtp_settings
+    end
 
     # Enable rack-attack middleware for rate limiting
     config.middleware.use Rack::Attack
