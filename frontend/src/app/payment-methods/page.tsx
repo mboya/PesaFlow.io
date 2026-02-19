@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { CreditCard } from 'lucide-react';
 
 import {
   AuthGuard,
@@ -11,13 +10,14 @@ import {
   ErrorState,
 } from '@/components';
 import { paymentMethodsApi } from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/utils';
 
 export default function PaymentMethodsPage() {
   const [activeTab, setActiveTab] = useState<'ratiba' | 'stk_push'>('ratiba');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   const [ratibaForm, setRatibaForm] = useState({
     phone_number: '',
     amount: '',
@@ -42,11 +42,11 @@ export default function PaymentMethodsPage() {
         amount: parseFloat(ratibaForm.amount),
         reference: ratibaForm.reference,
       });
-      setSuccess('Ratiba standing order setup initiated. Please check your phone for M-Pesa prompt.');
+      setSuccess('Ratiba setup initiated. Check your phone for M-Pesa approval.');
       setRatibaForm({ phone_number: '', amount: '', reference: '' });
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.response?.data?.errors || 'Failed to setup Ratiba');
-      console.error('Ratiba error:', err);
+    } catch (error: unknown) {
+      setError(getApiErrorMessage(error, 'Failed to setup Ratiba'));
+      console.error('Ratiba error:', error);
     } finally {
       setLoading(false);
     }
@@ -64,11 +64,11 @@ export default function PaymentMethodsPage() {
         amount: parseFloat(stkForm.amount),
         reference: stkForm.reference,
       });
-      setSuccess('STK Push initiated. Please check your phone for M-Pesa prompt.');
+      setSuccess('STK Push initiated. Check your phone for M-Pesa prompt.');
       setStkForm({ phone_number: '', amount: '', reference: '' });
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.response?.data?.errors || 'Failed to initiate STK Push');
-      console.error('STK Push error:', err);
+    } catch (error: unknown) {
+      setError(getApiErrorMessage(error, 'Failed to initiate STK Push'));
+      console.error('STK Push error:', error);
     } finally {
       setLoading(false);
     }
@@ -76,42 +76,33 @@ export default function PaymentMethodsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-white relative">
+      <div className="app-shell">
         <BackgroundDecorations />
         <Navigation />
 
-        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 relative">
+        <main className="app-main-narrow relative">
           <PageHeader
             title="Payment Methods"
-            description="Set up your payment methods for subscriptions"
-            icon={CreditCard}
-            iconGradient="from-green-500 to-emerald-500"
+            description="Configure your default M-Pesa collection channels."
           />
 
-          {/* Tabs */}
-          <div className="mb-6 border-b border-zinc-200 dark:border-zinc-800">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('ratiba')}
-                className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium ${
-                  activeTab === 'ratiba'
-                    ? 'border-zinc-900 text-zinc-900 dark:border-zinc-50 dark:text-zinc-50'
-                    : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
-                }`}
-              >
-                Ratiba (Standing Order)
-              </button>
-              <button
-                onClick={() => setActiveTab('stk_push')}
-                className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium ${
-                  activeTab === 'stk_push'
-                    ? 'border-zinc-900 text-zinc-900 dark:border-zinc-50 dark:text-zinc-50'
-                    : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
-                }`}
-              >
-                STK Push
-              </button>
-            </nav>
+          <div className="mb-6 inline-flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              onClick={() => setActiveTab('ratiba')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                activeTab === 'ratiba' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Ratiba
+            </button>
+            <button
+              onClick={() => setActiveTab('stk_push')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                activeTab === 'stk_push' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              STK Push
+            </button>
           </div>
 
           {error && (
@@ -120,76 +111,61 @@ export default function PaymentMethodsPage() {
             </div>
           )}
 
-          {success && (
-            <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 dark:bg-green-900/20 dark:border-green-800">
-              <p className="text-green-800 dark:text-green-200">{success}</p>
-            </div>
-          )}
+          {success && <div className="app-alert-success mb-6">{success}</div>}
 
-          {/* Ratiba Form */}
           {activeTab === 'ratiba' && (
-            <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
-              <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Setup Ratiba (Standing Order)
-                </h2>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  Set up automatic recurring payments via M-Pesa Standing Order
-                </p>
+            <div className="app-card">
+              <div className="app-card-header">
+                <h2 className="app-section-title">Setup Ratiba Standing Order</h2>
+                <p className="mt-1 text-sm text-slate-600">Authorize recurring debits for ongoing subscriptions.</p>
               </div>
-              <form onSubmit={handleRatibaSubmit} className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="ratiba_phone" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      id="ratiba_phone"
-                      required
-                      value={ratibaForm.phone_number}
-                      onChange={(e) => setRatibaForm({ ...ratibaForm, phone_number: e.target.value })}
-                      placeholder="254712345678"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="ratiba_amount" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Amount (KES)
-                    </label>
-                    <input
-                      type="number"
-                      id="ratiba_amount"
-                      required
-                      min="1"
-                      step="0.01"
-                      value={ratibaForm.amount}
-                      onChange={(e) => setRatibaForm({ ...ratibaForm, amount: e.target.value })}
-                      placeholder="1000.00"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="ratiba_reference" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Reference
-                    </label>
-                    <input
-                      type="text"
-                      id="ratiba_reference"
-                      required
-                      value={ratibaForm.reference}
-                      onChange={(e) => setRatibaForm({ ...ratibaForm, reference: e.target.value })}
-                      placeholder="Subscription reference"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
-                    />
-                  </div>
+              <form onSubmit={handleRatibaSubmit} className="app-card-body space-y-4">
+                <div>
+                  <label htmlFor="ratiba_phone" className="block text-sm font-medium text-slate-700">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="ratiba_phone"
+                    required
+                    value={ratibaForm.phone_number}
+                    onChange={(e) => setRatibaForm({ ...ratibaForm, phone_number: e.target.value })}
+                    placeholder="254712345678"
+                    className="app-input"
+                  />
                 </div>
-                <div className="mt-6">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full rounded-md bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-md hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                  >
+                <div>
+                  <label htmlFor="ratiba_amount" className="block text-sm font-medium text-slate-700">
+                    Amount (KES)
+                  </label>
+                  <input
+                    type="number"
+                    id="ratiba_amount"
+                    required
+                    min="1"
+                    step="0.01"
+                    value={ratibaForm.amount}
+                    onChange={(e) => setRatibaForm({ ...ratibaForm, amount: e.target.value })}
+                    placeholder="1000.00"
+                    className="app-input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ratiba_reference" className="block text-sm font-medium text-slate-700">
+                    Reference
+                  </label>
+                  <input
+                    type="text"
+                    id="ratiba_reference"
+                    required
+                    value={ratibaForm.reference}
+                    onChange={(e) => setRatibaForm({ ...ratibaForm, reference: e.target.value })}
+                    placeholder="Subscription reference"
+                    className="app-input"
+                  />
+                </div>
+                <div className="pt-2">
+                  <button type="submit" disabled={loading} className="app-btn-primary w-full">
                     {loading ? 'Setting up...' : 'Setup Ratiba'}
                   </button>
                 </div>
@@ -197,70 +173,59 @@ export default function PaymentMethodsPage() {
             </div>
           )}
 
-          {/* STK Push Form */}
           {activeTab === 'stk_push' && (
-            <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
-              <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Initiate STK Push
-                </h2>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  Make a one-time payment via M-Pesa STK Push
-                </p>
+            <div className="app-card">
+              <div className="app-card-header">
+                <h2 className="app-section-title">Initiate STK Push</h2>
+                <p className="mt-1 text-sm text-slate-600">Trigger one-time customer collection prompts.</p>
               </div>
-              <form onSubmit={handleStkPushSubmit} className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="stk_phone" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      id="stk_phone"
-                      required
-                      value={stkForm.phone_number}
-                      onChange={(e) => setStkForm({ ...stkForm, phone_number: e.target.value })}
-                      placeholder="254712345678"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="stk_amount" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Amount (KES)
-                    </label>
-                    <input
-                      type="number"
-                      id="stk_amount"
-                      required
-                      min="1"
-                      step="0.01"
-                      value={stkForm.amount}
-                      onChange={(e) => setStkForm({ ...stkForm, amount: e.target.value })}
-                      placeholder="1000.00"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="stk_reference" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Reference
-                    </label>
-                    <input
-                      type="text"
-                      id="stk_reference"
-                      required
-                      value={stkForm.reference}
-                      onChange={(e) => setStkForm({ ...stkForm, reference: e.target.value })}
-                      placeholder="Payment reference"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
-                    />
-                  </div>
+              <form onSubmit={handleStkPushSubmit} className="app-card-body space-y-4">
+                <div>
+                  <label htmlFor="stk_phone" className="block text-sm font-medium text-slate-700">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="stk_phone"
+                    required
+                    value={stkForm.phone_number}
+                    onChange={(e) => setStkForm({ ...stkForm, phone_number: e.target.value })}
+                    placeholder="254712345678"
+                    className="app-input"
+                  />
                 </div>
-                <div className="mt-6">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
-                  >
+                <div>
+                  <label htmlFor="stk_amount" className="block text-sm font-medium text-slate-700">
+                    Amount (KES)
+                  </label>
+                  <input
+                    type="number"
+                    id="stk_amount"
+                    required
+                    min="1"
+                    step="0.01"
+                    value={stkForm.amount}
+                    onChange={(e) => setStkForm({ ...stkForm, amount: e.target.value })}
+                    placeholder="1000.00"
+                    className="app-input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="stk_reference" className="block text-sm font-medium text-slate-700">
+                    Reference
+                  </label>
+                  <input
+                    type="text"
+                    id="stk_reference"
+                    required
+                    value={stkForm.reference}
+                    onChange={(e) => setStkForm({ ...stkForm, reference: e.target.value })}
+                    placeholder="Payment reference"
+                    className="app-input"
+                  />
+                </div>
+                <div className="pt-2">
+                  <button type="submit" disabled={loading} className="app-btn-primary w-full">
                     {loading ? 'Initiating...' : 'Initiate STK Push'}
                   </button>
                 </div>
@@ -272,4 +237,3 @@ export default function PaymentMethodsPage() {
     </AuthGuard>
   );
 }
-

@@ -1,34 +1,39 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, User, Building2, Shield, Activity } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
-import { AuthGuard, Navigation } from '@/components';
+import {
+  AuthGuard,
+  Navigation,
+  BackgroundDecorations,
+  PageHeader,
+  LoadingState,
+  ErrorState,
+  StatusBadge,
+} from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { profileApi } from '@/lib/api';
 import { authApi } from '@/lib/auth-api';
-import { formatPhoneNumber } from '@/lib/utils';
+import { formatPhoneNumber, getApiErrorMessage } from '@/lib/utils';
 import type { Customer } from '@/lib/types';
 
 export default function SettingsPage() {
   const { user, checkAuth } = useAuth();
   const { success: showSuccess, error: showError } = useToast();
+
   const [profile, setProfile] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
-  // Form state
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [tenantSubdomain, setTenantSubdomain] = useState<string>('Not available');
 
-  // OTP/2FA state
   const [otpSetupData, setOtpSetupData] = useState<{ secret: string; qr_code: string; provisioning_uri: string } | null>(null);
   const [otpVerificationCode, setOtpVerificationCode] = useState('');
   const [otpVerifying, setOtpVerifying] = useState(false);
@@ -46,7 +51,6 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    // Get tenant subdomain from user or localStorage as fallback (client-side only)
     if (typeof window !== 'undefined') {
       const subdomain = user?.tenant_subdomain || localStorage.getItem('tenantSubdomain') || 'Not available';
       setTenantSubdomain(subdomain);
@@ -54,10 +58,7 @@ export default function SettingsPage() {
   }, [user?.tenant_subdomain]);
 
   const loadProfile = async () => {
-    // Only make request if we're on the client side
-    if (typeof window === 'undefined') {
-      return;
-    }
+    if (typeof window === 'undefined') return;
 
     try {
       setLoading(true);
@@ -65,20 +66,20 @@ export default function SettingsPage() {
       setProfile(data);
       setName(data.name || '');
       setPhoneNumber(data.phone_number || '');
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load profile';
+      setError(null);
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, 'Failed to load profile');
       setError(errorMessage);
-      console.error('Profile load error:', err);
+      console.error('Profile load error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfileError(null);
-    setProfileSuccess(null);
+    setError(null);
+    setSuccess(null);
 
     const formattedPhone = formatPhoneNumber(phoneNumber);
 
@@ -92,33 +93,32 @@ export default function SettingsPage() {
       });
       setProfile(data);
       setPhoneNumber(data.phone_number || '');
-      setProfileSuccess('Profile updated successfully!');
-      showSuccess('Profile updated successfully!');
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.errors?.join(', ') || 'Failed to update profile';
-      setProfileError(errorMessage);
+      setSuccess('Profile updated successfully.');
+      showSuccess('Profile updated successfully.');
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, 'Failed to update profile');
+      setError(errorMessage);
       showError(errorMessage);
-      console.error('Profile update error:', err);
+      console.error('Profile update error:', error);
     } finally {
       setSaving(false);
     }
   };
 
-  // OTP Management Functions
   const handleEnableOtp = async () => {
     try {
       setError(null);
       setSuccess(null);
       const response = await authApi.enableOtp();
       setOtpSetupData(response.data);
-      const successMessage = 'QR code generated. Scan it with your authenticator app.';
-      setSuccess(successMessage);
-      showSuccess(successMessage);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.status?.message || 'Failed to enable 2FA';
+      const message = 'QR code generated. Scan it with your authenticator app.';
+      setSuccess(message);
+      showSuccess(message);
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, 'Failed to enable 2FA');
       setError(errorMessage);
       showError(errorMessage);
-      console.error('Enable OTP error:', err);
+      console.error('Enable OTP error:', error);
     }
   };
 
@@ -136,17 +136,15 @@ export default function SettingsPage() {
       setShowBackupCodes(true);
       setOtpSetupData(null);
       setOtpVerificationCode('');
-      const successMessage = '2FA enabled successfully! Please save your backup codes.';
-      setSuccess(successMessage);
-      showSuccess(successMessage);
-      // Refresh user data to update otp_enabled status
+      const message = '2FA enabled successfully. Save your backup codes.';
+      setSuccess(message);
+      showSuccess(message);
       await checkAuth();
-    } catch (err: any) {
-      console.error('Verify OTP error:', err);
-      console.error('Error response:', err.response?.data);
-      const errorMessage = err.response?.data?.status?.message || err.response?.data?.message || err.message || 'Invalid OTP code';
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, 'Invalid OTP code');
       setError(errorMessage);
       showError(errorMessage);
+      console.error('Verify OTP error:', error);
     } finally {
       setOtpVerifying(false);
     }
@@ -165,16 +163,15 @@ export default function SettingsPage() {
       setShowDisableOtp(false);
       setDisablePassword('');
       setDisableOtpCode('');
-      const successMessage = '2FA disabled successfully';
-      setSuccess(successMessage);
-      showSuccess(successMessage);
-      // Refresh user data
+      const message = '2FA disabled successfully';
+      setSuccess(message);
+      showSuccess(message);
       await checkAuth();
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.status?.message || 'Failed to disable 2FA';
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, 'Failed to disable 2FA');
       setError(errorMessage);
       showError(errorMessage);
-      console.error('Disable OTP error:', err);
+      console.error('Disable OTP error:', error);
     } finally {
       setDisablingOtp(false);
     }
@@ -192,14 +189,14 @@ export default function SettingsPage() {
       const codes = await authApi.generateBackupCodes(regeneratePassword);
       setBackupCodes(codes);
       setRegeneratePassword('');
-      const successMessage = 'Backup codes regenerated. Please save them now.';
-      setSuccess(successMessage);
-      showSuccess(successMessage);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.status?.message || 'Failed to regenerate backup codes';
+      const message = 'Backup codes regenerated. Save them now.';
+      setSuccess(message);
+      showSuccess(message);
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, 'Failed to regenerate backup codes');
       setError(errorMessage);
       showError(errorMessage);
-      console.error('Regenerate backup codes error:', err);
+      console.error('Regenerate backup codes error:', error);
     } finally {
       setRegeneratingBackupCodes(false);
     }
@@ -207,455 +204,291 @@ export default function SettingsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-white relative">
-        {/* Subtle background decorative elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-        </div>
-        
+      <div className="app-shell">
+        <BackgroundDecorations />
         <Navigation />
 
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
-          <div className="mb-8 flex items-center gap-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl blur opacity-50"></div>
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
-                <Settings className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-                Settings
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-zinc-600">
-                Manage your account and payment preferences
-              </p>
-            </div>
-          </div>
+        <main className="app-main relative">
+          <PageHeader
+            title="Settings"
+            description="Manage profile information, tenant details, and account security."
+          />
 
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900" />
-            </div>
+            <LoadingState message="Loading settings..." />
           ) : (
             <>
-              {/* Global Error/Success Messages */}
-              {error && (
-                <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
-                  <p className="text-sm text-red-800">{error}</p>
-                </div>
-              )}
-              {success && (
-                <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4">
-                  <p className="text-sm text-green-800">{success}</p>
-                </div>
-              )}
+              {error && <ErrorState message={error} onDismiss={() => setError(null)} className="mb-6" />}
+              {success && <div className="app-alert-success mb-6">{success}</div>}
 
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {/* Profile Card */}
-              <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
-                <div className="border-b border-zinc-200/50 px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg blur opacity-50"></div>
-                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg">
-                        <User className="h-4 w-4 text-white" />
-                      </div>
+              <div className="grid gap-6 lg:grid-cols-3">
+                <div className="app-card lg:col-span-1">
+                  <div className="app-card-header">
+                    <h2 className="app-section-title">Profile Information</h2>
+                  </div>
+
+                  <form onSubmit={handleProfileSubmit} className="app-card-body space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Name</label>
+                      <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="app-input" />
                     </div>
-                    <h2 className="text-lg font-semibold text-zinc-900">
-                      Profile Information
-                    </h2>
-                  </div>
-                </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                  {profileError && (
-                    <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-                      <p className="text-sm text-red-800">{profileError}</p>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Email</label>
+                      <input type="email" value={profile?.email || ''} disabled className="app-input" />
+                      <p className="mt-1 text-xs text-slate-500">Email cannot be changed.</p>
                     </div>
-                  )}
-                  {profileSuccess && (
-                    <div className="rounded-lg bg-green-50 border border-green-200 p-3">
-                      <p className="text-sm text-green-800">{profileSuccess}</p>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">M-Pesa Phone Number</label>
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="0712345678"
+                        className="app-input"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Used for STK Push and Standing Orders.</p>
                     </div>
-                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={profile?.email || ''}
-                      disabled
-                      className="mt-1 block w-full rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-500"
-                    />
-                    <p className="mt-1 text-xs text-zinc-500">Email cannot be changed</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700">
-                      M-Pesa Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="0712345678"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-white"
-                    />
-                    <p className="mt-1 text-xs text-zinc-500">
-                      Used for M-Pesa payments (STK Push & Standing Orders)
-                    </p>
-                  </div>
-
-                  <div className="pt-4">
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
+                    <button type="submit" disabled={saving} className="app-btn-primary w-full">
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Account Status & Tenant Information Card */}
-              <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
-                <div className="border-b border-zinc-200/50 px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg blur opacity-50"></div>
-                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg">
-                        <Building2 className="h-4 w-4 text-white" />
-                      </div>
-                    </div>
-                    <h2 className="text-lg font-semibold text-zinc-900">
-                      Account & Tenant Information
-                    </h2>
-                  </div>
+                  </form>
                 </div>
-                <div className="p-6 space-y-4">
-                  {/* Tenant Information Section */}
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-1">
-                      Tenant Subdomain
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={tenantSubdomain}
-                        disabled
-                        className="flex-1 rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-900 font-mono bg-zinc-100 text-zinc-900"
-                      />
+
+                <div className="app-card lg:col-span-1">
+                  <div className="app-card-header">
+                    <h2 className="app-section-title">Account & Tenant</h2>
+                  </div>
+
+                  <div className="app-card-body space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Tenant Subdomain</label>
+                      <input type="text" value={tenantSubdomain} disabled className="app-input font-mono" />
+                      <p className="mt-1 text-xs text-slate-500">
+                        Automatically generated from your email during registration.
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-zinc-500 text-zinc-600">
-                      Your unique tenant identifier. This is automatically generated from your email during registration.
-                    </p>
-                  </div>
 
-                  {user?.tenant_id && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600">Tenant ID</span>
-                      <span className="text-sm text-zinc-900 font-mono">
-                        {user.tenant_id}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Divider */}
-                  <div className="border-t border-zinc-200 border-zinc-200 pt-4 mt-4"></div>
-
-                  {/* Account Status Section */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600">Status</span>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      profile?.status === 'active' 
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800 bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {profile?.status || 'Unknown'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600">Standing Orders</span>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      profile?.standing_order_enabled
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-zinc-100 text-zinc-800'
-                    }`}>
-                      {profile?.standing_order_enabled ? 'Enabled' : 'Not Enabled'}
-                    </span>
-                  </div>
-
-                  {profile?.last_payment_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600">Last Payment</span>
-                      <span className="text-sm text-zinc-900">
-                        {new Date(profile.last_payment_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600">Member Since</span>
-                    <span className="text-sm text-zinc-900">
-                      {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
-                    </span>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="border-t border-zinc-200 pt-4 mt-4"></div>
-
-                  {/* System Status Link */}
-                  <div>
-                    <Link
-                      href="/system-status"
-                      className="flex items-center justify-between w-full rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:border-zinc-400 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-zinc-500" />
-                        <span>System Status</span>
+                    {user?.tenant_id && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">Tenant ID</span>
+                        <span className="font-mono text-sm text-slate-900">{user.tenant_id}</span>
                       </div>
-                      <span className="text-zinc-400">→</span>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600">Status</span>
+                      <StatusBadge status={profile?.status || 'unknown'} type="subscription" />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600">Standing Orders</span>
+                      <StatusBadge status={profile?.standing_order_enabled ? 'active' : 'suspended'} type="subscription" />
+                    </div>
+
+                    {profile?.last_payment_at && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">Last Payment</span>
+                        <span className="text-sm text-slate-900">{new Date(profile.last_payment_at).toLocaleDateString()}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600">Member Since</span>
+                      <span className="text-sm text-slate-900">
+                        {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
+                      </span>
+                    </div>
+
+                    <Link href="/system-status" className="app-btn-secondary w-full">
+                      System Status
                     </Link>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      View frontend and backend health status
-                    </p>
                   </div>
                 </div>
-              </div>
 
-              {/* Two-Factor Authentication Card */}
-              <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
-                <div className="border-b border-zinc-200/50 px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg blur opacity-50"></div>
-                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
-                        <Shield className="h-4 w-4 text-white" />
-                      </div>
+                <div className="app-card lg:col-span-1">
+                  <div className="app-card-header">
+                    <h2 className="app-section-title">Two-Factor Authentication</h2>
+                  </div>
+
+                  <div className="app-card-body space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600">2FA Status</span>
+                      <StatusBadge status={user?.otp_enabled ? 'active' : 'suspended'} type="subscription" />
                     </div>
-                    <h2 className="text-lg font-semibold text-zinc-900">
-                      Two-Factor Authentication
-                    </h2>
-                  </div>
-                </div>
-                <div className="p-6 space-y-4">
-                  {/* Current Status */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600">2FA Status</span>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      user?.otp_enabled
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-zinc-100 text-zinc-800'
-                    }`}>
-                      {user?.otp_enabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </div>
 
-                  {!user?.otp_enabled ? (
-                    /* Enable 2FA Flow */
-                    <>
-                      {!otpSetupData ? (
-                        <div>
-                          <p className="text-sm text-zinc-600 mb-4">
-                            Add an extra layer of security to your account by enabling two-factor authentication.
-                          </p>
-                          <button
-                            onClick={handleEnableOtp}
-                            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 bg-zinc-900 text-white hover:bg-zinc-800"
-                          >
-                            Enable 2FA
-                          </button>
-                        </div>
-                      ) : (
-                        /* QR Code and Verification */
-                        <div className="space-y-4">
+                    {!user?.otp_enabled ? (
+                      <>
+                        {!otpSetupData ? (
                           <div>
-                            <p className="text-sm text-zinc-600 mb-2">
-                              Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):
+                            <p className="mb-4 text-sm text-slate-600">
+                              Add an extra layer of security using Google Authenticator, Authy, or another TOTP app.
                             </p>
+                            <button onClick={handleEnableOtp} className="app-btn-primary w-full">
+                              Enable 2FA
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <p className="text-sm text-slate-600">Scan this QR code with your authenticator app.</p>
                             {otpSetupData.qr_code && (
-                              <div className="flex justify-center mb-4">
-                                <img src={otpSetupData.qr_code} alt="2FA QR Code" className="w-48 h-48 border border-zinc-300" />
+                              <div className="flex justify-center">
+                                <Image
+                                  src={otpSetupData.qr_code}
+                                  alt="2FA QR Code"
+                                  width={192}
+                                  height={192}
+                                  unoptimized
+                                  className="h-48 w-48 rounded-xl border border-slate-200 bg-white p-2"
+                                />
                               </div>
                             )}
-                            {otpSetupData.provisioning_uri && (
-                              <div className="mb-4">
-                                <p className="text-xs text-zinc-500 text-zinc-600 mb-1">Or enter this code manually:</p>
-                                <code className="block p-2 bg-zinc-100 bg-zinc-100 rounded text-xs break-all font-mono">
-                                  {otpSetupData.secret}
-                                </code>
-                              </div>
-                            )}
+                            <div>
+                              <p className="mb-1 text-xs text-slate-500">Manual setup code</p>
+                              <code className="block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+                                {otpSetupData.secret}
+                              </code>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700">Enter 6-digit code</label>
+                              <input
+                                type="text"
+                                value={otpVerificationCode}
+                                onChange={(e) => setOtpVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                placeholder="000000"
+                                maxLength={6}
+                                className="app-input"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleVerifyOtp}
+                                disabled={otpVerifying || otpVerificationCode.length !== 6}
+                                className="app-btn-primary flex-1"
+                              >
+                                {otpVerifying ? 'Verifying...' : 'Verify & Enable'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setOtpSetupData(null);
+                                  setOtpVerificationCode('');
+                                  setError(null);
+                                }}
+                                className="app-btn-secondary !rounded-xl !px-4"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-1">
-                              Enter 6-digit code from your app
-                            </label>
-                            <input
-                              type="text"
-                              value={otpVerificationCode}
-                              onChange={(e) => setOtpVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                              placeholder="000000"
-                              maxLength={6}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-zinc-100 text-zinc-900"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={handleVerifyOtp}
-                              disabled={otpVerifying || otpVerificationCode.length !== 6}
-                              className="flex-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 bg-zinc-900 text-white hover:bg-zinc-800"
-                            >
-                              {otpVerifying ? 'Verifying...' : 'Verify & Enable'}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setOtpSetupData(null);
-                                setOtpVerificationCode('');
-                                setError(null);
-                              }}
-                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 text-zinc-600 hover:text-zinc-900"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    /* Disable 2FA and Backup Codes */
-                    <div className="space-y-4">
-                      {!showDisableOtp ? (
-                        <>
-                          <div className="space-y-2">
-                            <button
-                              onClick={() => setShowDisableOtp(true)}
-                              className="w-full rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 border-red-300 text-red-700 hover:bg-red-50"
-                            >
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        {!showDisableOtp ? (
+                          <>
+                            <button onClick={() => setShowDisableOtp(true)} className="app-btn-danger w-full">
                               Disable 2FA
                             </button>
-                            <button
-                              onClick={() => setShowBackupCodes(!showBackupCodes)}
-                              className="w-full rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 text-zinc-600"
-                            >
+                            <button onClick={() => setShowBackupCodes((prev) => !prev)} className="app-btn-secondary w-full">
                               {showBackupCodes ? 'Hide Backup Codes' : 'View Backup Codes'}
                             </button>
-                          </div>
 
-                          {showBackupCodes && (
-                            <div className="space-y-4 pt-4 border-t border-zinc-200 border-zinc-200">
-                              <div>
-                                <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-2">
-                                  Regenerate Backup Codes
-                                </label>
-                                <div className="flex gap-2">
-                                  <input
-                                    type="password"
-                                    value={regeneratePassword}
-                                    onChange={(e) => setRegeneratePassword(e.target.value)}
-                                    placeholder="Enter your password"
-                                    className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-zinc-100 text-zinc-900"
-                                  />
-                                  <button
-                                    onClick={handleRegenerateBackupCodes}
-                                    disabled={!regeneratePassword || regeneratingBackupCodes}
-                                    className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 bg-zinc-900 text-white hover:bg-zinc-800"
-                                  >
-                                    {regeneratingBackupCodes ? '...' : 'Regenerate'}
-                                  </button>
-                                </div>
-                              </div>
-                              {backupCodes && backupCodes.length > 0 && (
+                            {showBackupCodes && (
+                              <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                                 <div>
-                                  <p className="text-xs text-zinc-500 text-zinc-600 mb-2">
-                                    Save these codes in a secure place. You can use them to access your account if you lose your device.
-                                  </p>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    {backupCodes.map((code, index) => (
-                                      <code key={index} className="block p-2 bg-zinc-100 bg-zinc-100 rounded text-xs font-mono text-center">
-                                        {code}
-                                      </code>
-                                    ))}
+                                  <label className="block text-sm font-medium text-slate-700">Regenerate Backup Codes</label>
+                                  <div className="mt-2 flex gap-2">
+                                    <input
+                                      type="password"
+                                      value={regeneratePassword}
+                                      onChange={(e) => setRegeneratePassword(e.target.value)}
+                                      placeholder="Enter your password"
+                                      className="app-input mt-0"
+                                    />
+                                    <button
+                                      onClick={handleRegenerateBackupCodes}
+                                      disabled={!regeneratePassword || regeneratingBackupCodes}
+                                      className="app-btn-primary !rounded-xl !px-4"
+                                    >
+                                      {regeneratingBackupCodes ? '...' : 'Regenerate'}
+                                    </button>
                                   </div>
                                 </div>
-                              )}
+
+                                {backupCodes && backupCodes.length > 0 && (
+                                  <div>
+                                    <p className="mb-2 text-xs text-slate-500">
+                                      Save these codes in a secure place. Use them if your authenticator is unavailable.
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {backupCodes.map((code, index) => (
+                                        <code
+                                          key={index}
+                                          className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-center font-mono text-xs text-slate-700"
+                                        >
+                                          {code}
+                                        </code>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="space-y-4">
+                            <p className="text-sm text-slate-600">
+                              Enter your password and a current authenticator code to disable 2FA.
+                            </p>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700">Password</label>
+                              <input
+                                type="password"
+                                value={disablePassword}
+                                onChange={(e) => setDisablePassword(e.target.value)}
+                                className="app-input"
+                              />
                             </div>
-                          )}
-                        </>
-                      ) : (
-                        /* Disable 2FA Form */
-                        <div className="space-y-4">
-                          <p className="text-sm text-zinc-600">
-                            To disable 2FA, please enter your password and a code from your authenticator app.
-                          </p>
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-1">
-                              Password
-                            </label>
-                            <input
-                              type="password"
-                              value={disablePassword}
-                              onChange={(e) => setDisablePassword(e.target.value)}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-zinc-100 text-zinc-900"
-                            />
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700">OTP / Backup Code</label>
+                              <input
+                                type="text"
+                                value={disableOtpCode}
+                                onChange={(e) => setDisableOtpCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                placeholder="000000 or backup code"
+                                maxLength={10}
+                                className="app-input"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleDisableOtp}
+                                disabled={disablingOtp || !disablePassword || !disableOtpCode}
+                                className="app-btn-danger flex-1"
+                              >
+                                {disablingOtp ? 'Disabling...' : 'Disable 2FA'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowDisableOtp(false);
+                                  setDisablePassword('');
+                                  setDisableOtpCode('');
+                                  setError(null);
+                                }}
+                                className="app-btn-secondary !rounded-xl !px-4"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-700 text-zinc-700 mb-1">
-                              OTP Code
-                            </label>
-                            <input
-                              type="text"
-                              value={disableOtpCode}
-                              onChange={(e) => setDisableOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                              placeholder="000000 or backup code"
-                              maxLength={10}
-                              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-zinc-100 text-zinc-900"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={handleDisableOtp}
-                              disabled={disablingOtp || !disablePassword || !disableOtpCode}
-                              className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-                            >
-                              {disablingOtp ? 'Disabling...' : 'Disable 2FA'}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowDisableOtp(false);
-                                setDisablePassword('');
-                                setDisableOtpCode('');
-                                setError(null);
-                              }}
-                              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 text-zinc-600 hover:text-zinc-900"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
             </>
           )}
         </main>
@@ -663,4 +496,3 @@ export default function SettingsPage() {
     </AuthGuard>
   );
 }
-

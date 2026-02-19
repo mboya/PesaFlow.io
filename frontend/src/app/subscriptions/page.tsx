@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Repeat } from 'lucide-react';
 
 import {
   AuthGuard,
@@ -15,7 +14,7 @@ import {
   EmptyState,
 } from '@/components';
 import { subscriptionsApi } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, getApiErrorMessage } from '@/lib/utils';
 import type { Subscription } from '@/lib/types';
 
 export default function SubscriptionsPage() {
@@ -29,9 +28,9 @@ export default function SubscriptionsPage() {
         setLoading(true);
         const response = await subscriptionsApi.getAll();
         setSubscriptions(response.data);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to load subscriptions');
-        console.error('Subscriptions error:', err);
+      } catch (error: unknown) {
+        setError(getApiErrorMessage(error, 'Failed to load subscriptions'));
+        console.error('Subscriptions error:', error);
       } finally {
         setLoading(false);
       }
@@ -43,30 +42,25 @@ export default function SubscriptionsPage() {
   const formatPaymentMethod = (method: string | null | undefined) => {
     if (!method) return 'Not set';
     const methodMap: Record<string, string> = {
-      'ratiba': 'Ratiba',
-      'stk_push': 'STK Push',
-      'c2b': 'Paybill',
+      ratiba: 'Ratiba',
+      stk_push: 'STK Push',
+      c2b: 'Paybill',
     };
     return methodMap[method] || method.toUpperCase();
   };
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-white relative">
+      <div className="app-shell">
         <BackgroundDecorations />
         <Navigation />
 
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
+        <main className="app-main relative">
           <PageHeader
             title="Subscriptions"
-            description="Manage your recurring payments and subscriptions"
-            icon={Repeat}
-            iconGradient="from-blue-500 to-purple-500"
+            description="Manage recurring billing plans and customer renewals."
             action={
-              <Link
-                href="/subscriptions/new"
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
+              <Link href="/subscriptions/new" className="app-btn-primary">
                 New Subscription
               </Link>
             }
@@ -77,7 +71,7 @@ export default function SubscriptionsPage() {
           {error && <ErrorState message={error} onDismiss={() => setError(null)} />}
 
           {!loading && !error && (
-            <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
+            <div className="app-card">
               {subscriptions.length === 0 ? (
                 <EmptyState
                   message="You don't have any subscriptions yet."
@@ -85,67 +79,47 @@ export default function SubscriptionsPage() {
                   actionHref="/subscriptions/new"
                 />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
-                    <thead className="bg-white/50 dark:bg-zinc-900/50">
+                <div className="app-table-shell">
+                  <table className="app-table">
+                    <thead className="app-table-head">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                          Subscription
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                          Next Billing
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                          Payment Method
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                          Actions
-                        </th>
+                        <th className="app-table-head-cell">Subscription</th>
+                        <th className="app-table-head-cell">Status</th>
+                        <th className="app-table-head-cell">Amount</th>
+                        <th className="app-table-head-cell">Next Billing</th>
+                        <th className="app-table-head-cell">Payment Method</th>
+                        <th className="app-table-head-cell text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-200/50 bg-white/50 dark:divide-zinc-800/50 dark:bg-zinc-900/50">
+                    <tbody className="app-table-body">
                       {subscriptions.map((subscription) => (
-                        <tr key={subscription.id} className="transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20">
-                          <td className="whitespace-nowrap px-6 py-4">
+                        <tr key={subscription.id} className="app-table-row">
+                          <td className="app-table-cell">
                             <div>
-                              <div className="font-medium text-zinc-900 dark:text-zinc-50">
+                              <div className="font-medium text-slate-900">
                                 {subscription.name || subscription.reference_number}
                               </div>
-                              <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                                {subscription.reference_number}
-                              </div>
+                              <div className="text-xs text-slate-500">{subscription.reference_number}</div>
                             </div>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4">
+                          <td className="app-table-cell">
                             <StatusBadge status={subscription.status} type="subscription" />
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-zinc-50">
-                            {formatCurrency(subscription.amount || 0)}
+                          <td className="app-table-cell">
+                            <span className="font-medium text-slate-900">{formatCurrency(subscription.amount || 0)}</span>
                             {subscription.billing_cycle_days && (
-                              <span className="text-zinc-500 dark:text-zinc-400">
-                                {' '}
-                                / every {subscription.billing_cycle_days} days
-                              </span>
+                              <span className="ml-1 text-xs text-slate-500">/ every {subscription.billing_cycle_days} days</span>
                             )}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-zinc-50">
+                          <td className="app-table-cell">
                             {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                          <td className="app-table-cell">
                             {formatPaymentMethod(subscription.preferred_payment_method || subscription.payment_method)}
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                            <Link
-                              href={`/subscriptions/${subscription.id}`}
-                              className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                            >
-                              View →
+                          <td className="app-table-cell text-right">
+                            <Link href={`/subscriptions/${subscription.id}`} className="app-link">
+                              View
                             </Link>
                           </td>
                         </tr>
@@ -161,4 +135,3 @@ export default function SubscriptionsPage() {
     </AuthGuard>
   );
 }
-

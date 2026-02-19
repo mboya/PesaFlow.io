@@ -11,17 +11,18 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, type = 'subscription', size = 'sm', className = '' }: StatusBadgeProps) {
   const sizeClasses = {
-    sm: 'px-2 py-1 text-xs',
-    md: 'px-3 py-1 text-sm',
-    lg: 'px-4 py-2 text-base',
+    sm: 'px-2.5 py-1 text-[0.7rem]',
+    md: 'px-3 py-1 text-xs',
+    lg: 'px-4 py-1.5 text-sm',
   };
 
   const colorClass = getStatusColor(status, type);
-  const baseClasses = 'inline-flex rounded-full font-semibold';
+  const baseClasses = 'inline-flex items-center rounded-full border font-semibold uppercase tracking-[0.08em]';
+  const label = status.replace(/_/g, ' ');
   
   return (
     <span className={cn(baseClasses, sizeClasses[size], colorClass, className)}>
-      {status}
+      {label}
     </span>
   );
 }

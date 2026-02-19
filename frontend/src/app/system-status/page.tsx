@@ -1,7 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { getStatusColor } from '@/lib/utils';
+
+import {
+  AuthGuard,
+  Navigation,
+  BackgroundDecorations,
+  PageHeader,
+  LoadingState,
+} from '@/components';
 
 interface HealthStatus {
   status: string;
@@ -38,6 +46,23 @@ interface HealthStatus {
   error?: string;
 }
 
+function ServiceBadge({ status }: { status: string }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${getStatusColor(status, 'system')}`}>
+      {status === 'ok' ? 'Healthy' : 'Unhealthy'}
+    </span>
+  );
+}
+
+function StatRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-slate-200/70 py-2.5 last:border-b-0">
+      <span className="text-sm text-slate-600">{label}</span>
+      <span className="text-sm font-medium text-slate-900">{value}</span>
+    </div>
+  );
+}
+
 export default function SystemStatusPage() {
   const [frontendHealth, setFrontendHealth] = useState<HealthStatus | null>(null);
   const [backendHealth, setBackendHealth] = useState<HealthStatus | null>(null);
@@ -47,13 +72,12 @@ export default function SystemStatusPage() {
   const fetchHealth = async () => {
     setLoading(true);
     try {
-      // Fetch frontend health
       const frontendResponse = await fetch('/api/health', {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+          Pragma: 'no-cache',
+        },
       });
       if (!frontendResponse.ok) {
         throw new Error(`Frontend health check failed: ${frontendResponse.status} ${frontendResponse.statusText}`);
@@ -62,22 +86,16 @@ export default function SystemStatusPage() {
       if (!frontendText || frontendText.trim() === '') {
         throw new Error('Empty response from frontend health endpoint');
       }
-      let frontendData;
-      try {
-        frontendData = JSON.parse(frontendText);
-      } catch (parseError) {
-        throw new Error(`Invalid JSON response: ${frontendText.substring(0, 100)}`);
-      }
+      const frontendData = JSON.parse(frontendText);
       setFrontendHealth(frontendData);
 
-      // Fetch backend health through proxy
       try {
         const backendResponse = await fetch('/api/proxy/api/v1/health', {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
+            Pragma: 'no-cache',
+          },
         });
         if (!backendResponse.ok) {
           throw new Error(`Backend health check failed: ${backendResponse.status} ${backendResponse.statusText}`);
@@ -86,19 +104,14 @@ export default function SystemStatusPage() {
         if (!backendText || backendText.trim() === '') {
           throw new Error('Empty response from backend health endpoint');
         }
-        let backendData;
-        try {
-          backendData = JSON.parse(backendText);
-        } catch (parseError) {
-          throw new Error(`Invalid JSON response: ${backendText.substring(0, 100)}`);
-        }
+        const backendData = JSON.parse(backendText);
         setBackendHealth(backendData);
       } catch (error) {
         setBackendHealth({
           status: 'error',
           service: 'backend',
           error: error instanceof Error ? error.message : 'Failed to connect to backend',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     } catch (error) {
@@ -106,7 +119,7 @@ export default function SystemStatusPage() {
         status: 'error',
         service: 'frontend',
         error: error instanceof Error ? error.message : 'Failed to fetch health status',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } finally {
       setLoading(false);
@@ -116,288 +129,135 @@ export default function SystemStatusPage() {
 
   useEffect(() => {
     fetchHealth();
-    // Auto-refresh every 30 seconds
     const interval = setInterval(fetchHealth, 30000);
     return () => clearInterval(interval);
   }, []);
 
-
-  const getStatusBadge = (status: string) => {
-    const isOk = status === 'ok';
-    return (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          isOk
-            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-        }`}
-      >
-        {isOk ? '✓ Healthy' : '✗ Unhealthy'}
-      </span>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white dark:bg-zinc-900 shadow rounded-lg">
-          <div className="px-6 py-5 border-b border-zinc-200 dark:border-zinc-700">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-                System Status
-              </h1>
-              <button
-                onClick={fetchHealth}
-                disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-zinc-50 rounded-md hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+    <AuthGuard>
+      <div className="app-shell">
+        <BackgroundDecorations />
+        <Navigation />
+
+        <main className="app-main-narrow relative">
+          <PageHeader
+            title="System Status"
+            description={`Last updated: ${lastUpdated.toLocaleTimeString()}`}
+            action={
+              <button onClick={fetchHealth} disabled={loading} className="app-btn-secondary">
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
-            </div>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </p>
-          </div>
+            }
+          />
 
-          <div className="px-6 py-5 space-y-6">
-            {/* Frontend Status */}
-            <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Frontend Service
-                </h2>
-                {frontendHealth && getStatusBadge(frontendHealth.status)}
-              </div>
-              {frontendHealth ? (
-                <div className="space-y-2 text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-zinc-500 dark:text-zinc-400">Status:</span>
-                      <span className={`ml-2 font-medium ${getStatusColor(frontendHealth.status, 'system')}`}>
-                        {frontendHealth.status.toUpperCase()}
-                      </span>
-                    </div>
-                    {frontendHealth.version && (
-                      <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Version:</span>
-                        <span className="ml-2 font-medium text-zinc-900 dark:text-zinc-50">
-                          {frontendHealth.version}
-                        </span>
-                      </div>
-                    )}
-                    {frontendHealth.environment && (
-                      <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Environment:</span>
-                        <span className="ml-2 font-medium text-zinc-900 dark:text-zinc-50">
-                          {frontendHealth.environment}
-                        </span>
-                      </div>
-                    )}
-                    {frontendHealth.uptime && (
-                      <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Uptime:</span>
-                        <span className="ml-2 font-medium text-zinc-900 dark:text-zinc-50">
-                          {Math.floor(frontendHealth.uptime)}s
-                        </span>
-                      </div>
-                    )}
+          {loading && !frontendHealth && !backendHealth ? (
+            <LoadingState message="Checking service health..." />
+          ) : (
+            <div className="space-y-6">
+              <div className="app-card">
+                <div className="app-card-header">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="app-section-title">Frontend Service</h2>
+                    {frontendHealth && <ServiceBadge status={frontendHealth.status} />}
                   </div>
-                  {frontendHealth.memory && (
-                    <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                      <span className="text-zinc-500 dark:text-zinc-400">Memory:</span>
-                      <span className="ml-2 font-medium text-zinc-900 dark:text-zinc-50">
-                        {frontendHealth.memory.used} / {frontendHealth.memory.total} {frontendHealth.memory.unit}
-                      </span>
+                </div>
+                <div className="app-card-body">
+                  {frontendHealth ? (
+                    <div>
+                      <StatRow label="Status" value={frontendHealth.status.toUpperCase()} />
+                      {frontendHealth.version && <StatRow label="Version" value={frontendHealth.version} />}
+                      {frontendHealth.environment && <StatRow label="Environment" value={frontendHealth.environment} />}
+                      {frontendHealth.uptime && <StatRow label="Uptime" value={`${Math.floor(frontendHealth.uptime)}s`} />}
+                      {frontendHealth.memory && (
+                        <StatRow
+                          label="Memory"
+                          value={`${frontendHealth.memory.used} / ${frontendHealth.memory.total} ${frontendHealth.memory.unit}`}
+                        />
+                      )}
+                      {frontendHealth.error && <p className="mt-3 text-sm text-red-700">Error: {frontendHealth.error}</p>}
                     </div>
-                  )}
-                  {frontendHealth.error && (
-                    <div className="pt-2 text-red-600 dark:text-red-400">
-                      Error: {frontendHealth.error}
-                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-600">No data available.</p>
                   )}
                 </div>
-              ) : (
-                <div className="text-zinc-500 dark:text-zinc-400">Loading...</div>
-              )}
-            </div>
-
-            {/* Backend Status */}
-            <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Backend Service
-                </h2>
-                {backendHealth && getStatusBadge(backendHealth.status)}
               </div>
-              {backendHealth ? (
-                <div className="space-y-2 text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-zinc-500 dark:text-zinc-400">Status:</span>
-                      <span className={`ml-2 font-medium ${getStatusColor(backendHealth.status, 'system')}`}>
-                        {backendHealth.status.toUpperCase()}
-                      </span>
-                    </div>
-                    {backendHealth.version && (
-                      <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Version:</span>
-                        <span className="ml-2 font-medium text-zinc-900 dark:text-zinc-50">
-                          {backendHealth.version}
-                        </span>
-                      </div>
-                    )}
-                    {backendHealth.environment && (
-                      <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Environment:</span>
-                        <span className="ml-2 font-medium text-zinc-900 dark:text-zinc-50">
-                          {backendHealth.environment}
-                        </span>
-                      </div>
-                    )}
+
+              <div className="app-card">
+                <div className="app-card-header">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="app-section-title">Backend Service</h2>
+                    {backendHealth && <ServiceBadge status={backendHealth.status} />}
                   </div>
-                  {backendHealth.database && (
-                    <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                      <div className="flex items-center justify-between">
-                        <span className="text-zinc-500 dark:text-zinc-400">Database:</span>
-                        <span
-                          className={`font-medium ${
-                            backendHealth.database.connected
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
-                          }`}
-                        >
-                          {backendHealth.database.connected ? '✓ Connected' : '✗ Disconnected'}
-                        </span>
-                      </div>
-                      {backendHealth.database.error && (
-                        <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                          {backendHealth.database.error}
-                        </div>
+                </div>
+                <div className="app-card-body">
+                  {backendHealth ? (
+                    <div>
+                      <StatRow label="Status" value={backendHealth.status.toUpperCase()} />
+                      {backendHealth.version && <StatRow label="Version" value={backendHealth.version} />}
+                      {backendHealth.environment && <StatRow label="Environment" value={backendHealth.environment} />}
+
+                      {backendHealth.database && (
+                        <StatRow
+                          label="Database"
+                          value={backendHealth.database.connected ? 'Connected' : 'Disconnected'}
+                        />
                       )}
-                    </div>
-                  )}
-                  {backendHealth.redis && (
-                    <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                      <div className="flex items-center justify-between">
-                        <span className="text-zinc-500 dark:text-zinc-400">Redis:</span>
-                        <span
-                          className={`font-medium ${
-                            backendHealth.redis.connected
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
-                          }`}
-                        >
-                          {backendHealth.redis.connected ? '✓ Connected' : '✗ Disconnected'}
-                        </span>
-                      </div>
-                      {backendHealth.redis.error && (
-                        <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                          {backendHealth.redis.error}
-                        </div>
+                      {backendHealth.redis && (
+                        <StatRow label="Redis" value={backendHealth.redis.connected ? 'Connected' : 'Disconnected'} />
                       )}
-                    </div>
-                  )}
-                  {backendHealth.sidekiq && (
-                    <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-zinc-500 dark:text-zinc-400">Sidekiq:</span>
-                        <span
-                          className={`font-medium ${
-                            backendHealth.sidekiq.connected
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
-                          }`}
-                        >
-                          {backendHealth.sidekiq.connected ? '✓ Running' : '✗ Not Running'}
-                        </span>
-                      </div>
-                      {backendHealth.sidekiq.connected && (
-                        <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-                          {backendHealth.sidekiq.processes !== undefined && (
-                            <div>
-                              <span className="text-zinc-500 dark:text-zinc-400">Processes:</span>
-                              <span className="ml-1 font-medium text-zinc-900 dark:text-zinc-50">
-                                {backendHealth.sidekiq.processes}
-                              </span>
-                            </div>
-                          )}
-                          {backendHealth.sidekiq.processed !== undefined && (
-                            <div>
-                              <span className="text-zinc-500 dark:text-zinc-400">Processed:</span>
-                              <span className="ml-1 font-medium text-zinc-900 dark:text-zinc-50">
-                                {backendHealth.sidekiq.processed.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {backendHealth.sidekiq.failed !== undefined && (
-                            <div>
-                              <span className="text-zinc-500 dark:text-zinc-400">Failed:</span>
-                              <span
-                                className={`ml-1 font-medium ${
-                                  backendHealth.sidekiq.failed > 0
-                                    ? 'text-red-600 dark:text-red-400'
-                                    : 'text-zinc-900 dark:text-zinc-50'
-                                }`}
-                              >
-                                {backendHealth.sidekiq.failed.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {backendHealth.sidekiq.enqueued !== undefined && (
-                            <div>
-                              <span className="text-zinc-500 dark:text-zinc-400">Enqueued:</span>
-                              <span className="ml-1 font-medium text-zinc-900 dark:text-zinc-50">
-                                {backendHealth.sidekiq.enqueued.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {backendHealth.sidekiq.scheduled !== undefined && backendHealth.sidekiq.scheduled > 0 && (
-                            <div>
-                              <span className="text-zinc-500 dark:text-zinc-400">Scheduled:</span>
-                              <span className="ml-1 font-medium text-zinc-900 dark:text-zinc-50">
-                                {backendHealth.sidekiq.scheduled.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {backendHealth.sidekiq.retry !== undefined && backendHealth.sidekiq.retry > 0 && (
-                            <div>
-                              <span className="text-zinc-500 dark:text-zinc-400">Retry:</span>
-                              <span className="ml-1 font-medium text-yellow-600 dark:text-yellow-400">
-                                {backendHealth.sidekiq.retry.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {backendHealth.sidekiq.dead !== undefined && backendHealth.sidekiq.dead > 0 && (
-                            <div>
-                              <span className="text-zinc-500 dark:text-zinc-400">Dead:</span>
-                              <span className="ml-1 font-medium text-red-600 dark:text-red-400">
-                                {backendHealth.sidekiq.dead.toLocaleString()}
-                              </span>
+
+                      {backendHealth.sidekiq && (
+                        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                          <div className="mb-2 flex items-center justify-between">
+                            <p className="text-sm font-semibold text-slate-900">Sidekiq</p>
+                            <span className={`text-xs font-semibold ${backendHealth.sidekiq.connected ? 'text-emerald-700' : 'text-red-700'}`}>
+                              {backendHealth.sidekiq.connected ? 'Running' : 'Not Running'}
+                            </span>
+                          </div>
+
+                          {backendHealth.sidekiq.connected && (
+                            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                              {backendHealth.sidekiq.processes !== undefined && <p>Processes: {backendHealth.sidekiq.processes}</p>}
+                              {backendHealth.sidekiq.processed !== undefined && (
+                                <p>Processed: {backendHealth.sidekiq.processed.toLocaleString()}</p>
+                              )}
+                              {backendHealth.sidekiq.failed !== undefined && (
+                                <p className={backendHealth.sidekiq.failed > 0 ? 'text-red-700' : ''}>
+                                  Failed: {backendHealth.sidekiq.failed.toLocaleString()}
+                                </p>
+                              )}
+                              {backendHealth.sidekiq.enqueued !== undefined && (
+                                <p>Enqueued: {backendHealth.sidekiq.enqueued.toLocaleString()}</p>
+                              )}
+                              {backendHealth.sidekiq.scheduled !== undefined && (
+                                <p>Scheduled: {backendHealth.sidekiq.scheduled.toLocaleString()}</p>
+                              )}
+                              {backendHealth.sidekiq.retry !== undefined && (
+                                <p className={backendHealth.sidekiq.retry > 0 ? 'text-amber-700' : ''}>
+                                  Retry: {backendHealth.sidekiq.retry.toLocaleString()}
+                                </p>
+                              )}
+                              {backendHealth.sidekiq.dead !== undefined && (
+                                <p className={backendHealth.sidekiq.dead > 0 ? 'text-red-700' : ''}>
+                                  Dead: {backendHealth.sidekiq.dead.toLocaleString()}
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>
                       )}
-                      {backendHealth.sidekiq.error && (
-                        <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                          {backendHealth.sidekiq.error}
-                        </div>
-                      )}
+
+                      {backendHealth.error && <p className="mt-3 text-sm text-red-700">Error: {backendHealth.error}</p>}
                     </div>
-                  )}
-                  {backendHealth.error && (
-                    <div className="pt-2 text-red-600 dark:text-red-400">
-                      Error: {backendHealth.error}
-                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-600">No data available.</p>
                   )}
                 </div>
-              ) : (
-                <div className="text-zinc-500 dark:text-zinc-400">Loading...</div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </main>
       </div>
-    </div>
+    </AuthGuard>
   );
 }
-

@@ -10,15 +10,17 @@ import {
   StatusBadge,
   LoadingState,
   ErrorState,
+  PageHeader,
+  BackgroundDecorations,
 } from '@/components';
 import { invoicesApi } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, getApiErrorMessage } from '@/lib/utils';
 import type { Invoice } from '@/lib/types';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
   const invoiceId = params.id as string;
-  
+
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,9 +31,9 @@ export default function InvoiceDetailPage() {
         setLoading(true);
         const response = await invoicesApi.getById(invoiceId);
         setInvoice(response.data);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to load invoice');
-        console.error('Invoice error:', err);
+      } catch (error: unknown) {
+        setError(getApiErrorMessage(error, 'Failed to load invoice'));
+        console.error('Invoice error:', error);
       } finally {
         setLoading(false);
       }
@@ -42,21 +44,20 @@ export default function InvoiceDetailPage() {
     }
   }, [invoiceId]);
 
-  // Use formatDate with custom options for long month format
-  const formatDateLong = (dateString: string) => {
-    return formatDate(dateString, {
+  const formatDateLong = (dateString: string) =>
+    formatDate(dateString, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-  };
 
   if (loading) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-zinc-50 dark:bg-black">
+        <div className="app-shell">
+          <BackgroundDecorations />
           <Navigation />
-          <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <main className="app-main relative">
             <LoadingState />
           </main>
         </div>
@@ -67,12 +68,13 @@ export default function InvoiceDetailPage() {
   if (error || !invoice) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-zinc-50 dark:bg-black">
+        <div className="app-shell">
+          <BackgroundDecorations />
           <Navigation />
-          <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <main className="app-main relative">
             <ErrorState message={error || 'Invoice not found'} />
-            <Link href="/invoices" className="mt-4 inline-block text-blue-600 hover:underline">
-              ← Back to Invoices
+            <Link href="/invoices" className="mt-4 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
+              Back to Invoices
             </Link>
           </main>
         </div>
@@ -82,65 +84,54 @@ export default function InvoiceDetailPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="app-shell">
+        <BackgroundDecorations />
         <Navigation />
 
-        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <Link
-              href="/invoices"
-              className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
-            >
-              ← Back to Invoices
+        <main className="app-main-narrow relative">
+          <div className="mb-4">
+            <Link href="/invoices" className="inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900">
+              Back to Invoices
             </Link>
-            <h1 className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-              Invoice {invoice.invoice_number}
-            </h1>
           </div>
 
-          <div className="rounded-lg bg-white shadow dark:bg-zinc-900">
-            <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Invoice Details
-                </h2>
+          <PageHeader
+            title={`Invoice ${invoice.invoice_number}`}
+            description="Billing summary and payment lifecycle details."
+          />
+
+          <div className="app-card">
+            <div className="app-card-header">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="app-section-title">Invoice Details</h2>
                 <StatusBadge status={invoice.status} type="invoice" size="md" />
               </div>
             </div>
-            <div className="p-6">
+            <div className="app-card-body">
               <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Invoice Number</dt>
-                  <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                    {invoice.invoice_number}
-                  </dd>
+                  <dt className="text-sm font-medium text-slate-500">Invoice Number</dt>
+                  <dd className="mt-1 text-sm font-medium text-slate-900">{invoice.invoice_number}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Amount</dt>
-                  <dd className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    {formatCurrency(invoice.amount, invoice.currency)}
-                  </dd>
+                  <dt className="text-sm font-medium text-slate-500">Amount</dt>
+                  <dd className="mt-1 text-lg font-semibold text-slate-900">{formatCurrency(invoice.amount, invoice.currency)}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Due Date</dt>
-                  <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                    {formatDateLong(invoice.due_date)}
-                  </dd>
+                  <dt className="text-sm font-medium text-slate-500">Due Date</dt>
+                  <dd className="mt-1 text-sm text-slate-900">{formatDateLong(invoice.due_date)}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</dt>
+                  <dt className="text-sm font-medium text-slate-500">Status</dt>
                   <dd className="mt-1">
                     <StatusBadge status={invoice.status} type="invoice" />
                   </dd>
                 </div>
                 {invoice.subscription && (
                   <div>
-                    <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Subscription</dt>
-                    <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                      <Link
-                        href={`/subscriptions/${invoice.subscription.id}`}
-                        className="text-blue-600 hover:underline dark:text-blue-400"
-                      >
+                    <dt className="text-sm font-medium text-slate-500">Subscription</dt>
+                    <dd className="mt-1 text-sm text-slate-900">
+                      <Link href={`/subscriptions/${invoice.subscription.id}`} className="app-link">
                         {invoice.subscription.reference_number}
                       </Link>
                     </dd>
@@ -148,17 +139,13 @@ export default function InvoiceDetailPage() {
                 )}
                 {invoice.paid_at && (
                   <div>
-                    <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Paid At</dt>
-                    <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                      {formatDateLong(invoice.paid_at)}
-                    </dd>
+                    <dt className="text-sm font-medium text-slate-500">Paid At</dt>
+                    <dd className="mt-1 text-sm text-slate-900">{formatDateLong(invoice.paid_at)}</dd>
                   </div>
                 )}
                 <div>
-                  <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Created</dt>
-                  <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-50">
-                    {formatDateLong(invoice.created_at)}
-                  </dd>
+                  <dt className="text-sm font-medium text-slate-500">Created</dt>
+                  <dd className="mt-1 text-sm text-slate-900">{formatDateLong(invoice.created_at)}</dd>
                 </div>
               </dl>
             </div>
@@ -168,4 +155,3 @@ export default function InvoiceDetailPage() {
     </AuthGuard>
   );
 }
-

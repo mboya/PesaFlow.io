@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { X, CheckCircle2, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { Toast as ToastType, ToastVariant } from '@/contexts/ToastContext';
 
 interface ToastProps {
@@ -9,30 +8,26 @@ interface ToastProps {
   onRemove: (id: string) => void;
 }
 
-const variantStyles: Record<ToastVariant, { bg: string; border: string; text: string; icon: React.ReactNode }> = {
+const variantStyles: Record<ToastVariant, { bg: string; border: string; text: string }> = {
   success: {
-    bg: 'bg-green-50 border-green-200',
-    border: 'border-green-300',
-    text: 'text-green-800',
-    icon: <CheckCircle2 className="h-5 w-5 text-green-600" />,
+    bg: 'bg-emerald-50/95',
+    border: 'border-emerald-200',
+    text: 'text-emerald-800',
   },
   error: {
-    bg: 'bg-red-50 border-red-200',
+    bg: 'bg-red-50/95',
     border: 'border-red-300',
     text: 'text-red-800',
-    icon: <AlertCircle className="h-5 w-5 text-red-600" />,
   },
   warning: {
-    bg: 'bg-amber-50 border-amber-200',
+    bg: 'bg-amber-50/95',
     border: 'border-amber-300',
     text: 'text-amber-800',
-    icon: <AlertTriangle className="h-5 w-5 text-amber-600" />,
   },
   info: {
-    bg: 'bg-blue-50 border-blue-200',
-    border: 'border-blue-300',
-    text: 'text-blue-800',
-    icon: <Info className="h-5 w-5 text-blue-600" />,
+    bg: 'bg-cyan-50/95',
+    border: 'border-cyan-300',
+    text: 'text-cyan-900',
   },
 };
 
@@ -52,13 +47,12 @@ export function Toast({ toast, onRemove }: ToastProps) {
   return (
     <div
       className={`
-        relative flex items-start gap-3 rounded-lg border p-4 shadow-lg
+        relative flex items-start gap-3 rounded-2xl border p-4 shadow-[0_18px_38px_-24px_rgba(15,23,42,.5)] backdrop-blur-sm
         ${styles.bg} ${styles.border} ${styles.text}
         animate-slide-in-right
       `}
       role="alert"
     >
-      <div className="flex-shrink-0 mt-0.5">{styles.icon}</div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{toast.message}</p>
       </div>
@@ -70,7 +64,7 @@ export function Toast({ toast, onRemove }: ToastProps) {
         `}
         aria-label="Close notification"
       >
-        <X className="h-4 w-4" />
+        ×
       </button>
     </div>
   );

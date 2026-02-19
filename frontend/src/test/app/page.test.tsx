@@ -17,7 +17,6 @@ vi.mock('../../contexts/AuthContext', () => ({
 
 describe('Home Page', () => {
   const mockReplace = vi.fn();
-  const mockPathname = vi.fn(() => '/');
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -81,7 +80,7 @@ describe('Home Page', () => {
     });
   });
 
-  it('should redirect to login when not authenticated', async () => {
+  it('should render landing page when not authenticated', async () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
       loading: false,
@@ -99,8 +98,13 @@ describe('Home Page', () => {
     render(<Home />);
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith('/login');
+      expect(
+        screen.getByRole('heading', {
+          name: /automate recurring billing with m-pesa/i,
+        })
+      ).toBeInTheDocument();
     });
+
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });
-

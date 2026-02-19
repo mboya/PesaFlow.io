@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeftRight } from 'lucide-react';
 
 import {
   AuthGuard,
@@ -15,7 +14,7 @@ import {
   EmptyState,
 } from '@/components';
 import { refundsApi } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, getApiErrorMessage } from '@/lib/utils';
 import type { Refund } from '@/lib/types';
 
 export default function RefundsPage() {
@@ -24,7 +23,7 @@ export default function RefundsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     payment_id: '',
     amount: '',
@@ -37,9 +36,9 @@ export default function RefundsPage() {
         setLoading(true);
         const refundsResponse = await refundsApi.getAll().catch(() => ({ data: [] }));
         setRefunds(refundsResponse.data);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to load refunds');
-        console.error('Refunds error:', err);
+      } catch (error: unknown) {
+        setError(getApiErrorMessage(error, 'Failed to load refunds'));
+        console.error('Refunds error:', error);
       } finally {
         setLoading(false);
       }
@@ -55,41 +54,34 @@ export default function RefundsPage() {
 
     try {
       await refundsApi.create({
-        payment_id: parseInt(formData.payment_id),
+        payment_id: parseInt(formData.payment_id, 10),
         amount: parseFloat(formData.amount),
         reason: formData.reason,
       });
       setShowCreateForm(false);
       setFormData({ payment_id: '', amount: '', reason: '' });
-      // Refresh refunds list
       const response = await refundsApi.getAll();
       setRefunds(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.response?.data?.errors || 'Failed to create refund');
-      console.error('Create refund error:', err);
+    } catch (error: unknown) {
+      setError(getApiErrorMessage(error, 'Failed to create refund'));
+      console.error('Create refund error:', error);
     } finally {
       setSubmitting(false);
     }
   };
 
-
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-white relative">
+      <div className="app-shell">
         <BackgroundDecorations />
         <Navigation />
 
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
+        <main className="app-main relative">
           <PageHeader
             title="Refunds"
-            description="Request and track refunds"
-            icon={ArrowLeftRight}
-            iconGradient="from-amber-500 to-orange-500"
+            description="Submit and monitor payout reversals from one queue."
             action={
-              <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
+              <button onClick={() => setShowCreateForm((prev) => !prev)} className="app-btn-primary">
                 {showCreateForm ? 'Cancel' : 'Request Refund'}
               </button>
             }
@@ -102,16 +94,14 @@ export default function RefundsPage() {
           )}
 
           {showCreateForm && (
-            <div className="mb-6 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
-              <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Request Refund
-                </h2>
+            <div className="app-card mb-6">
+              <div className="app-card-header">
+                <h2 className="app-section-title">Request Refund</h2>
               </div>
-              <form onSubmit={handleCreateRefund} className="p-6">
+              <form onSubmit={handleCreateRefund} className="app-card-body">
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="payment_id" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label htmlFor="payment_id" className="block text-sm font-medium text-slate-700">
                       Payment ID
                     </label>
                     <input
@@ -121,11 +111,11 @@ export default function RefundsPage() {
                       value={formData.payment_id}
                       onChange={(e) => setFormData({ ...formData, payment_id: e.target.value })}
                       placeholder="Enter payment ID"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
+                      className="app-input"
                     />
                   </div>
                   <div>
-                    <label htmlFor="amount" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label htmlFor="amount" className="block text-sm font-medium text-slate-700">
                       Amount (KES)
                     </label>
                     <input
@@ -137,11 +127,11 @@ export default function RefundsPage() {
                       value={formData.amount}
                       onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                       placeholder="0.00"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
+                      className="app-input"
                     />
                   </div>
                   <div>
-                    <label htmlFor="reason" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label htmlFor="reason" className="block text-sm font-medium text-slate-700">
                       Reason
                     </label>
                     <textarea
@@ -151,16 +141,12 @@ export default function RefundsPage() {
                       value={formData.reason}
                       onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                       placeholder="Explain why you need a refund"
-                      className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:text-sm"
+                      className="app-input"
                     />
                   </div>
                 </div>
                 <div className="mt-6">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                  >
+                  <button type="submit" disabled={submitting} className="app-btn-primary">
                     {submitting ? 'Submitting...' : 'Submit Refund Request'}
                   </button>
                 </div>
@@ -171,57 +157,36 @@ export default function RefundsPage() {
           {loading && <LoadingState message="Loading refunds..." />}
 
           {!loading && (
-            <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
+            <div className="app-card">
               {refunds.length === 0 ? (
                 <EmptyState message="You don't have any refund requests yet." />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
-                    <thead className="bg-white/50 dark:bg-zinc-900/50">
+                <div className="app-table-shell">
+                  <table className="app-table">
+                    <thead className="app-table-head">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                          Payment ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                          Reason
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                          Created
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                          Actions
-                        </th>
+                        <th className="app-table-head-cell">Payment ID</th>
+                        <th className="app-table-head-cell">Amount</th>
+                        <th className="app-table-head-cell">Reason</th>
+                        <th className="app-table-head-cell">Status</th>
+                        <th className="app-table-head-cell">Created</th>
+                        <th className="app-table-head-cell text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-200/50 bg-white/50 dark:divide-zinc-800/50 dark:bg-zinc-900/50">
+                    <tbody className="app-table-body">
                       {refunds.map((refund) => (
-                        <tr key={refund.id} className="transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/20">
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-zinc-50">
-                            {refund.payment_id}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-zinc-50">
+                        <tr key={refund.id} className="app-table-row">
+                          <td className="app-table-cell">{refund.payment_id}</td>
+                          <td className="app-table-cell font-medium text-slate-900">
                             {formatCurrency(refund.amount, refund.currency)}
                           </td>
-                          <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
-                            {refund.reason}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4">
+                          <td className="app-table-cell">{refund.reason}</td>
+                          <td className="app-table-cell">
                             <StatusBadge status={refund.status} type="refund" />
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
-                            {formatDate(refund.created_at)}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                            <Link
-                              href={`/refunds/${refund.id}`}
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                            >
+                          <td className="app-table-cell">{formatDate(refund.created_at)}</td>
+                          <td className="app-table-cell text-right">
+                            <Link href={`/refunds/${refund.id}`} className="app-link">
                               View
                             </Link>
                           </td>
@@ -238,4 +203,3 @@ export default function RefundsPage() {
     </AuthGuard>
   );
 }
-

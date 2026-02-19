@@ -53,6 +53,55 @@ export function formatDate(
   return new Date(dateString).toLocaleDateString('en-KE', options || defaultOptions);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * Get HTTP status code from an API error object if available.
+ */
+export function getApiErrorStatus(error: unknown): number | undefined {
+  if (!isRecord(error)) return undefined;
+  const response = error.response;
+  if (!isRecord(response)) return undefined;
+  return typeof response.status === 'number' ? response.status : undefined;
+}
+
+/**
+ * Extract a user-friendly message from API/client errors.
+ */
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (isRecord(error)) {
+    const response = error.response;
+    if (isRecord(response)) {
+      const data = response.data;
+      if (typeof data === 'string' && data.trim()) return data;
+
+      if (isRecord(data)) {
+        if (typeof data.error === 'string' && data.error.trim()) return data.error;
+        if (typeof data.message === 'string' && data.message.trim()) return data.message;
+
+        const errors = data.errors;
+        if (Array.isArray(errors)) {
+          const message = errors.find((item) => typeof item === 'string');
+          if (typeof message === 'string' && message.trim()) return message;
+        }
+
+        const status = data.status;
+        if (isRecord(status) && typeof status.message === 'string' && status.message.trim()) {
+          return status.message;
+        }
+      }
+    }
+
+    if (typeof error.message === 'string' && error.message.trim()) {
+      return error.message;
+    }
+  }
+
+  return fallback;
+}
+
 /**
  * Get status badge color classes based on status type and value
  * @param status - Status value (e.g., 'active', 'paid', 'completed')
@@ -62,35 +111,35 @@ export function formatDate(
 export function getStatusColor(status: string, type: 'subscription' | 'invoice' | 'refund' | 'payment' | 'system' = 'subscription'): string {
   const statusMap: Record<string, Record<string, string>> = {
     subscription: {
-      active: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      trial: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-      suspended: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-      cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+      active: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+      trial: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+      suspended: 'border-amber-200 bg-amber-50 text-amber-800',
+      cancelled: 'border-red-200 bg-red-50 text-red-800',
     },
     invoice: {
-      paid: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      overdue: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
-      sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-      draft: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400',
+      paid: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+      overdue: 'border-red-200 bg-red-50 text-red-800',
+      sent: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+      draft: 'border-slate-200 bg-slate-100 text-slate-700',
     },
     refund: {
-      completed: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-      failed: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
-      pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+      completed: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+      processing: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+      failed: 'border-red-200 bg-red-50 text-red-800',
+      pending: 'border-amber-200 bg-amber-50 text-amber-800',
     },
     payment: {
-      completed: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-      failed: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+      completed: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+      pending: 'border-amber-200 bg-amber-50 text-amber-800',
+      failed: 'border-red-200 bg-red-50 text-red-800',
     },
     system: {
-      ok: 'text-green-600 dark:text-green-400',
-      error: 'text-red-600 dark:text-red-400',
-      warning: 'text-yellow-600 dark:text-yellow-400',
+      ok: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      error: 'border-red-200 bg-red-50 text-red-700',
+      warning: 'border-amber-200 bg-amber-50 text-amber-700',
     },
   };
   
   return statusMap[type]?.[status.toLowerCase()] || 
-         'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/20 dark:text-zinc-400';
+         'border-slate-200 bg-slate-100 text-slate-700';
 }

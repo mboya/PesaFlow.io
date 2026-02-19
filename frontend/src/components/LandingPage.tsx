@@ -1,862 +1,510 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
-import { 
-  CreditCard, 
-  Smartphone, 
-  Repeat, 
-  Shield, 
-  BarChart3, 
-  Users, 
-  CheckCircle2,
-  ArrowRight,
-  Zap,
-  Globe,
-  Receipt,
-  TrendingUp,
-  Clock,
-  Lock
-} from 'lucide-react';
+import { useMemo, useState } from 'react';
+
+type SegmentKey = 'saas' | 'education' | 'utilities';
+
+type Capability = {
+  title: string;
+  description: string;
+};
+
+type SegmentBlueprint = {
+  label: string;
+  headline: string;
+  description: string;
+  priorities: string[];
+  metric: string;
+};
+
+const capabilities: Capability[] = [
+  {
+    title: 'Recurring billing engine',
+    description: 'Create daily, weekly, monthly, and yearly plans with automated charge scheduling.',
+  },
+  {
+    title: 'M-Pesa payment orchestration',
+    description: 'Run STK Push, Ratiba standing orders, C2B collections, and B2C payouts from one flow.',
+  },
+  {
+    title: 'Failed payment recovery',
+    description: 'Recover missed collections with retries, reminders, and status tracking in real time.',
+  },
+  {
+    title: 'Invoice and receipt automation',
+    description: 'Generate billing artifacts per cycle so finance and support stay synchronized.',
+  },
+  {
+    title: 'Tenant-safe architecture',
+    description: 'Operate multiple teams or clients with isolated data, users, and billing contexts.',
+  },
+  {
+    title: 'Operations analytics',
+    description: 'Track collections, success rates, and subscriber movement from one dashboard.',
+  },
+];
+
+const paymentRails = [
+  {
+    title: 'Ratiba Standing Orders',
+    description: 'Set recurring debits for predictable monthly collections.',
+  },
+  {
+    title: 'STK Push',
+    description: 'Trigger phone-based payment prompts for onboarding and retries.',
+  },
+  {
+    title: 'C2B Collections',
+    description: 'Accept customer payments via paybill and till workflows.',
+  },
+  {
+    title: 'B2C Payouts',
+    description: 'Process customer refunds and disbursements with callback tracking.',
+  },
+];
+
+const operationsFlow = [
+  {
+    step: '01',
+    title: 'Create plan and billing cadence',
+    description: 'Define plan price, frequency, and trial behavior for each subscriber segment.',
+  },
+  {
+    step: '02',
+    title: 'Activate customer payment method',
+    description: 'Initialize STK Push or Ratiba and confirm payment authorization.',
+  },
+  {
+    step: '03',
+    title: 'Automate renewals and retries',
+    description: 'Run recurring collections and recover failed attempts without manual intervention.',
+  },
+  {
+    step: '04',
+    title: 'Monitor and optimize collections',
+    description: 'Use live metrics and invoices to improve success rates and retention.',
+  },
+];
+
+const segments: Record<SegmentKey, SegmentBlueprint> = {
+  saas: {
+    label: 'SaaS Products',
+    headline: 'Convert trials and keep renewals predictable',
+    description:
+      'Align onboarding, first payment, and renewal events so product growth and billing health move together.',
+    priorities: [
+      'Auto-convert trials into paid plans on schedule.',
+      'Trigger renewal reminders before charge windows.',
+      'Surface churn-risk accounts for proactive saves.',
+    ],
+    metric: 'Focus metric: trial-to-paid conversion and successful renewals.',
+  },
+  education: {
+    label: 'Education Platforms',
+    headline: 'Collect tuition and cohort fees on-time',
+    description:
+      'Standardize recurring student payments and reduce manual follow-up with automated billing cycles.',
+    priorities: [
+      'Group plans by class, cohort, or intake.',
+      'Automate parent or student reminder sequences.',
+      'Issue receipts instantly after each payment.',
+    ],
+    metric: 'Focus metric: monthly collection completion rate.',
+  },
+  utilities: {
+    label: 'Membership & Utilities',
+    headline: 'Keep recurring service accounts active',
+    description:
+      'Support high-volume recurring collections with robust retries and transparent account histories.',
+    priorities: [
+      'Track failed payments with reason-level visibility.',
+      'Recover accounts before service disruption.',
+      'Run refund workflows when needed via B2C.',
+    ],
+    metric: 'Focus metric: failed-payment recovery percentage.',
+  },
+};
+
+function formatKes(value: number) {
+  return new Intl.NumberFormat('en-KE', {
+    style: 'currency',
+    currency: 'KES',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 export function LandingPage() {
-  const [visibleSections, setVisibleSections] = useState<Set<number>>(new Set());
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [segment, setSegment] = useState<SegmentKey>('saas');
+  const [subscribers, setSubscribers] = useState(500);
+  const [planValue, setPlanValue] = useState(2000);
+  const [failedRate, setFailedRate] = useState(9);
+  const [recoveryRate, setRecoveryRate] = useState(46);
 
-  useEffect(() => {
-    const observers: IntersectionObserver[] = [];
+  const activeSegment = segments[segment];
 
-    sectionRefs.current.forEach((ref, index) => {
-      if (!ref) return;
+  const estimation = useMemo(() => {
+    const monthlyBilling = subscribers * planValue;
+    const atRisk = monthlyBilling * (failedRate / 100);
+    const recovered = atRisk * (recoveryRate / 100);
+    const collected = monthlyBilling - atRisk + recovered;
+    const collectionRate = monthlyBilling > 0 ? (collected / monthlyBilling) * 100 : 0;
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setVisibleSections((prev) => new Set(prev).add(index));
-            }
-          });
-        },
-        {
-          threshold: 0.1,
-          rootMargin: '0px 0px -100px 0px',
-        }
-      );
-
-      observer.observe(ref);
-      observers.push(observer);
-    });
-
-    return () => {
-      observers.forEach((observer) => observer.disconnect());
+    return {
+      monthlyBilling,
+      atRisk,
+      recovered,
+      annualRecovered: recovered * 12,
+      collectionRate,
     };
-  }, []);
-  const features = [
-    {
-      icon: Repeat,
-      title: 'Automated Recurring Billing',
-      description: 'Set up subscriptions with flexible billing cycles - daily, weekly, monthly, or yearly. Automatic payment processing ensures you never miss a payment.',
-    },
-    {
-      icon: Smartphone,
-      title: 'M-Pesa Integration',
-      description: 'Seamlessly integrate with M-Pesa payment methods including Ratiba (Standing Orders), STK Push, C2B, and B2C for comprehensive payment coverage.',
-    },
-    {
-      icon: Users,
-      title: 'Multi-Tenant Architecture',
-      description: 'Perfect for SaaS businesses. Each tenant operates independently with their own subscriptions, customers, and payment methods.',
-    },
-    {
-      icon: Shield,
-      title: 'Secure & Reliable',
-      description: 'Enterprise-grade security with encrypted credentials, secure API endpoints, and comprehensive audit trails for all transactions.',
-    },
-    {
-      icon: BarChart3,
-      title: 'Real-Time Analytics',
-      description: 'Track subscription metrics, payment success rates, revenue, and customer insights with real-time dashboards and reports.',
-    },
-    {
-      icon: Receipt,
-      title: 'Invoice Management',
-      description: 'Automatically generate invoices for each billing cycle. Track payment history, outstanding amounts, and manage refunds effortlessly.',
-    },
-  ];
-
-  const paymentMethods = [
-    {
-      name: 'Ratiba (Standing Orders)',
-      description: 'Set up automatic recurring payments via M-Pesa Ratiba. Customers authorize once, and payments are processed automatically on schedule.',
-      icon: Repeat,
-    },
-    {
-      name: 'STK Push',
-      description: 'Send payment requests directly to customer phones via M-Pesa STK Push. Perfect for one-time payments or manual subscription activation.',
-      icon: Smartphone,
-    },
-    {
-      name: 'C2B (Customer to Business)',
-      description: 'Accept payments from customers using M-Pesa Paybill or Till numbers. Ideal for high-volume transactions.',
-      icon: CreditCard,
-    },
-    {
-      name: 'B2C (Business to Customer)',
-      description: 'Send payments to customers for refunds, payouts, or disbursements. Fully automated with webhook callbacks.',
-      icon: ArrowRight,
-    },
-  ];
-
-  const steps = [
-    {
-      step: '1',
-      title: 'Create Subscription Plan',
-      description: 'Define your subscription details including name, amount, billing frequency, and optional trial period.',
-    },
-    {
-      step: '2',
-      title: 'Add Customer',
-      description: 'Register customers with their phone numbers and preferred payment method. Multi-tenant support ensures data isolation.',
-    },
-    {
-      step: '3',
-      title: 'Setup Payment Method',
-      description: 'Configure M-Pesa payment method (Ratiba, STK Push, or C2B) and authorize the first payment.',
-    },
-    {
-      step: '4',
-      title: 'Automated Billing',
-      description: 'The system automatically processes payments on schedule, sends invoices, and handles failed payments with retry logic.',
-    },
-  ];
+  }, [subscribers, planValue, failedRate, recoveryRate]);
 
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/20 to-transparent rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/20 to-transparent rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-zinc-100/10 to-transparent rounded-full blur-3xl"></div>
-      </div>
+    <div className="landing-shell relative min-h-screen overflow-x-clip">
+      <div className="landing-grid absolute inset-0 -z-20" aria-hidden="true" />
+      <div className="landing-noise absolute inset-0 -z-10" aria-hidden="true" />
+      <div className="landing-orb landing-orb-one absolute -left-24 top-0 -z-10 h-80 w-80 rounded-full blur-3xl" aria-hidden="true" />
+      <div className="landing-orb landing-orb-two absolute right-0 top-44 -z-10 h-[26rem] w-[26rem] rounded-full blur-3xl" aria-hidden="true" />
 
-      {/* Navigation */}
-      <nav className="border-b border-zinc-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center">
-              <Zap className="h-6 w-6 text-zinc-900 mr-2" />
-              <span className="text-xl font-bold text-zinc-900">PesaFlow</span>
+      <nav className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-lg">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div>
+              <p className="font-display text-base font-semibold text-slate-900">PesaFlow</p>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-500">Subscription Billing</p>
             </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/login"
-                className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2"
-              >
-                Get Started
-              </Link>
-            </div>
+          </div>
+
+          <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
+            <a href="#features" className="transition-colors hover:text-slate-900">Features</a>
+            <a href="#payments" className="transition-colors hover:text-slate-900">Payments</a>
+            <a href="#use-cases" className="transition-colors hover:text-slate-900">Use Cases</a>
+            <a href="#estimator" className="transition-colors hover:text-slate-900">Estimator</a>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Get Started
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-white py-20 sm:py-32">
-        {/* Animated background shapes */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-tl from-pink-400/30 to-purple-400/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
+      <main className="mx-auto w-full max-w-7xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16 lg:px-8 lg:pt-20">
+        <section className="grid gap-8 lg:grid-cols-[1.06fr_0.94fr] lg:items-start">
+          <div className="landing-rise">
+            <span className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">
+              M-Pesa native subscription platform
+            </span>
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mx-auto max-w-3xl text-center">
-            {/* Hero Icon/Visual */}
-            <div className="flex justify-center mb-8">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-gradient-to-br from-blue-500 to-purple-600 p-6 rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300">
-                  <Zap className="h-16 w-16 text-white" />
-                </div>
-              </div>
-            </div>
-            
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight text-zinc-900 px-4">
-              Subscription Billing
-              <span className="block text-lg sm:text-xl lg:text-2xl text-zinc-600 mt-2 font-normal">
-                Powered by M-Pesa
-              </span>
+            <h1 className="mt-6 max-w-3xl font-display text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl lg:text-6xl">
+              Automate recurring billing with M-Pesa from signup to recovery.
             </h1>
-            <p className="mt-6 text-lg leading-8 text-zinc-600">
-              Automate recurring payments, manage subscriptions, and grow your business with Kenya's most trusted payment platform. 
-              Built for SaaS companies, service providers, and businesses that need reliable subscription billing.
+
+            <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+              PesaFlow helps teams run subscription billing end-to-end: recurring collections, failed payment retries, invoices, refunds, and
+              tenant-safe operations in one system.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/signup"
-                className="rounded-md bg-zinc-900 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-600"
+                className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-500"
               >
-                Start Free Trial
+                Start Free Workspace
               </Link>
               <Link
                 href="/login"
-                className="text-base font-semibold leading-6 text-zinc-900"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
-                Sign In <span aria-hidden="true">→</span>
+                Open Existing Account
               </Link>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-24 sm:py-32 bg-zinc-50/30 relative">
-        {/* Gradient separator */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
-        {/* Decorative grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] opacity-40"></div>
-        
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="inline-flex items-center justify-center mb-4">
-              <div className="flex gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-150"></div>
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce delay-300"></div>
-              </div>
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-              Everything you need to manage subscriptions
-            </h2>
-            <p className="mt-2 text-lg leading-8 text-zinc-600">
-              Powerful features designed to streamline your subscription billing workflow.
-            </p>
-          </div>
-          <div className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-            {features.map((feature, index) => (
-              <div
-                key={feature.title}
-                className="group flex flex-col rounded-2xl bg-zinc-50 p-8 border border-zinc-200/50 hover:border-blue-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
-              >
-                {/* Decorative gradient background */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-300 -z-10"></div>
-                
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                    <div className="relative flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                      <feature.icon className="h-6 w-6 text-white" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-semibold leading-7 text-zinc-900">
-                    {feature.title}
-                  </h3>
-                </div>
-                <p className="text-base leading-7 text-zinc-600">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Payment Methods Section */}
-      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
-        {/* Gradient separator */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500"></div>
-        {/* Animated circles */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-          <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-2xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-tl from-cyan-400/20 to-teal-400/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mx-auto max-w-2xl text-center">
-            {/* Visual icon */}
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-blue-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-gradient-to-br from-green-500 to-blue-600 p-4 rounded-full">
-                  <CreditCard className="h-8 w-8 text-white" />
-                </div>
-              </div>
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-              Multiple M-Pesa Payment Options
-            </h2>
-            <p className="mt-2 text-lg leading-8 text-zinc-600">
-              Support all M-Pesa payment methods to give your customers flexibility and convenience.
-            </p>
-          </div>
-          <div className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-2">
-            {paymentMethods.map((method, index) => (
-              <div
-                key={method.name}
-                className="group relative flex gap-6 rounded-2xl bg-white p-8 shadow-sm border border-zinc-200/50 hover:border-green-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
-              >
-                {/* Gradient accent */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                
-                <div className="relative flex-shrink-0">
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-blue-500 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity"></div>
-                  <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-blue-600 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <method.icon className="h-7 w-7 text-white" />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold leading-7 text-zinc-900">
-                    {method.name}
-                  </h3>
-                  <p className="mt-2 text-base leading-7 text-zinc-600">
-                    {method.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-24 sm:py-32 bg-zinc-50/30 relative">
-        {/* Gradient separator */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500"></div>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            {/* Visual element */}
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-gradient-to-br from-purple-500 to-pink-600 p-4 rounded-full">
-                  <Clock className="h-8 w-8 text-white" />
-                </div>
-              </div>
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-              How It Works
-            </h2>
-            <p className="mt-2 text-lg leading-8 text-zinc-600">
-              Get started in minutes with our simple setup process.
-            </p>
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
-            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
-              {steps.map((step, index) => (
-                <div key={step.step} className="relative pl-16 group">
-                  <dt className="text-base font-semibold leading-7 text-zinc-900">
-                    <div className="absolute left-0 top-0 group-hover:scale-110 transition-transform duration-300">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                      <div className="relative flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
-                        <span className="text-lg font-bold text-white">{step.step}</span>
-                      </div>
-                    </div>
-                    {step.title}
-                  </dt>
-                  <dd className="mt-2 text-base leading-7 text-zinc-600">
-                    {step.description}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
-        {/* Gradient separator */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
-        {/* Animated background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
-            backgroundSize: '40px 40px'
-          }}></div>
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mx-auto max-w-2xl text-center">
-            {/* Visual icon */}
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 p-4 rounded-full">
-                  <TrendingUp className="h-8 w-8 text-white" />
-                </div>
-              </div>
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-              Why Choose PesaFlow?
-            </h2>
-            <p className="mt-4 text-lg text-zinc-600">
-              Powerful features that make subscription billing effortless
-            </p>
-          </div>
-          <div className="mx-auto max-w-6xl mt-16">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-10 grid gap-3 sm:grid-cols-3">
               {[
-                {
-                  icon: Repeat,
-                  title: 'Auto Retry',
-                  description: 'Automated payment retry logic for failed transactions',
-                  color: 'from-blue-500 to-cyan-500',
-                },
-                {
-                  icon: Clock,
-                  title: 'Trial Support',
-                  description: 'Trial period support with automatic conversion',
-                  color: 'from-purple-500 to-pink-500',
-                },
-                {
-                  icon: Zap,
-                  title: 'Real-Time',
-                  description: 'Comprehensive webhook system for real-time updates',
-                  color: 'from-yellow-500 to-orange-500',
-                },
-                {
-                  icon: Globe,
-                  title: 'Multi-Currency',
-                  description: 'Multi-currency support (KES default)',
-                  color: 'from-green-500 to-emerald-500',
-                },
-                {
-                  icon: Shield,
-                  title: 'Audit Logs',
-                  description: 'Detailed audit logs and transaction history',
-                  color: 'from-indigo-500 to-blue-500',
-                },
-                {
-                  icon: Users,
-                  title: 'Self-Service',
-                  description: 'Customer self-service portal for subscription management',
-                  color: 'from-pink-500 to-rose-500',
-                },
-                {
-                  icon: BarChart3,
-                  title: 'Flexible Billing',
-                  description: 'Flexible billing cycles (daily, weekly, monthly, yearly)',
-                  color: 'from-teal-500 to-cyan-500',
-                },
-                {
-                  icon: Receipt,
-                  title: 'Auto Invoices',
-                  description: 'Automatic invoice generation and delivery',
-                  color: 'from-amber-500 to-yellow-500',
-                },
-              ].map((benefit, index) => (
+                'Recurring plan automation',
+                'M-Pesa payment method coverage',
+                'Live collection monitoring',
+              ].map((item, index) => (
                 <div
-                  key={benefit.title}
-                  className="group relative rounded-2xl bg-white/80 backdrop-blur-sm p-6 border border-amber-200/50 hover:border-amber-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                  key={item}
+                  className="landing-panel landing-stagger rounded-2xl border border-slate-200 bg-white/90 px-4 py-4"
+                  style={{ animationDelay: `${index * 90}ms` }}
                 >
-                  {/* Gradient accent on hover */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${benefit.color} rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                  
-                  {/* Icon */}
-                  <div className="relative mb-4">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${benefit.color} rounded-xl blur opacity-0 group-hover:opacity-30 transition-opacity duration-300`}></div>
-                    <div className={`relative inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${benefit.color} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                      <benefit.icon className="h-6 w-6 text-white" />
-                    </div>
-                  </div>
-                  
-                  {/* Content */}
-                  <h3 className="text-lg font-semibold text-zinc-900 mb-2">
-                    {benefit.title}
-                  </h3>
-                  <p className="text-sm text-zinc-600 leading-relaxed">
-                    {benefit.description}
-                  </p>
-                  
-                  {/* Decorative element */}
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-0 group-hover:opacity-50 transition-opacity"></div>
+                  <p className="text-sm font-medium text-slate-700">{item}</p>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Screenshots/Workflow Section */}
-      <section className="py-24 sm:py-32 bg-zinc-50/30 relative overflow-hidden">
-        {/* Gradient separator */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500"></div>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-              See It In Action
+          <aside
+            id="estimator"
+            className="landing-panel landing-rise rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-[0_24px_64px_-40px_rgba(15,23,42,0.38)] sm:p-8"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Collection estimator</p>
+                <h2 className="mt-1 font-display text-2xl font-semibold text-slate-900">Monthly billing impact</h2>
+              </div>
+              <div className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-right">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Annual recovered</p>
+                <p className="font-display text-xl font-semibold text-teal-900">{formatKes(estimation.annualRecovered)}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-5">
+              <label className="block">
+                <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
+                  <span>Active subscribers</span>
+                  <span>{subscribers.toLocaleString()}</span>
+                </div>
+                <input
+                  type="range"
+                  min={50}
+                  max={10000}
+                  step={10}
+                  value={subscribers}
+                  onChange={(event) => setSubscribers(Number(event.target.value))}
+                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                />
+              </label>
+
+              <label className="block">
+                <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
+                  <span>Average monthly plan (KES)</span>
+                  <span>{formatKes(planValue)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={300}
+                  max={15000}
+                  step={100}
+                  value={planValue}
+                  onChange={(event) => setPlanValue(Number(event.target.value))}
+                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                />
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
+                    <span>Failed payment rate</span>
+                    <span>{failedRate}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={35}
+                    step={1}
+                    value={failedRate}
+                    onChange={(event) => setFailedRate(Number(event.target.value))}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                  />
+                </label>
+
+                <label className="block">
+                  <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
+                    <span>Recovery rate</span>
+                    <span>{recoveryRate}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={5}
+                    max={95}
+                    step={1}
+                    value={recoveryRate}
+                    onChange={(event) => setRecoveryRate(Number(event.target.value))}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Monthly billing</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(estimation.monthlyBilling)}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">At-risk collections</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(estimation.atRisk)}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Recovered monthly</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(estimation.recovered)}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Net collection rate</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{estimation.collectionRate.toFixed(1)}%</p>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section id="features" className="mt-20 sm:mt-24">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Core capabilities</p>
+            <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 sm:text-4xl">
+              Everything your team needs to run subscription billing operations
             </h2>
-            <p className="mt-4 text-lg text-zinc-600">
-              Experience the complete subscription billing workflow
+            <p className="mt-4 text-base leading-7 text-slate-600">
+              From onboarding to renewal recovery, PesaFlow keeps billing workflows predictable and auditable.
             </p>
           </div>
 
-          <div className="space-y-16">
-            {/* Dashboard Screenshot */}
-            <div 
-              ref={(el) => { sectionRefs.current[0] = el; }}
-              className={`flex flex-col lg:flex-row items-center gap-12 transition-all duration-1000 ${
-                visibleSections.has(0)
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-10'
-              }`}
-            >
-              <div className="flex-1">
-                <div className="relative group">
-                  {/* Screenshot placeholder - Replace with actual screenshot */}
-                  <div className="relative rounded-2xl bg-white border-4 border-zinc-200 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-blue-500/20 group-hover:scale-[1.02] group-hover:border-blue-300">
-                    <div className="bg-zinc-100 px-4 py-3 flex items-center gap-2 border-b border-zinc-200">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <div className="ml-4 text-xs text-zinc-500">Dashboard - PesaFlow</div>
-                    </div>
-                    <div className="p-8 bg-white min-h-[400px] flex items-center justify-center">
-                      {/* TODO: Replace this div with actual dashboard screenshot */}
-                      <div className="text-center">
-                        <BarChart3 className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
-                        <p className="text-sm text-zinc-500">
-                          Dashboard Screenshot
-                          <br />
-                          <span className="text-xs">Add screenshot: /app/dashboard/page.tsx</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Decorative shadow */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl blur-2xl -z-10 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-500"></div>
-                  {/* Animated glow effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-20"></div>
-                </div>
-              </div>
-              <div className={`flex-1 space-y-4 transition-all duration-1000 delay-200 ${
-                visibleSections.has(0)
-                  ? 'opacity-100 translate-x-0'
-                  : 'opacity-0 translate-x-10'
-              }`}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-blue-900">Step 1</span>
-                </div>
-                <h3 className="text-2xl font-bold text-zinc-900">
-                  Dashboard Overview
-                </h3>
-                <p className="text-zinc-600 leading-relaxed">
-                  Get a complete overview of your subscription business at a glance. View active subscriptions, 
-                  revenue metrics, recent payments, and upcoming billing dates all in one place.
-                </p>
-                <ul className="space-y-2 text-sm text-zinc-600">
-                  {[
-                    'Real-time subscription metrics',
-                    'Revenue tracking and analytics',
-                    'Quick access to all features',
-                  ].map((item, idx) => (
-                    <li 
-                      key={item}
-                      className={`flex items-start gap-2 transition-all duration-500 ${
-                        visibleSections.has(0)
-                          ? 'opacity-100 translate-x-0'
-                          : 'opacity-0 -translate-x-4'
-                      }`}
-                      style={{ transitionDelay: `${300 + idx * 100}ms` }}
-                    >
-                      <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Subscriptions Screenshot */}
-            <div 
-              ref={(el) => { sectionRefs.current[1] = el; }}
-              className={`flex flex-col lg:flex-row-reverse items-center gap-12 transition-all duration-1000 delay-300 ${
-                visibleSections.has(1)
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-10'
-              }`}
-            >
-              <div className="flex-1">
-                <div className="relative group">
-                  <div className="relative rounded-2xl bg-white border-4 border-zinc-200 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-green-500/20 group-hover:scale-[1.02] group-hover:border-green-300">
-                    <div className="bg-zinc-100 px-4 py-3 flex items-center gap-2 border-b border-zinc-200">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <div className="ml-4 text-xs text-zinc-500">Subscriptions - PesaFlow</div>
-                    </div>
-                    <div className="p-8 bg-white min-h-[400px] flex items-center justify-center">
-                      {/* TODO: Replace this div with actual subscriptions screenshot */}
-                      <div className="text-center">
-                        <Repeat className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
-                        <p className="text-sm text-zinc-500">
-                          Subscriptions Screenshot
-                          <br />
-                          <span className="text-xs">Add screenshot: /app/subscriptions/page.tsx</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl blur-2xl -z-10 group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-500"></div>
-                  {/* Animated glow effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-20"></div>
-                </div>
-              </div>
-              <div className={`flex-1 space-y-4 transition-all duration-1000 delay-500 ${
-                visibleSections.has(1)
-                  ? 'opacity-100 -translate-x-0'
-                  : 'opacity-0 -translate-x-10'
-              }`}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 rounded-full">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-900">Step 2</span>
-                </div>
-                <h3 className="text-2xl font-bold text-zinc-900">
-                  Manage Subscriptions
-                </h3>
-                <p className="text-zinc-600 leading-relaxed">
-                  Create and manage all your subscription plans with ease. Set up billing cycles, 
-                  trial periods, and payment methods. View subscription status, payment history, and manage customer subscriptions.
-                </p>
-                <ul className="space-y-2 text-sm text-zinc-600">
-                  {[
-                    'Create subscription plans',
-                    'Track subscription status',
-                    'Manage billing cycles',
-                  ].map((item, idx) => (
-                    <li 
-                      key={item}
-                      className={`flex items-start gap-2 transition-all duration-500 ${
-                        visibleSections.has(1)
-                          ? 'opacity-100 translate-x-0'
-                          : 'opacity-0 translate-x-4'
-                      }`}
-                      style={{ transitionDelay: `${600 + idx * 100}ms` }}
-                    >
-                      <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Payment Methods Screenshot */}
-            <div 
-              ref={(el) => { sectionRefs.current[2] = el; }}
-              className={`flex flex-col lg:flex-row items-center gap-12 transition-all duration-1000 delay-600 ${
-                visibleSections.has(2)
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-10'
-              }`}
-            >
-              <div className="flex-1">
-                <div className="relative group">
-                  <div className="relative rounded-2xl bg-white border-4 border-zinc-200 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-purple-500/20 group-hover:scale-[1.02] group-hover:border-purple-300">
-                    <div className="bg-zinc-100 px-4 py-3 flex items-center gap-2 border-b border-zinc-200">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <div className="ml-4 text-xs text-zinc-500">Payment Methods - PesaFlow</div>
-                    </div>
-                    <div className="p-8 bg-white min-h-[400px] flex items-center justify-center">
-                      {/* TODO: Replace this div with actual payment methods screenshot */}
-                      <div className="text-center">
-                        <CreditCard className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
-                        <p className="text-sm text-zinc-500">
-                          Payment Methods Screenshot
-                          <br />
-                          <span className="text-xs">Add screenshot: /app/payment-methods/page.tsx</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl blur-2xl -z-10 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-500"></div>
-                  {/* Animated glow effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-20"></div>
-                </div>
-              </div>
-              <div className={`flex-1 space-y-4 transition-all duration-1000 delay-800 ${
-                visibleSections.has(2)
-                  ? 'opacity-100 translate-x-0'
-                  : 'opacity-0 translate-x-10'
-              }`}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-purple-900">Step 3</span>
-                </div>
-                <h3 className="text-2xl font-bold text-zinc-900">
-                  Setup Payment Methods
-                </h3>
-                <p className="text-zinc-600 leading-relaxed">
-                  Configure M-Pesa payment methods including Ratiba standing orders, STK Push, and C2B. 
-                  Set up automatic recurring payments and manage payment preferences for your customers.
-                </p>
-                <ul className="space-y-2 text-sm text-zinc-600">
-                  {[
-                    'M-Pesa Ratiba integration',
-                    'STK Push payments',
-                    'Automatic payment processing',
-                  ].map((item, idx) => (
-                    <li 
-                      key={item}
-                      className={`flex items-start gap-2 transition-all duration-500 ${
-                        visibleSections.has(2)
-                          ? 'opacity-100 translate-x-0'
-                          : 'opacity-0 -translate-x-4'
-                      }`}
-                      style={{ transitionDelay: `${900 + idx * 100}ms` }}
-                    >
-                      <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Invoices Screenshot */}
-            <div 
-              ref={(el) => { sectionRefs.current[3] = el; }}
-              className={`flex flex-col lg:flex-row-reverse items-center gap-12 transition-all duration-1000 delay-900 ${
-                visibleSections.has(3)
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-10'
-              }`}
-            >
-              <div className="flex-1">
-                <div className="relative group">
-                  <div className="relative rounded-2xl bg-white border-4 border-zinc-200 shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-amber-500/20 group-hover:scale-[1.02] group-hover:border-amber-300">
-                    <div className="bg-zinc-100 px-4 py-3 flex items-center gap-2 border-b border-zinc-200">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <div className="ml-4 text-xs text-zinc-500">Invoices - PesaFlow</div>
-                    </div>
-                    <div className="p-8 bg-white min-h-[400px] flex items-center justify-center">
-                      {/* TODO: Replace this div with actual invoices screenshot */}
-                      <div className="text-center">
-                        <Receipt className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
-                        <p className="text-sm text-zinc-500">
-                          Invoices Screenshot
-                          <br />
-                          <span className="text-xs">Add screenshot: /app/invoices/page.tsx</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl blur-2xl -z-10 group-hover:from-amber-500/30 group-hover:to-orange-500/30 transition-all duration-500"></div>
-                  {/* Animated glow effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-20"></div>
-                </div>
-              </div>
-              <div className={`flex-1 space-y-4 transition-all duration-1000 delay-1100 ${
-                visibleSections.has(3)
-                  ? 'opacity-100 -translate-x-0'
-                  : 'opacity-0 -translate-x-10'
-              }`}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 rounded-full">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-amber-900">Step 4</span>
-                </div>
-                <h3 className="text-2xl font-bold text-zinc-900">
-                  Automatic Invoicing
-                </h3>
-                <p className="text-zinc-600 leading-relaxed">
-                  Automatically generate and send invoices for every billing cycle. Track payment status, 
-                  view invoice history, and manage outstanding balances. All invoices are automatically created when payments are processed.
-                </p>
-                <ul className="space-y-2 text-sm text-zinc-600">
-                  {[
-                    'Auto-generated invoices',
-                    'Payment tracking',
-                    'Download and share invoices',
-                  ].map((item, idx) => (
-                    <li 
-                      key={item}
-                      className={`flex items-start gap-2 transition-all duration-500 ${
-                        visibleSections.has(3)
-                          ? 'opacity-100 translate-x-0'
-                          : 'opacity-0 translate-x-4'
-                      }`}
-                      style={{ transitionDelay: `${1200 + idx * 100}ms` }}
-                    >
-                      <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {capabilities.map((capability, index) => (
+              <article
+                key={capability.title}
+                className="landing-panel landing-stagger rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-[0_20px_50px_-42px_rgba(15,23,42,0.45)]"
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                <h3 className="font-display text-xl font-semibold text-slate-900">{capability.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{capability.description}</p>
+              </article>
+            ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="py-24 sm:py-32 bg-white relative overflow-hidden">
-        {/* Gradient separator */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"></div>
-        {/* Subtle decorative background */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-zinc-200/10 to-transparent rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mx-auto max-w-2xl text-center">
-            {/* Visual element */}
-            <div className="flex justify-center mb-8">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-200 to-blue-200 rounded-full blur-2xl opacity-50 animate-pulse"></div>
-                <div className="relative bg-gradient-to-br from-zinc-100 to-zinc-50 backdrop-blur-sm p-6 rounded-2xl border border-zinc-200/50">
-                  <Lock className="h-12 w-12 text-zinc-900" />
-                </div>
-              </div>
-            </div>
-            
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-              Ready to streamline your subscription billing?
+        <section id="payments" className="mt-20 rounded-3xl border border-slate-200 bg-white/95 p-6 sm:mt-24 sm:p-10">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">M-Pesa rails</p>
+            <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 sm:text-4xl">
+              Support every subscription payment moment
             </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-zinc-600">
-              Join businesses already using PesaFlow to automate their recurring payments and grow their revenue.
+            <p className="mt-4 text-base leading-7 text-slate-600">
+              Handle onboarding payments, recurring debits, and refund flows with webhook-backed updates.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link
-                href="/signup"
-                className="group relative rounded-md bg-zinc-900 px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-600 transition-all duration-300 hover:scale-105"
-              >
-                <span className="relative z-10">Get Started Free</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-md opacity-0 group-hover:opacity-20 transition-opacity"></div>
-              </Link>
-              <Link
-                href="/login"
-                className="group text-base font-semibold leading-6 text-zinc-900 hover:text-zinc-700 transition-colors flex items-center gap-2"
-              >
-                Sign In 
-                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
           </div>
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-zinc-200">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <div className="flex items-center">
-              <Zap className="h-6 w-6 text-zinc-900 mr-2" />
-              <span className="text-lg font-semibold text-zinc-900">PesaFlow</span>
-            </div>
-            <p className="text-sm text-zinc-600">
-              © {new Date().getFullYear()} PesaFlow.io. All rights reserved.
-            </p>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {paymentRails.map((rail, index) => (
+              <div
+                key={rail.title}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
+                style={{ animationDelay: `${index * 90}ms` }}
+              >
+                <h3 className="font-display text-lg font-semibold text-slate-900">{rail.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{rail.description}</p>
+              </div>
+            ))}
           </div>
+        </section>
+
+        <section className="mt-20 sm:mt-24">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Operational flow</p>
+            <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 sm:text-4xl">
+              From plan setup to reliable monthly collections
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-4 lg:grid-cols-4">
+            {operationsFlow.map((item) => (
+              <article key={item.step} className="rounded-2xl border border-slate-200 bg-white/95 p-5">
+                <p className="text-xs font-semibold tracking-[0.12em] text-teal-700">{item.step}</p>
+                <h3 className="mt-2 font-display text-lg font-semibold text-slate-900">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="use-cases" className="mt-20 rounded-3xl border border-slate-200 bg-white/95 p-6 sm:mt-24 sm:p-10">
+          <div className="grid gap-10 lg:grid-cols-[0.96fr_1.04fr] lg:items-start">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Use cases</p>
+              <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Adapt billing workflows to your business model
+              </h2>
+              <p className="mt-4 text-base leading-7 text-slate-600">
+                Switch context by segment to see where to focus first for healthier recurring revenue.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                {(Object.keys(segments) as SegmentKey[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSegment(key)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      segment === key
+                        ? 'bg-slate-900 text-white'
+                        : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {segments[key].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+              <div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{activeSegment.label}</p>
+                  <h3 className="mt-2 font-display text-2xl font-semibold text-slate-900">{activeSegment.headline}</h3>
+                </div>
+              </div>
+
+              <p className="mt-4 text-sm leading-7 text-slate-600">{activeSegment.description}</p>
+              <p className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800">{activeSegment.metric}</p>
+
+              <ul className="mt-6 space-y-3 text-sm text-slate-700">
+                {activeSegment.priorities.map((priority) => (
+                  <li key={priority}>{priority}</li>
+                ))}
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section className="mt-20 sm:mt-24">
+          <div className="rounded-3xl border border-slate-900 bg-slate-900 px-6 py-10 text-slate-100 sm:px-10 sm:py-12">
+            <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">Launch checklist</p>
+                <h2 className="mt-3 font-display text-3xl font-semibold leading-tight sm:text-4xl">
+                  Go live with subscription billing in one operating stack
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+                  Configure plans, connect customer payment flows, and start collecting recurring payments with built-in billing visibility.
+                </p>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-800/80 p-5">
+                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-300">Included out of the box</p>
+                <ul className="space-y-3 text-sm leading-6 text-slate-100">
+                  <li>Tenant-safe user and data isolation</li>
+                  <li>Automated renewals with retry logic</li>
+                  <li>Invoices, receipts, and refund tracking</li>
+                </ul>
+
+                <div className="pt-2">
+                  <Link
+                    href="/signup"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-teal-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-teal-400"
+                  >
+                    Create Workspace
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-slate-600 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+          <p className="font-medium">PesaFlow powers M-Pesa subscription billing for modern teams.</p>
+          <p>© {new Date().getFullYear()} PesaFlow.io</p>
         </div>
       </footer>
     </div>

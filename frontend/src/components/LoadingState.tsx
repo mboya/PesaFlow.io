@@ -7,8 +7,11 @@ interface LoadingStateProps {
 
 export function LoadingState({ message = 'Loading...', className = '' }: LoadingStateProps) {
   return (
-    <div className={`rounded-lg bg-white p-8 shadow dark:bg-zinc-900 ${className}`}>
-      <p className="text-zinc-600 dark:text-zinc-400">{message}</p>
+    <div className={`app-card p-8 ${className}`}>
+      <div className="flex items-center gap-3">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+        <p className="text-sm text-slate-600">{message}</p>
+      </div>
     </div>
   );
 }

@@ -88,7 +88,7 @@ describe('DashboardPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /^Dashboard$/i })).toBeInTheDocument();
     });
-    expect(screen.getByText(/overview of your subscriptions/i)).toBeInTheDocument();
+    expect(screen.getByText(/monitor collections, renewals/i)).toBeInTheDocument();
   });
 
   it('should display OTP status', async () => {
@@ -202,4 +202,3 @@ describe('DashboardPage', () => {
     });
   });
 });
-

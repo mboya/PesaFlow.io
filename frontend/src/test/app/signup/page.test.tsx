@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import SignupPage from '../../../app/signup/page';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useToast } from '../../../contexts/ToastContext';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -13,6 +14,11 @@ vi.mock('next/navigation', () => ({
 // Mock AuthContext
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
+}));
+
+// Mock ToastContext
+vi.mock('../../../contexts/ToastContext', () => ({
+  useToast: vi.fn(),
 }));
 
 // Mock AuthGuard
@@ -47,6 +53,13 @@ describe('SignupPage', () => {
       otpUserId: null,
       verifyOtpLogin: vi.fn(),
       clearOtpState: vi.fn(),
+    } as any);
+
+    vi.mocked(useToast).mockReturnValue({
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
     } as any);
   });
 
@@ -103,7 +116,7 @@ describe('SignupPage', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/passwords do not match/i).length).toBeGreaterThan(0);
     });
 
     expect(mockSignup).not.toHaveBeenCalled();
@@ -163,4 +176,3 @@ describe('SignupPage', () => {
     expect(screen.getByRole('button', { name: /creating account/i })).toBeDisabled();
   });
 });
-

@@ -29,8 +29,11 @@ export default function Home() {
 
   // Show loading state while checking authentication
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
+    <div className="app-shell flex min-h-screen items-center justify-center px-4">
+      <div className="app-card flex items-center gap-3 px-6 py-4 text-sm text-slate-600">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+        Loading...
+      </div>
     </div>
   );
 }

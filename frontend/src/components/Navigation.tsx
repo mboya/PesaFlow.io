@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export function Navigation() {
@@ -11,6 +10,15 @@ export function Navigation() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const navItems = [
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/subscriptions', label: 'Subscriptions' },
+    { href: '/payment-methods', label: 'Payments' },
+    { href: '/invoices', label: 'Invoices' },
+    { href: '/refunds', label: 'Refunds' },
+    { href: '/settings', label: 'Settings' },
+  ];
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -24,109 +32,76 @@ export function Navigation() {
     }
   };
 
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) =>
+    pathname === path || (path !== '/dashboard' && pathname.startsWith(`${path}/`));
 
   return (
-    <nav className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <nav className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-lg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href="/dashboard" className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-              PesaFlow
+        <div className="flex min-h-16 items-center justify-between gap-4 py-2">
+          <div className="flex min-w-0 items-center gap-6">
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <div className="min-w-0">
+                <p className="font-display text-base font-semibold text-slate-900">PesaFlow</p>
+                <p className="truncate text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Billing Workspace
+                </p>
+              </div>
             </Link>
-            <div className="hidden md:flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isActive('/dashboard')
-                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-                }`}
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/subscriptions"
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isActive('/subscriptions')
-                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-                }`}
-              >
-                Subscriptions
-              </Link>
-              <Link
-                href="/payment-methods"
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isActive('/payment-methods')
-                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-                }`}
-              >
-                Payment Methods
-              </Link>
-              <Link
-                href="/invoices"
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isActive('/invoices')
-                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-                }`}
-              >
-                Invoices
-              </Link>
-              <Link
-                href="/refunds"
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isActive('/refunds')
-                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-                }`}
-              >
-                Refunds
-              </Link>
-              {/* Dev Tools - only in development */}
-              {process.env.NODE_ENV === 'development' && (
-                <a
-                  href="http://localhost:8025"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-2 text-sm font-medium rounded-md transition-colors text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/20 flex items-center gap-1"
-                  title="View sent emails (Mailpit)"
+
+            <div className="hidden items-center gap-1 md:flex">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`rounded-full px-3.5 py-2 text-sm font-medium transition ${
+                    isActive(item.href)
+                      ? 'bg-slate-900 text-white'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  Mail
-                </a>
-              )}
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/settings"
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                isActive('/settings')
-                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-              }`}
-            >
-              Settings
-            </Link>
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            {process.env.NODE_ENV === 'development' && (
+              <a
+                href="http://localhost:8025"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 sm:inline-flex"
+                title="View sent emails (Mailpit)"
+              >
+                Mailpit
+              </a>
+            )}
+            <span className="hidden max-w-[12rem] truncate rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 sm:block">
               {user?.email}
             </span>
-            <button
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
+            <button onClick={handleLogout} disabled={loggingOut} className="app-btn-secondary !px-4 !py-2 !text-xs sm:!text-sm">
               {loggingOut ? 'Logging out...' : 'Logout'}
             </button>
           </div>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-3 md:hidden">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                isActive(item.href)
+                  ? 'bg-slate-900 text-white'
+                  : 'border border-slate-200 bg-white text-slate-600'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
       </div>
     </nav>
   );
 }
-

@@ -22,14 +22,14 @@ export function EmptyState({
     actionHref ? (
       <Link
         href={actionHref}
-        className="inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
+        className="app-btn-primary"
       >
         {actionLabel}
       </Link>
     ) : (
       <button
         onClick={onAction}
-        className="inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
+        className="app-btn-primary"
       >
         {actionLabel}
       </button>
@@ -38,8 +38,8 @@ export function EmptyState({
 
   return (
     <div className="p-8 text-center">
-      {icon && <div className="mb-4 flex justify-center">{icon}</div>}
-      <p className="text-zinc-600 dark:text-zinc-400 mb-4">{message}</p>
+      {icon && <div className="mb-4 flex justify-center text-teal-600">{icon}</div>}
+      <p className="mb-4 text-sm text-slate-600">{message}</p>
       {actionButton}
     </div>
   );

@@ -67,8 +67,9 @@ const config: Config = {
         xl: "calc(var(--radius) + 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans: ["var(--font-sora)", "sans-serif"],
+        display: ["var(--font-plus-jakarta)", "sans-serif"],
+        mono: ["var(--font-space-mono)", "monospace"],
       },
     },
   },

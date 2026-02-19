@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Repeat, DollarSign, CheckCircle2, CreditCard, Clock, TrendingUp, BarChart3 } from 'lucide-react';
 
-import { useAuth } from '@/contexts/AuthContext';
 import {
   AuthGuard,
   Navigation,
   BackgroundDecorations,
   LoadingState,
   ErrorState,
+  PageHeader,
 } from '@/components';
 import {
   RevenueChart,
@@ -20,6 +19,32 @@ import {
 import { dashboardApi } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { DashboardData, Subscription, Payment } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
+
+type DashboardApiError = {
+  response?: {
+    status?: number;
+    data?: unknown;
+  };
+  message?: string;
+};
+
+function SummaryCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="app-card p-5">
+      <div className="mb-4">
+        <span className="text-sm font-medium text-slate-600">{title}</span>
+      </div>
+      <p className="font-display text-3xl font-semibold tracking-tight text-slate-900">{value}</p>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -28,12 +53,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Wait for auth to finish loading before fetching dashboard data
-    if (authLoading) {
-      return;
-    }
-
-    // Only fetch if user is authenticated
+    if (authLoading) return;
     if (!user) {
       setLoading(false);
       return;
@@ -45,12 +65,12 @@ export default function DashboardPage() {
         setError(null);
         const response = await dashboardApi.getData();
         setDashboardData(response.data);
-      } catch (err: any) {
-        // Extract error message from response
+      } catch (error: unknown) {
+        const err = error as DashboardApiError;
         let errorMessage = 'Failed to load dashboard data';
         const status = err.response?.status;
         const data = err.response?.data;
-        
+
         if (status === 401) {
           errorMessage = 'Authentication failed. Please log in again.';
         } else if (status === 403) {
@@ -58,13 +78,20 @@ export default function DashboardPage() {
         } else if (status === 404) {
           errorMessage = 'Customer not found. Please contact support.';
         } else if (data) {
-          errorMessage = typeof data === 'string' 
-            ? data 
-            : data.error || data.message || data.status?.message || errorMessage;
+          if (typeof data === 'string') {
+            errorMessage = data;
+          } else if (typeof data === 'object' && data !== null) {
+            const payload = data as {
+              error?: string;
+              message?: string;
+              status?: { message?: string };
+            };
+            errorMessage = payload.error || payload.message || payload.status?.message || errorMessage;
+          }
         } else if (err.message) {
           errorMessage = err.message;
         }
-        
+
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -74,212 +101,121 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [user, authLoading]);
 
-
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-white relative">
+      <div className="app-shell">
         <BackgroundDecorations />
         <Navigation />
 
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Dashboard
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-              Overview of your subscriptions and account
-            </p>
-          </div>
+        <main className="app-main relative">
+          <PageHeader
+            title="Dashboard"
+            description="Monitor collections, renewals, and account performance at a glance."
+          />
 
           {loading && <LoadingState />}
-
           {error && <ErrorState message={error} onDismiss={() => setError(null)} />}
 
           {dashboardData && !loading && (
             <div className="space-y-6">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                <div className="group relative overflow-hidden rounded-2xl bg-zinc-50 p-6 border border-zinc-200/50 hover:border-blue-300 transition-all duration-300 hover:shadow-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-300"></div>
-                  <div className="relative">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                        <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                          <Repeat className="h-5 w-5 text-white" />
-                        </div>
-                      </div>
-                      <h3 className="text-sm font-medium text-zinc-500">
-                        Active Subscriptions
-                      </h3>
-                    </div>
-                    <p className="text-3xl font-bold text-zinc-900">
-                      {dashboardData.active_subscriptions.length}
-                    </p>
-                  </div>
-                </div>
-                <div className="group relative overflow-hidden rounded-2xl bg-zinc-50 p-6 border border-zinc-200/50 hover:border-purple-300 transition-all duration-300 hover:shadow-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-300"></div>
-                  <div className="relative">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                        <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                          <DollarSign className="h-5 w-5 text-white" />
-                        </div>
-                      </div>
-                      <h3 className="text-sm font-medium text-zinc-500">
-                        Total Outstanding
-                      </h3>
-                    </div>
-                    <p className="text-3xl font-bold text-zinc-900">
-                      {formatCurrency(dashboardData.total_outstanding)}
-                    </p>
-                  </div>
-                </div>
-                <div className="group relative overflow-hidden rounded-2xl bg-zinc-50 p-6 border border-zinc-200/50 hover:border-green-300 transition-all duration-300 hover:shadow-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-green-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-green-500/5 transition-all duration-300"></div>
-                  <div className="relative">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                        <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                          <CheckCircle2 className="h-5 w-5 text-white" />
-                        </div>
-                      </div>
-                      <h3 className="text-sm font-medium text-zinc-500">
-                        Account Status
-                      </h3>
-                    </div>
-                    <p className="text-sm font-medium text-green-600">
-                      {dashboardData.customer.status.charAt(0).toUpperCase() + dashboardData.customer.status.slice(1)}
-                    </p>
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <SummaryCard
+                  title="Active Subscriptions"
+                  value={String(dashboardData.active_subscriptions.length)}
+                />
+                <SummaryCard
+                  title="Total Outstanding"
+                  value={formatCurrency(dashboardData.total_outstanding)}
+                />
+                <SummaryCard
+                  title="Account Status"
+                  value={dashboardData.customer.status.charAt(0).toUpperCase() + dashboardData.customer.status.slice(1)}
+                />
               </div>
 
-              {/* Analytics Section */}
               {dashboardData.analytics && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg blur opacity-50"></div>
-                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
-                        <BarChart3 className="h-4 w-4 text-white" />
-                      </div>
-                    </div>
-                    <h2 className="text-lg font-semibold text-zinc-900">
-                      Analytics & Insights
-                    </h2>
-                  </div>
-
-                  {/* Analytics Summary Cards */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp className="h-4 w-4 text-blue-600" />
-                        <h3 className="text-sm font-medium text-blue-900">Monthly Recurring Revenue</h3>
-                      </div>
-                      <p className="text-2xl font-bold text-blue-900">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="app-card p-4">
+                      <div className="mb-2 text-sm text-slate-600">Monthly Recurring Revenue</div>
+                      <p className="font-display text-2xl font-semibold text-slate-900">
                         {formatCurrency(dashboardData.analytics.mrr)}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200 p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="h-4 w-4 text-green-600" />
-                        <h3 className="text-sm font-medium text-green-900">Total Revenue</h3>
-                      </div>
-                      <p className="text-2xl font-bold text-green-900">
+                    <div className="app-card p-4">
+                      <div className="mb-2 text-sm text-slate-600">Total Revenue</div>
+                      <p className="font-display text-2xl font-semibold text-slate-900">
                         {formatCurrency(dashboardData.analytics.total_revenue)}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200 p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle2 className="h-4 w-4 text-purple-600" />
-                        <h3 className="text-sm font-medium text-purple-900">Payment Success Rate</h3>
-                      </div>
-                      <p className="text-2xl font-bold text-purple-900">
+                    <div className="app-card p-4">
+                      <div className="mb-2 text-sm text-slate-600">Payment Success Rate</div>
+                      <p className="font-display text-2xl font-semibold text-slate-900">
                         {dashboardData.analytics.payment_success_rate}%
                       </p>
                     </div>
                   </div>
 
-                  {/* Charts Grid */}
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    {/* Revenue Trends Chart */}
-                    <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm p-6">
-                      <h3 className="text-base font-semibold text-zinc-900 mb-4">Revenue Trends (Last 14 Days)</h3>
+                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    <div className="app-card p-6">
+                      <h3 className="mb-4 font-display text-base font-semibold text-slate-900">
+                        Revenue Trends (Last 14 Days)
+                      </h3>
                       <RevenueChart data={dashboardData.analytics.revenue_trends} />
                     </div>
 
-                    {/* Payment Success Chart */}
-                    <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm p-6">
-                      <h3 className="text-base font-semibold text-zinc-900 mb-4">Payment Status</h3>
+                    <div className="app-card p-6">
+                      <h3 className="mb-4 font-display text-base font-semibold text-slate-900">Payment Status</h3>
                       <PaymentSuccessChart
                         successRate={dashboardData.analytics.payment_success_rate}
                         stats={dashboardData.analytics.payment_stats}
                       />
                     </div>
 
-                    {/* Subscription Growth Chart */}
-                    <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm p-6 lg:col-span-2">
-                      <h3 className="text-base font-semibold text-zinc-900 mb-4">Subscription Growth (Last 14 Days)</h3>
+                    <div className="app-card p-6 xl:col-span-2">
+                      <h3 className="mb-4 font-display text-base font-semibold text-slate-900">
+                        Subscription Growth (Last 14 Days)
+                      </h3>
                       <SubscriptionGrowthChart data={dashboardData.analytics.subscription_growth} />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Active Subscriptions */}
-              <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
-                <div className="border-b border-zinc-200/50 px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg blur opacity-50"></div>
-                        <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
-                          <Repeat className="h-4 w-4 text-white" />
-                        </div>
-                      </div>
-                      <h2 className="text-lg font-semibold text-zinc-900">
-                        Active Subscriptions
-                      </h2>
-                    </div>
-                    <Link
-                      href="/subscriptions"
-                      className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                    >
-                      View all →
+              <div className="app-card">
+                <div className="app-card-header">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="app-section-title">Active Subscriptions</h2>
+                    <Link href="/subscriptions" className="app-link">
+                      View all
                     </Link>
                   </div>
                 </div>
-                <div className="p-6">
+                <div className="app-card-body">
                   {dashboardData.active_subscriptions.length === 0 ? (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      No active subscriptions. <Link href="/subscriptions/new" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">Create one</Link>
+                    <p className="text-sm text-slate-600">
+                      No active subscriptions.{' '}
+                      <Link href="/subscriptions/new" className="app-link">
+                        Create one
+                      </Link>
+                      .
                     </p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {dashboardData.active_subscriptions.map((subscription: Subscription) => (
-                        <div
-                          key={subscription.id}
-                          className="group rounded-xl border border-zinc-200/50 bg-white/50 p-4 dark:border-zinc-800/50 dark:bg-zinc-900/50 transition-all duration-200 hover:border-blue-300 hover:shadow-sm dark:hover:border-blue-700"
-                        >
-                          <div className="flex items-center justify-between">
+                        <div key={subscription.id} className="rounded-xl border border-slate-200 bg-white/70 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                              <h3 className="font-medium text-zinc-900 dark:text-zinc-50">
+                              <h3 className="font-medium text-slate-900">
                                 {subscription.name || subscription.reference_number}
                               </h3>
-                              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                {subscription.reference_number}
-                              </p>
+                              <p className="text-sm text-slate-500">{subscription.reference_number}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                                {formatCurrency(subscription.amount || 0)}
-                              </p>
-                              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Next billing: {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
+                              <p className="font-medium text-slate-900">{formatCurrency(subscription.amount || 0)}</p>
+                              <p className="text-sm text-slate-500">
+                                Next billing:{' '}
+                                {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
                               </p>
                             </div>
                           </div>
@@ -290,48 +226,28 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Recent Payments */}
-              <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
-                <div className="border-b border-zinc-200/50 px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg blur opacity-50"></div>
-                      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
-                        <CreditCard className="h-4 w-4 text-white" />
-                      </div>
-                    </div>
-                    <h2 className="text-lg font-semibold text-zinc-900">
-                      Recent Payments
-                    </h2>
-                  </div>
+              <div className="app-card">
+                <div className="app-card-header">
+                  <h2 className="app-section-title">Recent Payments</h2>
                 </div>
-                <div className="p-6">
+                <div className="app-card-body">
                   {dashboardData.recent_payments.length === 0 ? (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">No recent payments</p>
+                    <p className="text-sm text-slate-600">No recent payments.</p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {dashboardData.recent_payments.map((payment: Payment) => (
-                        <div
-                          key={payment.id}
-                          className="group flex items-center justify-between rounded-xl border border-zinc-200/50 bg-white/50 p-4 dark:border-zinc-800/50 dark:bg-zinc-900/50 transition-all duration-200 hover:border-green-300 hover:shadow-sm dark:hover:border-green-700"
-                        >
-                          <div>
-                            <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                              {payment.subscription?.name || 'Payment'}
-                            </p>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                              {payment.paid_at ? formatDate(payment.paid_at) : 'Pending'}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                              {formatCurrency(payment.amount, payment.currency)}
-                            </p>
-                            <p className={`text-sm font-medium ${
-                              payment.status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-zinc-600 dark:text-zinc-400'
-                            }`}>
-                              {payment.status}
-                            </p>
+                        <div key={payment.id} className="rounded-xl border border-slate-200 bg-white/70 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-medium text-slate-900">{payment.subscription?.name || 'Payment'}</p>
+                              <p className="text-sm text-slate-500">{payment.paid_at ? formatDate(payment.paid_at) : 'Pending'}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium text-slate-900">{formatCurrency(payment.amount, payment.currency)}</p>
+                              <p className={`text-sm font-semibold ${payment.status === 'completed' ? 'text-emerald-700' : 'text-slate-500'}`}>
+                                {payment.status}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -340,43 +256,25 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Upcoming Billing */}
               {dashboardData.upcoming_billing.length > 0 && (
-                <div className="rounded-2xl bg-zinc-50 border border-zinc-200/50 shadow-sm">
-                  <div className="border-b border-zinc-200/50 px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg blur opacity-50"></div>
-                        <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg">
-                          <Clock className="h-4 w-4 text-white" />
-                        </div>
-                      </div>
-                      <h2 className="text-lg font-semibold text-zinc-900">
-                        Upcoming Billing (Next 7 Days)
-                      </h2>
-                    </div>
+                <div className="app-card">
+                  <div className="app-card-header">
+                    <h2 className="app-section-title">Upcoming Billing (Next 7 Days)</h2>
                   </div>
-                  <div className="p-6">
-                    <div className="space-y-4">
+                  <div className="app-card-body">
+                    <div className="space-y-3">
                       {dashboardData.upcoming_billing.map((subscription: Subscription) => (
-                        <div
-                          key={subscription.id}
-                          className="group rounded-xl border border-zinc-200/50 bg-white/50 p-4 dark:border-zinc-800/50 dark:bg-zinc-900/50 transition-all duration-200 hover:border-amber-300 hover:shadow-sm dark:hover:border-amber-700"
-                        >
-                          <div className="flex items-center justify-between">
+                        <div key={subscription.id} className="rounded-xl border border-slate-200 bg-white/70 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                              <h3 className="font-medium text-zinc-900 dark:text-zinc-50">
+                              <h3 className="font-medium text-slate-900">
                                 {subscription.name || subscription.reference_number}
                               </h3>
-                              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                {subscription.reference_number}
-                              </p>
+                              <p className="text-sm text-slate-500">{subscription.reference_number}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                                {formatCurrency(subscription.amount || 0)}
-                              </p>
-                              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                              <p className="font-medium text-slate-900">{formatCurrency(subscription.amount || 0)}</p>
+                              <p className="text-sm text-slate-500">
                                 {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
                               </p>
                             </div>
@@ -394,4 +292,3 @@ export default function DashboardPage() {
     </AuthGuard>
   );
 }
-
