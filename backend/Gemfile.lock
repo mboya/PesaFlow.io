@@ -393,6 +393,7 @@ GEM
 PLATFORMS
   aarch64-linux-musl
   arm64-darwin-24
+  arm64-darwin-25
   x86_64-linux
 
 DEPENDENCIES
@@ -421,6 +422,7 @@ DEPENDENCIES
   rotp
   rqrcode
   rspec-rails
+  rubocop
   rubocop-rails-omakase
   shoulda-matchers (~> 6.0)
   sidekiq
