@@ -134,6 +134,54 @@ describe('authApi', () => {
     });
   });
 
+  describe('googleLogin', () => {
+    it('should login user with google credential and return response with token', async () => {
+      const mockUser = {
+        id: 1,
+        email: 'google-user@example.com',
+        created_at: '2024-01-01T00:00:00.000Z',
+        otp_enabled: false,
+      };
+
+      const mockResponse = {
+        data: {
+          status: { code: 200, message: 'Logged in successfully' },
+          data: mockUser,
+        },
+        headers: {
+          authorization: 'Bearer test-jwt-token',
+        },
+      };
+
+      mockPost.mockResolvedValue(mockResponse);
+
+      const result = await authApi.googleLogin('google-id-token');
+
+      expect(mockPost).toHaveBeenCalledWith('/google_login', { credential: 'google-id-token' });
+      expect(result.data).toEqual(mockUser);
+      expect(localStorage.getItem('authToken')).toBe('test-jwt-token');
+    });
+
+    it('should handle OTP required response', async () => {
+      const mockResponse = {
+        data: {
+          status: { code: 200, message: 'OTP verification required' },
+          otp_required: true,
+          user_id: 3,
+        },
+        headers: {},
+      };
+
+      mockPost.mockResolvedValue(mockResponse);
+
+      const result = await authApi.googleLogin('google-id-token');
+
+      expect(result.otp_required).toBe(true);
+      expect(result.user_id).toBe(3);
+      expect(localStorage.getItem('authToken')).toBeNull();
+    });
+  });
+
   describe('verifyOtpLogin', () => {
     it('should verify OTP and return user with token', async () => {
       const mockUser = {
@@ -220,4 +268,3 @@ describe('authApi', () => {
     });
   });
 });
-
