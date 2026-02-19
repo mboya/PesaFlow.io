@@ -41,7 +41,7 @@ class Rack::Attack
   # Throttle authentication endpoints (login, signup, OTP)
   # Limit: 5 requests per 20 seconds per IP
   throttle("auth/ip", limit: 5, period: 20.seconds) do |req|
-    if req.path.match?(%r{/api/v1/(login|signup|registration|otp)})
+    if req.path.match?(%r{/api/v1/(login|google_login|signup|registration|otp)})
       req.ip
     end
   end
@@ -49,7 +49,7 @@ class Rack::Attack
   # Throttle authentication endpoints by email
   # Limit: 3 requests per 1 minute per email (prevents brute force on specific accounts)
   throttle("auth/email", limit: 3, period: 1.minute) do |req|
-    if req.path.match?(%r{/api/v1/(login|signup|registration|otp)})
+    if req.path.match?(%r{/api/v1/(login|google_login|signup|registration|otp)})
       # Extract email from request body
       if req.post? && req.content_type&.include?("application/json")
         begin
@@ -94,7 +94,7 @@ class Rack::Attack
   # Throttle general API endpoints for authenticated users
   # Limit: 100 requests per 1 minute per IP
   throttle("api/ip", limit: 100, period: 1.minute) do |req|
-    if req.path.start_with?("/api/v1/") && !req.path.match?(%r{/api/v1/(login|signup|registration|otp|health)})
+    if req.path.start_with?("/api/v1/") && !req.path.match?(%r{/api/v1/(login|google_login|signup|registration|otp|health)})
       req.ip
     end
   end
