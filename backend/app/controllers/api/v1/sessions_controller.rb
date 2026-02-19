@@ -3,6 +3,7 @@ module Api
     class SessionsController < Devise::SessionsController
       skip_before_action :verify_signed_out_user, only: [ :destroy ]
       before_action :configure_sign_in_params, only: [ :create ]
+      prepend_before_action :ensure_devise_mapping_for_google, only: [ :google ]
       prepend_before_action :verify_jwt_token, only: [ :destroy ]
 
       # POST /api/v1/login
@@ -44,7 +45,7 @@ module Api
 
             # Generate JWT token manually for the response header
             # This ensures the token is always set, even if middleware doesn't run in time
-            token = Warden::JWTAuth::UserEncoder.new.call(resource, :api_v1_user, nil).first
+            token = issue_jwt_token(resource)
             response.set_header("Authorization", "Bearer #{token}")
 
             render json: {
@@ -74,6 +75,96 @@ module Api
         end
       end
 
+      # POST /api/v1/google_login
+      def google
+        credential = google_sign_in_params[:credential]
+        unless credential.present?
+          render json: {
+            status: {
+              code: 401,
+              message: "Google credential is required"
+            }
+          }, status: :unauthorized
+          return
+        end
+
+        google_client_id = ENV["GOOGLE_CLIENT_ID"].presence || ENV["NEXT_PUBLIC_GOOGLE_CLIENT_ID"].presence
+        unless google_client_id.present?
+          Rails.logger.error("[Google Login] GOOGLE_CLIENT_ID is not configured")
+          render json: {
+            status: {
+              code: 503,
+              message: "Google login is not configured"
+            }
+          }, status: :service_unavailable
+          return
+        end
+
+        begin
+          payload = GoogleIdTokenVerifier.verify!(credential, audience: google_client_id)
+        rescue GoogleIdTokenVerifier::VerificationError => e
+          Rails.logger.warn("[Google Login] Invalid credential: #{e.message}")
+          render json: {
+            status: {
+              code: 401,
+              message: "Invalid Google credential"
+            }
+          }, status: :unauthorized
+          return
+        end
+
+        normalized_email = payload["email"]&.downcase&.strip
+        tenant = resolve_authentication_tenant
+
+        if normalized_email.blank? || tenant.blank?
+          render json: {
+            status: {
+              code: 401,
+              message: "Unable to authenticate Google user"
+            }
+          }, status: :unauthorized
+          return
+        end
+
+        user, created = find_or_create_google_user(normalized_email, tenant)
+        unless user.present?
+          render json: {
+            status: {
+              code: 422,
+              message: "Unable to complete Google login"
+            }
+          }, status: :unprocessable_entity
+          return
+        end
+
+        self.resource = user
+
+        if resource.otp_enabled?
+          render json: {
+            status: {
+              code: 200,
+              message: "OTP verification required"
+            },
+            otp_required: true,
+            user_id: resource.id
+          }, status: :ok
+          return
+        end
+
+        sign_in(resource_name, resource)
+        token = issue_jwt_token(resource)
+        response.set_header("Authorization", "Bearer #{token}")
+
+        render json: {
+          status: {
+            code: 200,
+            message: created ? "Signed in with Google successfully" : "Logged in successfully"
+          },
+          data: Api::V1::UserSerializer.serialize(resource),
+          token: token
+        }, status: :ok
+      end
+
       # DELETE /api/v1/logout
       def destroy
         # Token validation is done in before_action :verify_jwt_token
@@ -97,12 +188,20 @@ module Api
 
       protected
 
+      def ensure_devise_mapping_for_google
+        request.env["devise.mapping"] = Devise.mappings[:api_v1_user] || Devise.mappings[:user]
+      end
+
       def configure_sign_in_params
         devise_parameter_sanitizer.permit(:sign_in, keys: [ :email, :password ])
       end
 
       def sign_in_params
         params.require(:user).permit(:email, :password)
+      end
+
+      def google_sign_in_params
+        params.permit(:credential)
       end
 
       def resolve_authentication_tenant
@@ -134,6 +233,31 @@ module Api
         end
       end
 
+      def find_or_create_google_user(normalized_email, tenant)
+        existing_user = find_user_for_authentication(normalized_email, tenant)
+        return [ existing_user, false ] if existing_user.present?
+
+        generated_password = Devise.friendly_token.first(32)
+        user = ActsAsTenant.without_tenant do
+          User.new(
+            email: normalized_email,
+            password: generated_password,
+            password_confirmation: generated_password,
+            tenant_id: tenant.id
+          )
+        end
+
+        saved = ActsAsTenant.without_tenant { user.save }
+        unless saved
+          Rails.logger.warn("[Google Login] Failed creating user #{normalized_email}: #{user.errors.full_messages.join(', ')}")
+          return [ nil, false ]
+        end
+
+        create_customer_for_user(user)
+        send_signup_welcome_email(user)
+        [ user, true ]
+      end
+
       def find_active_tenant_by_subdomain(subdomain)
         normalized_subdomain = subdomain.to_s.downcase.strip
         return nil if normalized_subdomain.blank?
@@ -155,6 +279,36 @@ module Api
         ActsAsTenant.without_tenant do
           Tenant.active.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
         end
+      end
+
+      def issue_jwt_token(user)
+        Warden::JWTAuth::UserEncoder.new.call(user, :api_v1_user, nil).first
+      end
+
+      def create_customer_for_user(user)
+        return if ActsAsTenant.without_tenant { Customer.exists?(user_id: user.id) }
+
+        name = user.email.split("@").first.split(/[._]/).map(&:capitalize).join(" ")
+        name = user.email if name.blank?
+
+        Customer.create!(
+          user: user,
+          tenant: user.tenant,
+          name: name,
+          email: user.email,
+          phone_number: nil,
+          status: "active"
+        )
+      rescue StandardError => e
+        Rails.logger.error("Failed to create customer for user #{user.id}: #{e.message}")
+      end
+
+      def send_signup_welcome_email(user)
+        return unless user.email.present?
+
+        UserMailer.welcome_email(user).deliver_later
+      rescue StandardError => e
+        Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{e.message}")
       end
 
       def respond_with(resource, _opts = {})
