@@ -68,6 +68,12 @@ The backend services (backend, sidekiq, postgres, redis) run on a **private Dock
 
 The frontend communicates with the backend API through the proxy at `http://localhost:3001/api/proxy` (configured via `NEXT_PUBLIC_API_URL`).
 
+### Auth Feature Flags
+
+- `NEXT_PUBLIC_ENABLE_PASSWORD_AUTH=true` (default): shows email/password login and signup forms.
+- `NEXT_PUBLIC_ENABLE_PASSWORD_AUTH=false`: hides email/password login and signup forms; users can sign in with Google only (if configured).
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID=<your-google-client-id>`: enables the Google sign-in button on `/login`.
+
 ## Development
 
 ### Local Development (without Docker)
@@ -142,4 +148,3 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
 ## License
 
 See LICENSE file for details.
-
