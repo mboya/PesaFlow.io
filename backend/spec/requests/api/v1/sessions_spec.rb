@@ -51,6 +51,87 @@ RSpec.describe "Sessions API", type: :request do
       end
     end
 
+    context "with the same email in multiple tenants" do
+      let!(:default_tenant) do
+        ActsAsTenant.without_tenant do
+          Tenant.find_or_create_by!(subdomain: "default") do |tenant|
+            tenant.name = "Default Tenant"
+            tenant.status = "active"
+            tenant.settings = {}
+          end
+        end
+      end
+      let!(:tenant_one) do
+        ActsAsTenant.without_tenant do
+          Tenant.find_or_create_by!(subdomain: "tenant-one") do |tenant|
+            tenant.name = "Tenant One"
+            tenant.status = "active"
+            tenant.settings = {}
+          end
+        end
+      end
+      let!(:default_user) do
+        ActsAsTenant.without_tenant do
+          create(:user, email: "shared@example.com", password: "default-password", tenant: default_tenant)
+        end
+      end
+      let!(:tenant_one_user) do
+        ActsAsTenant.without_tenant do
+          create(:user, email: "shared@example.com", password: "tenant-one-password", tenant: tenant_one)
+        end
+      end
+
+      it "authenticates using tenant header context" do
+        post "/api/v1/login", params: {
+          user: {
+            email: "shared@example.com",
+            password: "tenant-one-password"
+          }
+        }, headers: { "X-Tenant-Subdomain" => "tenant-one" }, as: :json
+
+        expect(response).to have_http_status(:ok)
+        json_response = JSON.parse(response.body)
+        expect(json_response.dig("data", "id")).to eq(tenant_one_user.id)
+        expect(json_response.dig("data", "tenant_id")).to eq(tenant_one.id)
+      end
+
+      it "rejects credentials from a different tenant when header context is provided" do
+        post "/api/v1/login", params: {
+          user: {
+            email: "shared@example.com",
+            password: "default-password"
+          }
+        }, headers: { "X-Tenant-Subdomain" => "tenant-one" }, as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+
+      it "falls back to default tenant when no tenant context is provided" do
+        post "/api/v1/login", params: {
+          user: {
+            email: "shared@example.com",
+            password: "default-password"
+          }
+        }, as: :json
+
+        expect(response).to have_http_status(:ok)
+        json_response = JSON.parse(response.body)
+        expect(json_response.dig("data", "id")).to eq(default_user.id)
+        expect(json_response.dig("data", "tenant_id")).to eq(default_tenant.id)
+      end
+
+      it "returns unauthorized for a non-existent tenant header" do
+        post "/api/v1/login", params: {
+          user: {
+            email: "shared@example.com",
+            password: "default-password"
+          }
+        }, headers: { "X-Tenant-Subdomain" => "missing-tenant" }, as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
     context "with invalid email" do
       it "returns 401" do
         post "/api/v1/login", params: {

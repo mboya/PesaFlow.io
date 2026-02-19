@@ -43,6 +43,12 @@ RSpec.describe "Registrations API", type: :request do
         expect(customer.user_id).to eq(user.id)
       end
 
+      it "queues a welcome email" do
+        expect {
+          post "/api/v1/signup", params: valid_params, as: :json
+        }.to have_enqueued_mail(UserMailer, :welcome_email)
+      end
+
       it "response includes user data" do
         post "/api/v1/signup", params: valid_params, as: :json
 

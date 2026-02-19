@@ -149,19 +149,40 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
   end
 
   describe 'POST /api/v1/subscriptions/:id/reactivate' do
-    let(:subscription) { create(:subscription, customer: customer, status: 'suspended', outstanding_amount: 0) }
+    context 'when suspended' do
+      let(:subscription) { create(:subscription, customer: customer, status: 'suspended', outstanding_amount: 0, suspended_at: 1.day.ago) }
 
-    it 'reactivates a suspended subscription' do
-      post "/api/v1/subscriptions/#{subscription.id}/reactivate", headers: headers
+      it 'reactivates a suspended subscription' do
+        post "/api/v1/subscriptions/#{subscription.id}/reactivate", headers: headers
 
-      expect(response).to have_http_status(:ok)
-      json = JSON.parse(response.body)
-      expect(json['message']).to include('reactivated')
-      expect(subscription.reload.status).to eq('active')
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+        expect(json['message']).to include('reactivated')
+
+        subscription.reload
+        expect(subscription.status).to eq('active')
+        expect(subscription.suspended_at).to be_nil
+      end
+    end
+
+    context 'when cancelled' do
+      let(:subscription) { create(:subscription, customer: customer, status: 'cancelled', outstanding_amount: 0, cancelled_at: 1.day.ago) }
+
+      it 'reactivates a cancelled subscription' do
+        post "/api/v1/subscriptions/#{subscription.id}/reactivate", headers: headers
+
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+        expect(json['message']).to include('reactivated')
+
+        subscription.reload
+        expect(subscription.status).to eq('active')
+        expect(subscription.cancelled_at).to be_nil
+      end
     end
 
     it 'fails if subscription has outstanding balance' do
-      subscription.update!(outstanding_amount: 100)
+      subscription = create(:subscription, customer: customer, status: 'cancelled', outstanding_amount: 100)
       post "/api/v1/subscriptions/#{subscription.id}/reactivate", headers: headers
 
       expect(response).to have_http_status(:unprocessable_entity)
