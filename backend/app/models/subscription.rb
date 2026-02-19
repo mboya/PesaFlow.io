@@ -131,7 +131,22 @@ class Subscription < ApplicationRecord
   end
 
   def reactivate!
-    update!(status: "active", suspended_at: nil)
+    billing_interval = billing_cycle_days.presence || 30
+    period_start = Date.current
+    period_end = period_start + billing_interval.days
+
+    self.status = "active"
+    self.outstanding_amount = 0
+    self.activated_at = Time.current
+    self.suspended_at = nil
+    self.cancelled_at = nil
+    self.current_period_start = period_start
+    self.current_period_end = period_end
+    self.next_billing_date = period_end
+    self.next_billing_date = calculate_next_billing_date if billing_cycle_days.present?
+    save!
+
+    customer.reset_failed_payment_count! if customer.failed_payment_count.to_i > 0
   end
 
   def reset_failed_payment_count!

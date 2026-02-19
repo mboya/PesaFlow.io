@@ -65,13 +65,13 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
     return unless authorize_subscription!
 
     with_transaction do
-      if @subscription.status == "suspended" && @subscription.outstanding_amount.zero?
-        @subscription.activate!
-        render json: { message: "Subscription reactivated successfully", subscription: Api::V1::SubscriptionSerializer.render(@subscription) }
-      elsif @subscription.outstanding_amount > 0
+      if @subscription.outstanding_amount.to_d > 0
         render json: { error: "Please clear outstanding balance before reactivating" }, status: :unprocessable_entity
+      elsif %w[suspended cancelled expired].include?(@subscription.status)
+        @subscription.reactivate!
+        render json: { message: "Subscription reactivated successfully", subscription: Api::V1::SubscriptionSerializer.render(@subscription) }
       else
-        render json: { error: "Subscription cannot be reactivated" }, status: :unprocessable_entity
+        render json: { error: "Only suspended, cancelled, or expired subscriptions can be reactivated" }, status: :unprocessable_entity
       end
     end
   end

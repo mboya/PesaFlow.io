@@ -14,17 +14,18 @@ module Api
         # Normalize email (lowercase and strip whitespace)
         normalized_email = email&.downcase&.strip
 
-        # Find user by email - use without_tenant to avoid scoping issues
-        # Also normalize email in database query for case-insensitive lookup
-        user = ActsAsTenant.without_tenant do
-          User.where("LOWER(email) = ?", normalized_email).first
-        end
+        tenant = resolve_authentication_tenant
+        user = find_user_for_authentication(normalized_email, tenant)
+        password_valid = user&.valid_password?(password)
 
         # Log authentication attempt (without sensitive data)
-        Rails.logger.info("[Login] Attempting login for email: #{normalized_email}, User found: #{user.present?}, Has encrypted_password: #{user&.encrypted_password.present?}")
+        Rails.logger.info(
+          "[Login] Attempting login for email: #{normalized_email}, Tenant: #{tenant&.subdomain || "none"}, " \
+          "User found: #{user.present?}, Has encrypted_password: #{user&.encrypted_password.present?}"
+        )
 
         # Authenticate user
-        if user && user.valid_password?(password)
+        if user && password_valid
           self.resource = user
 
           if resource.otp_enabled?
@@ -59,7 +60,7 @@ module Api
           # Invalid credentials - log reason for debugging
           if user.nil?
             Rails.logger.warn("[Login] User not found for email: #{normalized_email}")
-          elsif !user.valid_password?(password)
+          elsif !password_valid
             Rails.logger.warn("[Login] Invalid password for user: #{user.id} (#{normalized_email})")
           end
 
@@ -102,6 +103,58 @@ module Api
 
       def sign_in_params
         params.require(:user).permit(:email, :password)
+      end
+
+      def resolve_authentication_tenant
+        # Explicit tenant header always wins for authentication.
+        if request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER].present?
+          return find_active_tenant_by_subdomain(request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER])
+        end
+
+        if request.headers[TenantScoped::TENANT_ID_HEADER].present?
+          return find_active_tenant_by_id(request.headers[TenantScoped::TENANT_ID_HEADER])
+        end
+
+        # Fallback to request subdomain.
+        request_subdomain = request.subdomain&.downcase&.strip
+        if request_subdomain.present? && request_subdomain != "www" && request_subdomain != "api"
+          tenant = find_active_tenant_by_subdomain(request_subdomain)
+          return tenant if tenant.present?
+        end
+
+        # Final fallback for auth endpoints is the default tenant.
+        default_tenant
+      end
+
+      def find_user_for_authentication(normalized_email, tenant)
+        return nil if normalized_email.blank? || tenant.blank?
+
+        ActsAsTenant.without_tenant do
+          User.where("LOWER(email) = ?", normalized_email).find_by(tenant_id: tenant.id)
+        end
+      end
+
+      def find_active_tenant_by_subdomain(subdomain)
+        normalized_subdomain = subdomain.to_s.downcase.strip
+        return nil if normalized_subdomain.blank?
+
+        ActsAsTenant.without_tenant do
+          Tenant.active.find_by(subdomain: normalized_subdomain)
+        end
+      end
+
+      def find_active_tenant_by_id(tenant_id)
+        return nil if tenant_id.blank?
+
+        ActsAsTenant.without_tenant do
+          Tenant.active.find_by(id: tenant_id)
+        end
+      end
+
+      def default_tenant
+        ActsAsTenant.without_tenant do
+          Tenant.active.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
+        end
       end
 
       def respond_with(resource, _opts = {})
