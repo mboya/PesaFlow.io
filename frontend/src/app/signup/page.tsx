@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { AuthGuard } from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
+import { featureFlags } from '@/lib/feature-flags';
 import { useToast } from '@/contexts/ToastContext';
 import { getRateLimitErrorMessage, extractRateLimitInfo } from '@/lib/rate-limit-helper';
 import { getApiErrorMessage } from '@/lib/utils';
@@ -31,6 +32,7 @@ export default function SignupPage() {
   const { signup } = useAuth();
   const { success: showSuccess, error: showError } = useToast();
   const router = useRouter();
+  const passwordAuthEnabled = featureFlags.enablePasswordAuth;
 
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordChecks, setPasswordChecks] = useState({
@@ -52,6 +54,26 @@ export default function SignupPage() {
     setPasswordChecks(checks);
     setPasswordStrength(Object.values(checks).filter(Boolean).length * 100);
   }, [password]);
+
+  if (!passwordAuthEnabled) {
+    return (
+      <AuthGuard requireAuth={false}>
+        <AuthFrame>
+          <div className="app-card p-8 text-center">
+            <h1 className="font-display text-2xl font-semibold text-slate-900">Sign up is disabled</h1>
+            <p className="mt-3 text-sm text-slate-600">
+              Account creation with email and password is turned off for this environment.
+            </p>
+            <div className="mt-6">
+              <Link href="/login" className="font-semibold text-teal-700 transition hover:text-teal-600">
+                Go to sign in
+              </Link>
+            </div>
+          </div>
+        </AuthFrame>
+      </AuthGuard>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

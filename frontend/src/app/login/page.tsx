@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import Script from 'next/script';
 import Link from 'next/link';
 
 import { AuthGuard } from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
+import { featureFlags } from '@/lib/feature-flags';
 import { getRateLimitErrorMessage, extractRateLimitInfo } from '@/lib/rate-limit-helper';
 import { getApiErrorMessage } from '@/lib/utils';
 
@@ -26,16 +28,78 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, otpRequired, verifyOtpLogin, clearOtpState } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleButtonReady, setGoogleButtonReady] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const { login, loginWithGoogle, otpRequired, verifyOtpLogin, clearOtpState } = useAuth();
   const router = useRouter();
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const passwordAuthEnabled = featureFlags.enablePasswordAuth;
+
+  const redirectToDashboardIfAuthenticated = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    const token = localStorage.getItem('authToken');
+    if (!token) return false;
+    router.push('/dashboard');
+    return true;
+  }, [router]);
+
+  const handleGoogleCredential = useCallback(async (credential?: string) => {
+    if (!credential) {
+      setError('Google login failed. Please try again.');
+      return;
+    }
+
+    setError('');
+    setGoogleLoading(true);
+
+    try {
+      await loginWithGoogle(credential);
+      redirectToDashboardIfAuthenticated();
+    } catch (authError: unknown) {
+      const rateLimitInfo = extractRateLimitInfo(authError);
+      if (rateLimitInfo) {
+        setError(getRateLimitErrorMessage(authError));
+      } else {
+        setError(getApiErrorMessage(authError, 'Google login failed'));
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [loginWithGoogle, redirectToDashboardIfAuthenticated]);
+
+  const initializeGoogleSignIn = useCallback(() => {
+    if (typeof window === 'undefined' || !googleClientId) return;
+    if (!window.google?.accounts?.id || !googleButtonRef.current) return;
+
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: ({ credential }) => {
+        void handleGoogleCredential(credential);
+      },
+      ux_mode: 'popup',
+    });
+
+    googleButtonRef.current.innerHTML = '';
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'signin_with',
+      shape: 'pill',
+      width: 320,
+    });
+    setGoogleButtonReady(true);
+  }, [googleClientId, handleGoogleCredential]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      router.push('/dashboard');
-    }
-  }, [router]);
+    redirectToDashboardIfAuthenticated();
+  }, [redirectToDashboardIfAuthenticated]);
+
+  useEffect(() => {
+    if (!googleClientId || otpRequired) return;
+    initializeGoogleSignIn();
+  }, [googleClientId, otpRequired, initializeGoogleSignIn]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,16 +108,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      if (!otpRequired) {
-        if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('authToken');
-          if (!token) {
-            setError('Login succeeded but token was not stored. Please try again.');
-            return;
-          }
-        }
-        router.push('/dashboard');
-      }
+      redirectToDashboardIfAuthenticated();
     } catch (error: unknown) {
       const rateLimitInfo = extractRateLimitInfo(error);
       if (rateLimitInfo) {
@@ -165,68 +220,109 @@ export default function LoginPage() {
 
           <div className="mb-6 text-center">
             <h1 className="font-display text-3xl font-semibold text-slate-900">Welcome back</h1>
-            <p className="mt-2 text-sm text-slate-600">Sign in to your PesaFlow workspace.</p>
-            <p className="mt-4 text-sm text-slate-600">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="font-semibold text-teal-700 transition hover:text-teal-600">
-                Sign up
-              </Link>
+            <p className="mt-2 text-sm text-slate-600">
+              {passwordAuthEnabled ? 'Sign in to your PesaFlow workspace.' : 'Sign in with Google to access your PesaFlow workspace.'}
             </p>
+            {passwordAuthEnabled && (
+              <p className="mt-4 text-sm text-slate-600">
+                Don&apos;t have an account?{' '}
+                <Link href="/signup" className="font-semibold text-teal-700 transition hover:text-teal-600">
+                  Sign up
+                </Link>
+              </p>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div
-                className={`rounded-xl border p-4 text-sm ${
-                  error.includes('Too many') || error.includes('rate limit') || error.includes('try again')
-                    ? 'border-amber-200 bg-amber-50 text-amber-800'
-                    : 'border-red-200 bg-red-50 text-red-800'
-                }`}
-              >
-                <span>{error}</span>
+          {error && (
+            <div
+              className={`rounded-xl border p-4 text-sm ${
+                error.includes('Too many') || error.includes('rate limit') || error.includes('try again')
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                  : 'border-red-200 bg-red-50 text-red-800'
+              }`}
+            >
+              <span>{error}</span>
+            </div>
+          )}
+
+          {passwordAuthEnabled && (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="email" className="block text-sm font-semibold text-slate-700">
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="app-input"
+                  placeholder="you@example.com"
+                />
               </div>
-            )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-slate-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="app-input"
-                placeholder="you@example.com"
-              />
+              <div>
+                <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="app-input"
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              <button type="submit" disabled={loading} className="app-btn-primary w-full">
+                {loading ? 'Signing in...' : 'Sign in'}
+              </button>
+            </form>
+          )}
+
+          {googleClientId && (
+            <div className={passwordAuthEnabled ? 'mt-5 space-y-3' : 'space-y-3'}>
+              {passwordAuthEnabled && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-slate-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 font-semibold tracking-wide text-slate-500">or</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-col items-center gap-2">
+                <div ref={googleButtonRef} className="flex min-h-[40px] w-full items-center justify-center" />
+                {!googleButtonReady && !googleLoading && (
+                  <p className="text-xs text-slate-500">Loading Google sign-in...</p>
+                )}
+                {googleLoading && <p className="text-xs text-slate-500">Signing in with Google...</p>}
+              </div>
             </div>
+          )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="app-input"
-                placeholder="Enter your password"
-              />
+          {!passwordAuthEnabled && !googleClientId && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              No login method is configured. Set <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> or enable password auth.
             </div>
-
-            <button type="submit" disabled={loading} className="app-btn-primary w-full">
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </form>
+          )}
         </div>
       </AuthFrame>
+      {googleClientId && (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+          onLoad={initializeGoogleSignIn}
+        />
+      )}
     </AuthGuard>
   );
 }

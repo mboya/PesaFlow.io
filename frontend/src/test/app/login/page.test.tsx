@@ -24,6 +24,7 @@ vi.mock('../../../components/AuthGuard', () => ({
 describe('LoginPage', () => {
   const mockPush = vi.fn();
   const mockLogin = vi.fn();
+  const mockLoginWithGoogle = vi.fn();
   const mockVerifyOtpLogin = vi.fn();
 
   beforeEach(() => {
@@ -42,6 +43,7 @@ describe('LoginPage', () => {
       loading: false,
       isAuthenticated: false,
       login: mockLogin,
+      loginWithGoogle: mockLoginWithGoogle,
       signup: vi.fn(),
       logout: vi.fn(),
       checkAuth: vi.fn(),
@@ -116,6 +118,7 @@ describe('LoginPage', () => {
       loading: false,
       isAuthenticated: false,
       login: mockLogin,
+      loginWithGoogle: mockLoginWithGoogle,
       signup: vi.fn(),
       logout: vi.fn(),
       checkAuth: vi.fn(),
@@ -141,6 +144,7 @@ describe('LoginPage', () => {
       loading: false,
       isAuthenticated: false,
       login: mockLogin,
+      loginWithGoogle: mockLoginWithGoogle,
       signup: vi.fn(),
       logout: vi.fn(),
       checkAuth: vi.fn(),

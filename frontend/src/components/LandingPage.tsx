@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { featureFlags } from '@/lib/feature-flags';
 
 type SegmentKey = 'saas' | 'education' | 'utilities';
 
@@ -143,6 +144,7 @@ function formatCount(value: number) {
 }
 
 export function LandingPage() {
+  const passwordAuthEnabled = featureFlags.enablePasswordAuth;
   const [segment, setSegment] = useState<SegmentKey>('saas');
   const [dueSubscriptions, setDueSubscriptions] = useState(500);
   const [invoiceAmount, setInvoiceAmount] = useState(2000);
@@ -224,12 +226,14 @@ export function LandingPage() {
             <Link href="/login" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
               Sign In
             </Link>
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Get Started
-            </Link>
+            {passwordAuthEnabled && (
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Get Started
+              </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -251,12 +255,14 @@ export function LandingPage() {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-500"
-              >
-                Start Free Workspace
-              </Link>
+              {passwordAuthEnabled && (
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-500"
+                >
+                  Start Free Workspace
+                </Link>
+              )}
               <Link
                 href="/login"
                 className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"

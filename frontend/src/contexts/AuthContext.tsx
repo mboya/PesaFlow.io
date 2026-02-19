@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   signup: (email: string, password: string, tenantSubdomain?: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -86,6 +87,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async (credential: string) => {
+    const response = await authApi.googleLogin(credential);
+
+    if (response.otp_required && response.user_id) {
+      setOtpRequired(true);
+      setOtpUserId(response.user_id);
+      return;
+    }
+
+    if (response.data) {
+      setUser(response.data);
+      setOtpRequired(false);
+      setOtpUserId(null);
+    }
+  };
+
   const verifyOtpLogin = async (otpCode: string) => {
     if (!otpUserId) {
       throw new Error('No user ID for OTP verification');
@@ -125,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isAuthenticated: !!user,
         login,
+        loginWithGoogle,
         signup,
         logout,
         checkAuth,
@@ -146,4 +164,3 @@ export function useAuth() {
   }
   return context;
 }
-

@@ -9,6 +9,7 @@ vi.mock('../../lib/auth-api', () => ({
   authApi: {
     getCurrentUser: vi.fn(),
     login: vi.fn(),
+    googleLogin: vi.fn(),
     signup: vi.fn(),
     logout: vi.fn(),
     verifyOtpLogin: vi.fn(),
@@ -91,4 +92,3 @@ describe('AuthContext', () => {
     });
   });
 });
-

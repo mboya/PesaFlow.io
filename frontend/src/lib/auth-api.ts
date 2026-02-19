@@ -148,6 +148,23 @@ export const authApi = {
     return loginData;
   },
 
+  // Login user with Google ID token
+  googleLogin: async (credential: string): Promise<LoginResponse> => {
+    const response = await apiClient.post('/google_login', { credential });
+    const token = extractToken(response);
+    const loginData: LoginResponse = response.data;
+
+    if (token && typeof window !== 'undefined') {
+      localStorage.setItem('authToken', token);
+    }
+
+    if (loginData.data?.tenant_subdomain && typeof window !== 'undefined') {
+      localStorage.setItem('tenantSubdomain', loginData.data.tenant_subdomain);
+    }
+
+    return loginData;
+  },
+
   // Verify OTP during login
   verifyOtpLogin: async (data: OtpVerifyData): Promise<{ user: User; token: string }> => {
     const response = await apiClient.post('/otp/verify_login', data);
@@ -236,4 +253,3 @@ export const authApi = {
     return response.data.backup_codes;
   },
 };
-
