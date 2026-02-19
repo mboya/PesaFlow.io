@@ -41,6 +41,13 @@ module Backend
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # Allow Docker service hostnames used for internal proxying between frontend and backend.
+    # Comma-separated override example: RAILS_ALLOWED_INTERNAL_HOSTS=backend,frontend,api.local
+    ENV.fetch("RAILS_ALLOWED_INTERNAL_HOSTS", "backend,frontend").split(",").map(&:strip).reject(&:empty?).each do |host|
+      config.hosts << host
+      config.hosts << /\A#{Regexp.escape(host)}(?::\d+)?\z/
+    end
+
     # Enable session middleware for Devise/Warden (required for JWT authentication)
     # Use cookie store with minimal settings - sessions are only used temporarily
     # during authentication, JWT tokens handle actual authentication
