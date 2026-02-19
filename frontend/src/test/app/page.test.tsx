@@ -105,6 +105,8 @@ describe('Home Page', () => {
       ).toBeInTheDocument();
     });
 
+    expect(screen.getByText(/core logic simulator/i)).toBeInTheDocument();
+
     expect(mockReplace).not.toHaveBeenCalled();
   });
 });

@@ -126,6 +126,10 @@ const segments: Record<SegmentKey, SegmentBlueprint> = {
   },
 };
 
+const MAX_RETRIES = 3;
+const RETRY_WINDOWS_HOURS = [1, 4, 24];
+const SUSPENSION_GRACE_DAYS = 3;
+
 function formatKes(value: number) {
   return new Intl.NumberFormat('en-KE', {
     style: 'currency',
@@ -134,30 +138,64 @@ function formatKes(value: number) {
   }).format(value);
 }
 
+function formatCount(value: number) {
+  return Math.round(value).toLocaleString();
+}
+
 export function LandingPage() {
   const [segment, setSegment] = useState<SegmentKey>('saas');
-  const [subscribers, setSubscribers] = useState(500);
-  const [planValue, setPlanValue] = useState(2000);
-  const [failedRate, setFailedRate] = useState(9);
-  const [recoveryRate, setRecoveryRate] = useState(46);
+  const [dueSubscriptions, setDueSubscriptions] = useState(500);
+  const [invoiceAmount, setInvoiceAmount] = useState(2000);
+  const [firstAttemptSuccessRate, setFirstAttemptSuccessRate] = useState(82);
+  const [retrySuccessRate, setRetrySuccessRate] = useState(40);
+  const [gracePeriodRecoveryRate, setGracePeriodRecoveryRate] = useState(28);
 
   const activeSegment = segments[segment];
 
-  const estimation = useMemo(() => {
-    const monthlyBilling = subscribers * planValue;
-    const atRisk = monthlyBilling * (failedRate / 100);
-    const recovered = atRisk * (recoveryRate / 100);
-    const collected = monthlyBilling - atRisk + recovered;
-    const collectionRate = monthlyBilling > 0 ? (collected / monthlyBilling) * 100 : 0;
+  const simulation = useMemo(() => {
+    const invoicesDue = dueSubscriptions;
+    const grossDue = invoicesDue * invoiceAmount;
+
+    const paidFirstAttempt = invoicesDue * (firstAttemptSuccessRate / 100);
+    const failedFirstAttempt = Math.max(invoicesDue - paidFirstAttempt, 0);
+
+    let remainingFailures = failedFirstAttempt;
+    let retryRecoveredCount = 0;
+    let retryAttemptsTriggered = 0;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
+      retryAttemptsTriggered += remainingFailures;
+      const recoveredOnAttempt = remainingFailures * (retrySuccessRate / 100);
+      retryRecoveredCount += recoveredOnAttempt;
+      remainingFailures -= recoveredOnAttempt;
+    }
+
+    const recoveredInGrace = remainingFailures * (gracePeriodRecoveryRate / 100);
+    const suspendedCount = Math.max(remainingFailures - recoveredInGrace, 0);
+    const settledCount = paidFirstAttempt + retryRecoveredCount + recoveredInGrace;
+
+    const collectedAmount = settledCount * invoiceAmount;
+    const outstandingAmount = suspendedCount * invoiceAmount;
+    const collectionRate = invoicesDue > 0 ? (settledCount / invoicesDue) * 100 : 0;
+    const totalAttempts = invoicesDue + retryAttemptsTriggered;
+    const retryWindowHours = RETRY_WINDOWS_HOURS.reduce((acc, hours) => acc + hours, 0);
 
     return {
-      monthlyBilling,
-      atRisk,
-      recovered,
-      annualRecovered: recovered * 12,
+      invoicesDue,
+      grossDue,
+      paidFirstAttempt,
+      retryRecoveredCount,
+      recoveredInGrace,
+      suspendedCount,
+      collectedAmount,
+      outstandingAmount,
+      totalAttempts,
+      retryAttemptsTriggered,
+      retryWindowHours,
       collectionRate,
+      annualCollected: collectedAmount * 12,
     };
-  }, [subscribers, planValue, failedRate, recoveryRate]);
+  }, [dueSubscriptions, invoiceAmount, firstAttemptSuccessRate, retrySuccessRate, gracePeriodRecoveryRate]);
 
   return (
     <div className="landing-shell relative min-h-screen overflow-x-clip">
@@ -179,7 +217,7 @@ export function LandingPage() {
             <a href="#features" className="transition-colors hover:text-slate-900">Features</a>
             <a href="#payments" className="transition-colors hover:text-slate-900">Payments</a>
             <a href="#use-cases" className="transition-colors hover:text-slate-900">Use Cases</a>
-            <a href="#estimator" className="transition-colors hover:text-slate-900">Estimator</a>
+            <a href="#estimator" className="transition-colors hover:text-slate-900">Simulator</a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -250,101 +288,144 @@ export function LandingPage() {
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Collection estimator</p>
-                <h2 className="mt-1 font-display text-2xl font-semibold text-slate-900">Monthly billing impact</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Core logic simulator</p>
+                <h2 className="mt-1 font-display text-2xl font-semibold text-slate-900">Billing cycle outcome model</h2>
               </div>
               <div className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-right">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Annual recovered</p>
-                <p className="font-display text-xl font-semibold text-teal-900">{formatKes(estimation.annualRecovered)}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Annual collected</p>
+                <p className="font-display text-xl font-semibold text-teal-900">{formatKes(simulation.annualCollected)}</p>
               </div>
             </div>
+
+            <p className="mt-4 text-xs leading-6 text-slate-600">
+              Mirrors app flow: initial billing attempt, up to {MAX_RETRIES} retries ({RETRY_WINDOWS_HOURS.join('h, ')}h window), then
+              suspension check after {SUSPENSION_GRACE_DAYS} days if outstanding remains.
+            </p>
 
             <div className="mt-6 space-y-5">
               <label className="block">
                 <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
-                  <span>Active subscribers</span>
-                  <span>{subscribers.toLocaleString()}</span>
+                  <span>Subscriptions due this cycle</span>
+                  <span>{dueSubscriptions.toLocaleString()}</span>
                 </div>
                 <input
                   type="range"
                   min={50}
                   max={10000}
                   step={10}
-                  value={subscribers}
-                  onChange={(event) => setSubscribers(Number(event.target.value))}
+                  value={dueSubscriptions}
+                  onChange={(event) => setDueSubscriptions(Number(event.target.value))}
                   className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
                 />
               </label>
 
               <label className="block">
                 <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
-                  <span>Average monthly plan (KES)</span>
-                  <span>{formatKes(planValue)}</span>
+                  <span>Average invoice amount (KES)</span>
+                  <span>{formatKes(invoiceAmount)}</span>
                 </div>
                 <input
                   type="range"
                   min={300}
                   max={15000}
                   step={100}
-                  value={planValue}
-                  onChange={(event) => setPlanValue(Number(event.target.value))}
+                  value={invoiceAmount}
+                  onChange={(event) => setInvoiceAmount(Number(event.target.value))}
                   className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
                 />
               </label>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4">
                 <label className="block">
                   <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
-                    <span>Failed payment rate</span>
-                    <span>{failedRate}%</span>
+                    <span>First-attempt success rate</span>
+                    <span>{firstAttemptSuccessRate}%</span>
                   </div>
                   <input
                     type="range"
-                    min={1}
-                    max={35}
+                    min={45}
+                    max={98}
                     step={1}
-                    value={failedRate}
-                    onChange={(event) => setFailedRate(Number(event.target.value))}
+                    value={firstAttemptSuccessRate}
+                    onChange={(event) => setFirstAttemptSuccessRate(Number(event.target.value))}
                     className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
                   />
                 </label>
 
-                <label className="block">
-                  <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
-                    <span>Recovery rate</span>
-                    <span>{recoveryRate}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={5}
-                    max={95}
-                    step={1}
-                    value={recoveryRate}
-                    onChange={(event) => setRecoveryRate(Number(event.target.value))}
-                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
-                  />
-                </label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
+                      <span>Retry success per attempt</span>
+                      <span>{retrySuccessRate}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={5}
+                      max={85}
+                      step={1}
+                      value={retrySuccessRate}
+                      onChange={(event) => setRetrySuccessRate(Number(event.target.value))}
+                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
+                      <span>Manual recovery in grace window</span>
+                      <span>{gracePeriodRecoveryRate}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={80}
+                      step={1}
+                      value={gracePeriodRecoveryRate}
+                      onChange={(event) => setGracePeriodRecoveryRate(Number(event.target.value))}
+                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                    />
+                  </label>
+                </div>
               </div>
             </div>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Monthly billing</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(estimation.monthlyBilling)}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Billing due this cycle</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(simulation.grossDue)}</p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">At-risk collections</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(estimation.atRisk)}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Collected this cycle</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(simulation.collectedAmount)}</p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Recovered monthly</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(estimation.recovered)}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Outstanding after grace</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{formatKes(simulation.outstandingAmount)}</p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Net collection rate</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{estimation.collectionRate.toFixed(1)}%</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{simulation.collectionRate.toFixed(1)}%</p>
               </div>
             </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Paid first attempt</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{formatCount(simulation.paidFirstAttempt)} subs</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Recovered by retries</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{formatCount(simulation.retryRecoveredCount)} subs</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Suspended after grace</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{formatCount(simulation.suspendedCount)} subs</p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs text-slate-600">
+              Estimated billing attempts: {formatCount(simulation.totalAttempts)} total ({formatCount(simulation.retryAttemptsTriggered)} retries).
+              Retry window spans {simulation.retryWindowHours}h before grace-period recovery and suspension checks.
+            </p>
           </aside>
         </section>
 
