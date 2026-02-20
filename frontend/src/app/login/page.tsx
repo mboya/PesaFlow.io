@@ -32,9 +32,8 @@ export default function LoginPage() {
   const [googleButtonReady, setGoogleButtonReady] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const { login, loginWithGoogle, otpRequired, verifyOtpLogin, clearOtpState } = useAuth();
-  const { enablePasswordAuth: passwordAuthEnabled } = useFeatureFlags();
+  const { enablePasswordAuth: passwordAuthEnabled, googleClientId } = useFeatureFlags();
   const router = useRouter();
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   const redirectToDashboardIfAuthenticated = useCallback(() => {
     if (typeof window === 'undefined') return false;

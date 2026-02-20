@@ -5,10 +5,12 @@ import { featureFlags } from "@/lib/feature-flags";
 
 type RuntimeFeatureFlagsResponse = {
   enablePasswordAuth?: boolean;
+  googleClientId?: string;
 };
 
 export function useFeatureFlags() {
   const [enablePasswordAuth, setEnablePasswordAuth] = useState<boolean>(featureFlags.enablePasswordAuth);
+  const [googleClientId, setGoogleClientId] = useState<string>(featureFlags.googleClientId);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -22,6 +24,9 @@ export function useFeatureFlags() {
         const data: RuntimeFeatureFlagsResponse = await response.json();
         if (active && typeof data.enablePasswordAuth === "boolean") {
           setEnablePasswordAuth(data.enablePasswordAuth);
+        }
+        if (active && typeof data.googleClientId === "string") {
+          setGoogleClientId(data.googleClientId.trim());
         }
       } catch {
         // Keep build-time fallback if runtime lookup fails.
@@ -39,6 +44,7 @@ export function useFeatureFlags() {
 
   return {
     enablePasswordAuth,
+    googleClientId,
     ready,
   };
 }

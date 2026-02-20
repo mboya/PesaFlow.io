@@ -14,9 +14,12 @@ const parseBooleanFlag = (value: string | undefined, defaultValue: boolean): boo
 export const resolveEnablePasswordAuthFlag = (value: string | undefined): boolean =>
   parseBooleanFlag(value, true);
 
+export const resolveGoogleClientId = (value: string | undefined): string => value?.trim() || "";
+
 export const featureFlags = {
   // When false, hide email/password login and signup forms.
   enablePasswordAuth: resolveEnablePasswordAuthFlag(
     process.env.NEXT_PUBLIC_ENABLE_PASSWORD_AUTH ?? process.env.ENABLE_PASSWORD_AUTH
   ),
+  googleClientId: resolveGoogleClientId(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID),
 };
