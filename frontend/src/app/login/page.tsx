@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 import { AuthGuard } from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
-import { featureFlags } from '@/lib/feature-flags';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { getRateLimitErrorMessage, extractRateLimitInfo } from '@/lib/rate-limit-helper';
 import { getApiErrorMessage } from '@/lib/utils';
 
@@ -32,9 +32,9 @@ export default function LoginPage() {
   const [googleButtonReady, setGoogleButtonReady] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const { login, loginWithGoogle, otpRequired, verifyOtpLogin, clearOtpState } = useAuth();
+  const { enablePasswordAuth: passwordAuthEnabled } = useFeatureFlags();
   const router = useRouter();
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const passwordAuthEnabled = featureFlags.enablePasswordAuth;
 
   const redirectToDashboardIfAuthenticated = useCallback(() => {
     if (typeof window === 'undefined') return false;

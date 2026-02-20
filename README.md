@@ -73,6 +73,7 @@ The frontend communicates with the backend API through the proxy at `http://loca
 - `NEXT_PUBLIC_ENABLE_PASSWORD_AUTH=true` (default): shows email/password login and signup forms.
 - `NEXT_PUBLIC_ENABLE_PASSWORD_AUTH=false`: hides email/password login and signup forms; users can sign in with Google only (if configured).
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID=<your-google-client-id>`: enables the Google sign-in button on `/login`.
+- `NEXT_PUBLIC_ENABLE_PASSWORD_AUTH` is also read at runtime via `/api/feature-flags`, so Render env updates apply after service restart/redeploy.
 
 ## Development
 

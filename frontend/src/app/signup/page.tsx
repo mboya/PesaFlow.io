@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 import { AuthGuard } from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
-import { featureFlags } from '@/lib/feature-flags';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { useToast } from '@/contexts/ToastContext';
 import { getRateLimitErrorMessage, extractRateLimitInfo } from '@/lib/rate-limit-helper';
 import { getApiErrorMessage } from '@/lib/utils';
@@ -31,8 +31,8 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const { success: showSuccess, error: showError } = useToast();
+  const { enablePasswordAuth: passwordAuthEnabled } = useFeatureFlags();
   const router = useRouter();
-  const passwordAuthEnabled = featureFlags.enablePasswordAuth;
 
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordChecks, setPasswordChecks] = useState({

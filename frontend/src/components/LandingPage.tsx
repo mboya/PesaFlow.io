@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { featureFlags } from '@/lib/feature-flags';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
 type SegmentKey = 'saas' | 'education' | 'utilities';
 
@@ -144,7 +144,7 @@ function formatCount(value: number) {
 }
 
 export function LandingPage() {
-  const passwordAuthEnabled = featureFlags.enablePasswordAuth;
+  const { enablePasswordAuth: passwordAuthEnabled } = useFeatureFlags();
   const [segment, setSegment] = useState<SegmentKey>('saas');
   const [dueSubscriptions, setDueSubscriptions] = useState(500);
   const [invoiceAmount, setInvoiceAmount] = useState(2000);
