@@ -30,7 +30,10 @@ module TenantScoped
 
     # For login/signup endpoints, allow requests to proceed even if tenant header is provided but tenant doesn't exist
     # The user might be logging in before their tenant is fully set up, or creating a new tenant
-    is_auth_endpoint = request.path.include?("/login") || request.path.include?("/signup") || request.path.include?("/registration")
+    is_auth_endpoint = request.path.include?("/login") ||
+                       request.path.include?("/google_login") ||
+                       request.path.include?("/signup") ||
+                       request.path.include?("/registration")
     
     # If a tenant header was provided but tenant doesn't exist, and this is an auth endpoint, allow it
     if is_auth_endpoint && (request.headers[TENANT_SUBDOMAIN_HEADER].present? || request.headers[TENANT_ID_HEADER].present?)

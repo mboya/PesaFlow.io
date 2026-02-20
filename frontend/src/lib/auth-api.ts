@@ -76,6 +76,24 @@ const extractToken = (response: any): string | null => {
   return null;
 };
 
+const shouldRetryAuthWithoutTenantSubdomain = (error: any): boolean => {
+  if (typeof window === 'undefined') return false;
+  const status = error?.response?.status;
+  return status === 403 && !!localStorage.getItem('tenantSubdomain');
+};
+
+const retryAuthCallWithoutTenantSubdomain = async <T>(call: () => Promise<T>): Promise<T> => {
+  try {
+    return await call();
+  } catch (error) {
+    if (shouldRetryAuthWithoutTenantSubdomain(error)) {
+      localStorage.removeItem('tenantSubdomain');
+      return call();
+    }
+    throw error;
+  }
+};
+
 export const authApi = {
   // Sign up new user
   signup: async (data: SignupData): Promise<{ user: User; token: string }> => {
@@ -119,7 +137,9 @@ export const authApi = {
 
   // Login user
   login: async (data: LoginData): Promise<LoginResponse> => {
-    const response = await apiClient.post('/login', { user: data });
+    const response = await retryAuthCallWithoutTenantSubdomain(() =>
+      apiClient.post('/login', { user: data })
+    );
     const token = extractToken(response);
     const loginData: LoginResponse = response.data;
     
@@ -150,7 +170,9 @@ export const authApi = {
 
   // Login user with Google ID token
   googleLogin: async (credential: string): Promise<LoginResponse> => {
-    const response = await apiClient.post('/google_login', { credential });
+    const response = await retryAuthCallWithoutTenantSubdomain(() =>
+      apiClient.post('/google_login', { credential })
+    );
     const token = extractToken(response);
     const loginData: LoginResponse = response.data;
 

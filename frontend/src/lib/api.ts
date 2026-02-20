@@ -15,6 +15,7 @@ import type {
 // Using a relative path ensures it automatically adapts to the current origin (including subdomain)
 // For example: if on "power-user.localhost:3001", API calls go to "power-user.localhost:3001/api/proxy"
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
+const AUTH_ENDPOINT_PATHS = ['/login', '/google_login', '/signup', '/otp/verify_login'];
 
 export const apiClient = axios.create({
     baseURL: API_URL, // Proxy already handles /api/v1 prefix, relative path adapts to subdomain automatically
@@ -87,6 +88,9 @@ apiClient.interceptors.response.use(
 // Add auth token and tenant headers to requests
 apiClient.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
+        const requestUrl = typeof config.url === 'string' ? config.url : '';
+        const isAuthRequest = AUTH_ENDPOINT_PATHS.some((path) => requestUrl.includes(path));
+
         // Add authentication token
         const token = localStorage.getItem('authToken');
         if (token) {
@@ -94,7 +98,12 @@ apiClient.interceptors.request.use((config) => {
         }
 
         // Add tenant subdomain header if available (allows backend to identify tenant)
-        if (!config.headers['X-Tenant-Subdomain'] && !config.headers['x-tenant-subdomain']) {
+        // Auth endpoints intentionally skip this to avoid stale tenant headers causing 403s.
+        if (
+            !isAuthRequest &&
+            !config.headers['X-Tenant-Subdomain'] &&
+            !config.headers['x-tenant-subdomain']
+        ) {
             const tenantSubdomain = localStorage.getItem('tenantSubdomain');
             if (tenantSubdomain) {
                 config.headers['X-Tenant-Subdomain'] = tenantSubdomain;
