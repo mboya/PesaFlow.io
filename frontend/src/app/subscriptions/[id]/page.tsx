@@ -12,11 +12,14 @@ import {
   ErrorState,
   PageHeader,
   BackgroundDecorations,
+  ConfirmDialog,
 } from '@/components';
 import { useToast } from '@/contexts/ToastContext';
 import { subscriptionsApi, paymentsApi } from '@/lib/api';
 import { formatCurrency, formatDate, getApiErrorMessage } from '@/lib/utils';
 import type { Subscription, Payment } from '@/lib/types';
+
+type PendingAction = 'cancel' | 'reactivate';
 
 export default function SubscriptionDetailPage() {
   const router = useRouter();
@@ -29,6 +32,7 @@ export default function SubscriptionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const fetchSubscription = useCallback(async () => {
     try {
@@ -55,7 +59,7 @@ export default function SubscriptionDetailPage() {
   }, [subscriptionId, fetchSubscription]);
 
   const handleCancel = async () => {
-    if (!subscription || !confirm('Are you sure you want to cancel this subscription?')) return;
+    if (!subscription) return;
 
     try {
       setActionLoading('cancel');
@@ -70,7 +74,7 @@ export default function SubscriptionDetailPage() {
   };
 
   const handleReactivate = async () => {
-    if (!subscription || !confirm('Are you sure you want to reactivate this subscription?')) return;
+    if (!subscription) return;
 
     try {
       setActionLoading('reactivate');
@@ -92,6 +96,43 @@ export default function SubscriptionDetailPage() {
       c2b: 'Paybill (C2B)',
     };
     return methodMap[method] || method.toUpperCase();
+  };
+
+  const actionDialogConfig: Record<
+    PendingAction,
+    {
+      title: string;
+      description: string;
+      confirmLabel: string;
+      confirmVariant: 'primary' | 'danger';
+    }
+  > = {
+    cancel: {
+      title: 'Cancel Subscription?',
+      description: 'This will stop future billing for this subscription.',
+      confirmLabel: 'Cancel Subscription',
+      confirmVariant: 'danger',
+    },
+    reactivate: {
+      title: 'Reactivate Subscription?',
+      description: 'Billing will resume based on this subscription schedule.',
+      confirmLabel: 'Reactivate',
+      confirmVariant: 'primary',
+    },
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingAction || actionLoading) return;
+
+    const actionToRun = pendingAction;
+    setPendingAction(null);
+
+    if (actionToRun === 'cancel') {
+      await handleCancel();
+      return;
+    }
+
+    await handleReactivate();
   };
 
   if (loading) {
@@ -213,14 +254,18 @@ export default function SubscriptionDetailPage() {
 
                 <div className="mt-6 flex flex-wrap gap-3">
                   {subscription.status === 'active' && (
-                    <button onClick={handleCancel} disabled={actionLoading === 'cancel'} className="app-btn-danger">
+                    <button
+                      onClick={() => setPendingAction('cancel')}
+                      disabled={actionLoading === 'cancel'}
+                      className="app-btn-danger"
+                    >
                       {actionLoading === 'cancel' ? 'Cancelling...' : 'Cancel Subscription'}
                     </button>
                   )}
 
                   {showReactivateAction && (
                     <button
-                      onClick={handleReactivate}
+                      onClick={() => setPendingAction('reactivate')}
                       disabled={actionLoading === 'reactivate' || !canReactivate}
                       className="app-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -287,6 +332,17 @@ export default function SubscriptionDetailPage() {
             </div>
           </div>
         </main>
+
+        <ConfirmDialog
+          isOpen={pendingAction !== null}
+          title={pendingAction ? actionDialogConfig[pendingAction].title : ''}
+          description={pendingAction ? actionDialogConfig[pendingAction].description : ''}
+          confirmLabel={pendingAction ? actionDialogConfig[pendingAction].confirmLabel : 'Confirm'}
+          confirmVariant={pendingAction ? actionDialogConfig[pendingAction].confirmVariant : 'primary'}
+          loading={actionLoading !== null}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={handleConfirmAction}
+        />
       </div>
     </AuthGuard>
   );

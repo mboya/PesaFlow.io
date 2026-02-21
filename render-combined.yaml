@@ -60,6 +60,18 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.1"
+      - key: SENTRY_SEND_DEFAULT_PII
+        value: "false"
       - key: PORT
         value: "3000"
 
@@ -100,6 +112,14 @@ services:
         sync: false
       - key: APP_HOST
         sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.1"
+      - key: SENTRY_SEND_DEFAULT_PII
+        value: "false"
 
   # Frontend Service (Next.js)
   - type: web
@@ -116,4 +136,28 @@ services:
       - key: BACKEND_INTERNAL_URL
         sync: false
       - key: NEXT_PUBLIC_WS_URL
+        sync: false
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        sync: false
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_ENABLE_PASSWORD_AUTH
+        value: "true"
+      - key: SENTRY_DSN
+        sync: false
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production
+      - key: NEXT_PUBLIC_SENTRY_ENVIRONMENT
+        value: production
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.1"
+      - key: NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
+        value: "0.1"
+      - key: SENTRY_AUTH_TOKEN
+        sync: false
+      - key: SENTRY_ORG
+        sync: false
+      - key: SENTRY_PROJECT
         sync: false

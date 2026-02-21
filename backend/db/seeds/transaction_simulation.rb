@@ -55,6 +55,10 @@ module Seeds
         email: ENV["SIM_TX_USER_EMAIL"],
         id: ENV["SIM_TX_USER_ID"]
       )
+      fallback_tenant = resolve_target_tenant(
+        subdomain: ENV["SIM_TX_TENANT_SUBDOMAIN"],
+        id: ENV["SIM_TX_TENANT_ID"]
+      )
 
       unless target_user
         puts "WARNING: No user found for transaction simulation."
@@ -63,12 +67,13 @@ module Seeds
       end
 
       months = ENV.fetch("SIM_TX_MONTHS", DEFAULT_MONTHS).to_i
-      new(user: target_user, months: months).run
+      new(user: target_user, months: months, fallback_tenant: fallback_tenant).run
     end
 
-    def initialize(user:, months: DEFAULT_MONTHS)
+    def initialize(user:, months: DEFAULT_MONTHS, fallback_tenant: nil)
       @user = user
       @months = [ [ months.to_i, 1 ].max, MAX_MONTHS ].min
+      @fallback_tenant = fallback_tenant
       @counts = Hash.new(0)
     end
 
@@ -114,7 +119,19 @@ module Seeds
         elsif id.present?
           User.find_by(id: id.to_i)
         else
-          User.order(:id).first
+          User.where.not(tenant_id: nil).order(:id).first || User.order(:id).first
+        end
+      end
+    end
+
+    def self.resolve_target_tenant(subdomain:, id:)
+      ActsAsTenant.without_tenant do
+        if subdomain.present?
+          Tenant.find_by(subdomain: subdomain.strip.downcase)
+        elsif id.present?
+          Tenant.find_by(id: id.to_i)
+        else
+          nil
         end
       end
     end
@@ -122,13 +139,15 @@ module Seeds
     def ensure_user_tenant!
       return if @user.tenant_id.present?
 
+      unless @fallback_tenant
+        raise <<~MSG.strip
+          Target user #{@user.email} has no tenant.
+          Provide an existing tenant with SIM_TX_TENANT_SUBDOMAIN or SIM_TX_TENANT_ID.
+        MSG
+      end
+
       ActsAsTenant.without_tenant do
-        default_tenant = Tenant.find_or_create_by!(subdomain: "default") do |tenant|
-          tenant.name = "Default Tenant"
-          tenant.status = "active"
-          tenant.settings = {}
-        end
-        @user.update_column(:tenant_id, default_tenant.id)
+        @user.update_column(:tenant_id, @fallback_tenant.id)
       end
 
       @user.reload

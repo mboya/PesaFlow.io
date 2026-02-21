@@ -63,3 +63,7 @@ group :development, :test do
   # Database cleaning for tests
   gem "database_cleaner-active_record"
 end
+
+gem "sentry-ruby", "~> 6.3"
+gem "sentry-rails", "~> 6.3"
+gem "sentry-sidekiq", "~> 6.3"

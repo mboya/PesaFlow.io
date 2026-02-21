@@ -76,6 +76,35 @@ The frontend communicates with the backend API through the proxy at `http://loca
 - `NEXT_PUBLIC_ENABLE_PASSWORD_AUTH` is also read at runtime via `/api/feature-flags`, so Render env updates apply after service restart/redeploy.
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is read at runtime via `/api/feature-flags` as well (fallback `GOOGLE_CLIENT_ID`).
 
+### Sentry Monitoring
+
+- Backend (Rails + Sidekiq):
+  - `BACKEND_SENTRY_DSN=<dsn>`
+  - `SENTRY_ENVIRONMENT=development|staging|production`
+  - `SENTRY_TRACES_SAMPLE_RATE=0.0-1.0`
+  - `SENTRY_SEND_DEFAULT_PII=false` (default)
+- Frontend (Next.js):
+  - `FRONTEND_SENTRY_DSN=<dsn>` (server-side Next.js errors)
+  - `NEXT_PUBLIC_SENTRY_DSN=<dsn>` (browser errors)
+  - `NEXT_PUBLIC_SENTRY_ENVIRONMENT=development|staging|production`
+  - `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.0-1.0`
+- Optional source map upload (frontend build):
+  - `SENTRY_AUTH_TOKEN`
+  - `SENTRY_ORG`
+  - `SENTRY_PROJECT`
+- Note: local Docker uses `BACKEND_SENTRY_DSN` and `FRONTEND_SENTRY_DSN` in `.env`, mapped to each container’s internal `SENTRY_DSN`. On Render, set `SENTRY_DSN` per service directly.
+
+### Seed Data (Existing Accounts Only)
+
+- Run base seed:
+  - `docker-compose run --rm backend bundle exec rails db:seed`
+- Target a specific existing user:
+  - `docker-compose run --rm -e SEED_USER_EMAIL=user@example.com backend bundle exec rails db:seed`
+  - or `docker-compose run --rm -e SEED_USER_ID=1 backend bundle exec rails db:seed`
+- Generate simulated transaction history (must use existing user/tenant):
+  - `docker-compose run --rm -e SIMULATE_TRANSACTIONS=true -e SIM_TX_USER_EMAIL=user@example.com -e SIM_TX_TENANT_SUBDOMAIN=acme backend bundle exec rails db:seed`
+  - or `docker-compose run --rm -e SIMULATE_TRANSACTIONS=true -e SIM_TX_USER_ID=1 -e SIM_TX_TENANT_ID=2 -e SIM_TX_MONTHS=3 backend bundle exec rails db:seed`
+
 ## Development
 
 ### Local Development (without Docker)

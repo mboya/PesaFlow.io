@@ -10,3 +10,4 @@ export { EmptyState } from './EmptyState';
 export { Toast } from './Toast';
 export { ToastContainer } from './ToastContainer';
 export { LandingPage } from './LandingPage';
+export { ConfirmDialog } from './ConfirmDialog';
