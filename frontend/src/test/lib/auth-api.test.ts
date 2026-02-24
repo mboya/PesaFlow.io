@@ -4,6 +4,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const mockPost = vi.fn();
 const mockGet = vi.fn();
 const mockDelete = vi.fn();
+const sentryMocks = vi.hoisted(() => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+  withScope: vi.fn((callback: (scope: any) => void) => {
+    callback({
+      setTag: vi.fn(),
+      setContext: vi.fn(),
+    });
+  }),
+}));
 
 vi.mock('../../lib/api', () => ({
   apiClient: {
@@ -11,6 +21,12 @@ vi.mock('../../lib/api', () => ({
     get: (...args: any[]) => mockGet(...args),
     delete: (...args: any[]) => mockDelete(...args),
   },
+}));
+
+vi.mock('@sentry/nextjs', () => ({
+  captureException: sentryMocks.captureException,
+  captureMessage: sentryMocks.captureMessage,
+  withScope: sentryMocks.withScope,
 }));
 
 import { authApi } from '../../lib/auth-api';
@@ -179,6 +195,24 @@ describe('authApi', () => {
       expect(result.otp_required).toBe(true);
       expect(result.user_id).toBe(3);
       expect(localStorage.getItem('authToken')).toBeNull();
+    });
+
+    it('should capture Google login failure in Sentry and rethrow', async () => {
+      const apiError: any = new Error('Request failed with status code 403');
+      apiError.response = {
+        status: 403,
+        data: {
+          status: {
+            code: 403,
+            message: 'Forbidden',
+          },
+        },
+      };
+      mockPost.mockRejectedValue(apiError);
+
+      await expect(authApi.googleLogin('google-id-token')).rejects.toThrow('Request failed with status code 403');
+      expect(sentryMocks.withScope).toHaveBeenCalled();
+      expect(sentryMocks.captureException).toHaveBeenCalledWith(apiError);
     });
   });
 

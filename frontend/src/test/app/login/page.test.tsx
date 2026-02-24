@@ -11,6 +11,17 @@ vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/login'),
 }));
 
+vi.mock('@sentry/nextjs', () => ({
+  withScope: (callback: (scope: any) => void) =>
+    callback({
+      setTag: vi.fn(),
+      setLevel: vi.fn(),
+      setContext: vi.fn(),
+    }),
+  captureMessage: vi.fn(),
+  captureException: vi.fn(),
+}));
+
 // Mock AuthContext
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
