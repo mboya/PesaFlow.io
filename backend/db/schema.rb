@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_20_113747) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_23_143000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -57,12 +57,64 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_20_113747) do
     t.index ["user_id"], name: "index_customers_on_user_id", unique: true
   end
 
+  create_table "domain_events", force: :cascade do |t|
+    t.bigint "tenant_id"
+    t.string "event_type", null: false
+    t.string "source"
+    t.datetime "occurred_at", null: false
+    t.string "actor_type"
+    t.bigint "actor_id"
+    t.string "subject_type"
+    t.bigint "subject_id"
+    t.string "correlation_id"
+    t.string "causation_id"
+    t.string "idempotency_key"
+    t.jsonb "payload", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["causation_id"], name: "index_domain_events_on_causation_id"
+    t.index ["correlation_id"], name: "index_domain_events_on_correlation_id"
+    t.index ["occurred_at"], name: "index_domain_events_on_occurred_at"
+    t.index ["subject_type", "subject_id"], name: "index_domain_events_on_subject_type_and_subject_id"
+    t.index ["tenant_id", "event_type", "occurred_at"], name: "index_domain_events_on_tenant_event_time"
+    t.index ["tenant_id", "idempotency_key"], name: "index_domain_events_on_tenant_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
+    t.index ["tenant_id"], name: "index_domain_events_on_tenant_id"
+  end
+
   create_table "jwt_denylists", force: :cascade do |t|
     t.string "jti"
     t.datetime "exp"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["jti"], name: "index_jwt_denylists_on_jti"
+  end
+
+  create_table "notification_deliveries", force: :cascade do |t|
+    t.bigint "tenant_id"
+    t.string "channel", null: false
+    t.string "status", default: "queued", null: false
+    t.string "template"
+    t.string "provider"
+    t.string "recipient", null: false
+    t.string "subject"
+    t.text "message"
+    t.string "provider_message_id"
+    t.string "context_type"
+    t.bigint "context_id"
+    t.string "correlation_id"
+    t.datetime "delivered_at"
+    t.datetime "failed_at"
+    t.text "error_message"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["context_type", "context_id"], name: "index_notification_deliveries_on_context_type_and_context_id"
+    t.index ["correlation_id"], name: "index_notification_deliveries_on_correlation_id"
+    t.index ["delivered_at"], name: "index_notification_deliveries_on_delivered_at"
+    t.index ["tenant_id", "channel", "status"], name: "index_notification_deliveries_on_tenant_channel_status"
+    t.index ["tenant_id", "provider_message_id"], name: "index_notification_deliveries_on_tenant_provider_message_id", unique: true, where: "(provider_message_id IS NOT NULL)"
+    t.index ["tenant_id"], name: "index_notification_deliveries_on_tenant_id"
   end
 
   create_table "payments", force: :cascade do |t|
@@ -145,6 +197,32 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_20_113747) do
     t.index ["tenant_id"], name: "index_subscriptions_on_tenant_id"
   end
 
+  create_table "support_interactions", force: :cascade do |t|
+    t.bigint "tenant_id"
+    t.bigint "customer_id"
+    t.bigint "subscription_id"
+    t.string "actor_type"
+    t.bigint "actor_id"
+    t.string "channel", null: false
+    t.string "direction", default: "outbound", null: false
+    t.string "topic", default: "general", null: false
+    t.string "status", default: "logged", null: false
+    t.datetime "occurred_at", null: false
+    t.text "message"
+    t.string "external_id"
+    t.string "correlation_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_type", "actor_id"], name: "index_support_interactions_on_actor_type_and_actor_id"
+    t.index ["correlation_id"], name: "index_support_interactions_on_correlation_id"
+    t.index ["customer_id"], name: "index_support_interactions_on_customer_id"
+    t.index ["subscription_id"], name: "index_support_interactions_on_subscription_id"
+    t.index ["tenant_id", "channel", "topic"], name: "index_support_interactions_on_tenant_channel_topic"
+    t.index ["tenant_id", "occurred_at"], name: "index_support_interactions_on_tenant_time"
+    t.index ["tenant_id"], name: "index_support_interactions_on_tenant_id"
+  end
+
   create_table "tenants", force: :cascade do |t|
     t.string "name", null: false
     t.string "subdomain", null: false
@@ -197,6 +275,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_20_113747) do
   add_foreign_key "billing_attempts", "tenants"
   add_foreign_key "customers", "tenants"
   add_foreign_key "customers", "users"
+  add_foreign_key "domain_events", "tenants"
+  add_foreign_key "notification_deliveries", "tenants"
   add_foreign_key "payments", "billing_attempts"
   add_foreign_key "payments", "subscriptions"
   add_foreign_key "payments", "tenants"
@@ -206,6 +286,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_20_113747) do
   add_foreign_key "refunds", "users", column: "approved_by_id"
   add_foreign_key "subscriptions", "customers"
   add_foreign_key "subscriptions", "tenants"
+  add_foreign_key "support_interactions", "customers"
+  add_foreign_key "support_interactions", "subscriptions"
+  add_foreign_key "support_interactions", "tenants"
   add_foreign_key "users", "tenants"
   add_foreign_key "webhook_logs", "tenants"
 end

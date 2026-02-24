@@ -72,6 +72,19 @@ module Billing
       SMS
 
       NotificationService.send_sms(subscription.customer.phone_number, message)
+      Support::InteractionLogger.log(
+        channel: "sms",
+        topic: "manual_payment_instruction",
+        message: message,
+        customer: subscription.customer,
+        subscription: subscription,
+        tenant: subscription.tenant,
+        metadata: {
+          paybill: paybill,
+          account_number: account,
+          amount: amount.to_s
+        }
+      )
 
       if subscription.customer.email.present?
         NotificationService.send_email(
@@ -83,6 +96,20 @@ module Billing
             account_number: account,
             amount: amount,
             subscription: subscription
+          }
+        )
+
+        Support::InteractionLogger.log(
+          channel: "email",
+          topic: "manual_payment_instruction",
+          message: "Payment Required - Manual Payment Instructions",
+          customer: subscription.customer,
+          subscription: subscription,
+          tenant: subscription.tenant,
+          metadata: {
+            paybill: paybill,
+            account_number: account,
+            amount: amount.to_s
           }
         )
       end
