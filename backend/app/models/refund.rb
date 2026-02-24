@@ -24,6 +24,8 @@ class Refund < ApplicationRecord
 
   # Callbacks
   before_validation :set_requested_at, on: :create
+  after_commit :publish_created_event, on: :create
+  after_commit :publish_status_change_event, on: :update, if: :saved_change_to_status?
 
   # Instance methods
   def approve!(user:)
@@ -70,5 +72,40 @@ class Refund < ApplicationRecord
 
   def set_requested_at
     self.requested_at ||= Time.current
+  end
+
+  def publish_created_event
+    Events::Publisher.publish(
+      event_type: "refund.created",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        subscription_id: subscription_id,
+        payment_id: payment_id,
+        amount: amount.to_s,
+        reason: reason,
+        status: status,
+        requested_at: requested_at
+      }
+    )
+  end
+
+  def publish_status_change_event
+    previous_status, current_status = saved_change_to_status
+    Events::Publisher.publish(
+      event_type: "refund.status_changed",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        subscription_id: subscription_id,
+        payment_id: payment_id,
+        from: previous_status,
+        to: current_status,
+        failure_reason: failure_reason,
+        completed_at: completed_at
+      }
+    )
   end
 end

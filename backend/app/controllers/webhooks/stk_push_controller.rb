@@ -3,14 +3,18 @@ class Webhooks::StkPushController < ActionController::API
   include Transactional
 
   def callback
+    webhook_log = nil
     payload = JSON.parse(request.body.read)
-    log_webhook("stk_push", payload, request.env)
+    webhook_log = log_webhook("stk_push", payload, request.env)
 
     result_code = payload.dig("Body", "stkCallback", "ResultCode")
     checkout_request_id = payload.dig("Body", "stkCallback", "CheckoutRequestID")
 
     billing_attempt = BillingAttempt.find_by(stk_push_checkout_id: checkout_request_id)
-    return head :ok unless billing_attempt
+    unless billing_attempt
+      mark_webhook_processed(webhook_log)
+      return head :ok
+    end
 
     # Set tenant from billing attempt's subscription
     ActsAsTenant.current_tenant = billing_attempt.subscription.tenant if billing_attempt.subscription&.tenant.present?
@@ -25,11 +29,13 @@ class Webhooks::StkPushController < ActionController::API
       process_failed_stk_push(billing_attempt, result_desc)
     end
 
+    mark_webhook_processed(webhook_log)
     head :ok
   rescue JSON::ParserError => e
     Rails.logger.error("Invalid JSON payload in STK Push webhook: #{e.message}")
     head :bad_request
   rescue StandardError => e
+    mark_webhook_failed(webhook_log, e.message)
     Rails.logger.error("Error processing STK Push webhook: #{e.message}")
     Rails.logger.error(e.backtrace.join("\n"))
     head :internal_server_error

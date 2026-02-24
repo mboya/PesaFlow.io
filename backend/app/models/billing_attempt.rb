@@ -24,6 +24,9 @@ class BillingAttempt < ApplicationRecord
 
   # Callbacks
   before_validation :set_attempted_at, on: :create
+  after_commit :publish_created_event, on: :create
+  after_commit :publish_status_change_event, on: :update, if: :saved_change_to_status?
+  after_commit :publish_retry_scheduled_event, on: :update, if: :saved_change_to_next_retry_at?
 
   # Instance methods
   def mark_as_processing!
@@ -74,5 +77,61 @@ class BillingAttempt < ApplicationRecord
     # Exponential backoff: 1 hour, 4 hours, 24 hours
     hours = RETRY_DELAYS_HOURS[retry_count - 1] || DEFAULT_RETRY_DELAY_HOURS
     hours.hours.from_now
+  end
+
+  def publish_created_event
+    Events::Publisher.publish(
+      event_type: "billing_attempt.created",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        subscription_id: subscription_id,
+        amount: amount.to_s,
+        payment_method: payment_method,
+        status: status,
+        attempt_number: attempt_number,
+        invoice_number: invoice_number,
+        attempted_at: attempted_at,
+        retry_count: retry_count,
+        next_retry_at: next_retry_at
+      }
+    )
+  end
+
+  def publish_status_change_event
+    previous_status, current_status = saved_change_to_status
+    Events::Publisher.publish(
+      event_type: "billing_attempt.status_changed",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        subscription_id: subscription_id,
+        from: previous_status,
+        to: current_status,
+        failure_reason: failure_reason,
+        retry_count: retry_count,
+        next_retry_at: next_retry_at
+      }
+    )
+  end
+
+  def publish_retry_scheduled_event
+    _previous_retry_at, current_retry_at = saved_change_to_next_retry_at
+    return if current_retry_at.blank?
+
+    Events::Publisher.publish(
+      event_type: "billing_attempt.retry_scheduled",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        subscription_id: subscription_id,
+        retry_count: retry_count,
+        next_retry_at: current_retry_at,
+        status: status
+      }
+    )
   end
 end

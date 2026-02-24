@@ -3,15 +3,19 @@ class Webhooks::RatibaController < ActionController::API
   include Transactional
 
   def callback
+    webhook_log = nil
     payload = JSON.parse(request.body.read)
-    log_webhook("ratiba", payload, request.env)
+    webhook_log = log_webhook("ratiba", payload, request.env)
 
     # Find subscription by account reference
     subscription = Subscription.find_by(
       reference_number: payload["AccountReference"]
     )
 
-    return head :ok unless subscription
+    unless subscription
+      mark_webhook_processed(webhook_log)
+      return head :ok
+    end
 
     # Set tenant from subscription
     ActsAsTenant.current_tenant = subscription.tenant if subscription.tenant.present?
@@ -24,11 +28,13 @@ class Webhooks::RatibaController < ActionController::API
       process_failed_payment(subscription, payload)
     end
 
+    mark_webhook_processed(webhook_log)
     head :ok
   rescue JSON::ParserError => e
     Rails.logger.error("Invalid JSON payload in Ratiba webhook: #{e.message}")
     head :bad_request
   rescue StandardError => e
+    mark_webhook_failed(webhook_log, e.message)
     Rails.logger.error("Error processing Ratiba webhook: #{e.message}")
     Rails.logger.error(e.backtrace.join("\n"))
     head :internal_server_error

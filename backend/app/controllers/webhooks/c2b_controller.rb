@@ -6,16 +6,13 @@ class Webhooks::C2bController < ActionController::API
   def validation
     # M-Pesa sends validation request before processing payment
     # We should validate the transaction and return appropriate response
+    webhook_log = nil
     payload = JSON.parse(request.body.read)
 
-    # Log webhook (don't let failures block validation)
-    begin
-      log_webhook("c2b", payload.merge(event_type: "validation"), request.env)
-    rescue StandardError => e
-      Rails.logger.error("Failed to log C2B validation webhook: #{e.message}")
-    end
+    webhook_log = log_webhook("c2b", payload.merge(event_type: "validation"), request.env)
 
     Rails.logger.info("C2B Validation received: #{payload.inspect}")
+    mark_webhook_processed(webhook_log)
 
     # Validate the transaction
     # Return success to allow transaction, or failure to reject
@@ -24,24 +21,28 @@ class Webhooks::C2bController < ActionController::API
       ResultDesc: "Accepted"
     }
   rescue JSON::ParserError => e
+    mark_webhook_failed(webhook_log, e.message)
     Rails.logger.error("Failed to parse C2B validation payload: #{e.message}")
     render json: {
       ResultCode: 1,
       ResultDesc: "Invalid payload"
     }, status: :bad_request
+  rescue StandardError => e
+    mark_webhook_failed(webhook_log, e.message)
+    Rails.logger.error("Error processing C2B validation payload: #{e.message}")
+    render json: {
+      ResultCode: 1,
+      ResultDesc: "Internal error"
+    }, status: :internal_server_error
   end
 
   # POST /webhooks/c2b/confirmation
   def confirmation
     # M-Pesa sends confirmation after processing payment
+    webhook_log = nil
     payload = JSON.parse(request.body.read)
 
-    # Log webhook (don't let failures block payment processing)
-    begin
-      log_webhook("c2b", payload.merge(event_type: "confirmation"), request.env)
-    rescue StandardError => e
-      Rails.logger.error("Failed to log C2B webhook: #{e.message}")
-    end
+    webhook_log = log_webhook("c2b", payload.merge(event_type: "confirmation"), request.env)
 
     Rails.logger.info("C2B Confirmation received: #{payload.inspect}")
 
@@ -49,7 +50,10 @@ class Webhooks::C2bController < ActionController::API
     account_reference = payload.dig("BillRefNumber") || payload.dig("BillReferenceNumber")
     subscription = Subscription.find_by(reference_number: account_reference)
 
-    return head :ok unless subscription
+    unless subscription
+      mark_webhook_processed(webhook_log)
+      return head :ok
+    end
 
     # Set tenant from subscription
     ActsAsTenant.current_tenant = subscription.tenant if subscription.tenant.present?
@@ -59,11 +63,14 @@ class Webhooks::C2bController < ActionController::API
       process_c2b_payment(subscription, payload)
     end
 
+    mark_webhook_processed(webhook_log)
     head :ok
   rescue JSON::ParserError => e
+    mark_webhook_failed(webhook_log, e.message)
     Rails.logger.error("Failed to parse C2B confirmation payload: #{e.message}")
     head :bad_request
   rescue StandardError => e
+    mark_webhook_failed(webhook_log, e.message)
     Rails.logger.error("Error processing C2B confirmation: #{e.message}")
     Rails.logger.error(e.backtrace.first(10).join("\n"))
     head :internal_server_error

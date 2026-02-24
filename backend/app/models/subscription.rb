@@ -8,6 +8,7 @@ class Subscription < ApplicationRecord
   has_many :billing_attempts, dependent: :destroy
   has_many :payments, dependent: :destroy
   has_many :refunds, dependent: :destroy
+  has_many :support_interactions, dependent: :nullify
   # Note: Invoices are represented by billing_attempts with invoice_number
 
   # Validations
@@ -29,6 +30,7 @@ class Subscription < ApplicationRecord
   before_validation :generate_reference_number, on: :create
   before_validation :set_tenant_from_customer, on: :create
   before_save :set_tenant_from_customer
+  after_commit :publish_status_change_event, on: :update, if: :saved_change_to_status?
 
   # Instance methods
 
@@ -186,5 +188,24 @@ class Subscription < ApplicationRecord
       customer_tenant_id = customer.tenant_id
       self.tenant_id = customer_tenant_id if customer_tenant_id.present?
     end
+  end
+
+  def publish_status_change_event
+    previous_status, current_status = saved_change_to_status
+    Events::Publisher.publish(
+      event_type: "subscription.status_changed",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        customer_id: customer_id,
+        from: previous_status,
+        to: current_status,
+        outstanding_amount: outstanding_amount.to_s,
+        suspended_at: suspended_at,
+        cancelled_at: cancelled_at,
+        next_billing_date: next_billing_date
+      }
+    )
   end
 end

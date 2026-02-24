@@ -19,7 +19,7 @@ module WebhookLoggable
     # Get tenant from current tenant or infer from payload
     tenant = ActsAsTenant.current_tenant || infer_tenant_from_webhook_payload(payload)
 
-    WebhookLog.create!(
+    webhook_log = WebhookLog.create!(
       tenant: tenant,
       source: source,
       event_type: extract_event_type(payload),
@@ -27,8 +27,68 @@ module WebhookLoggable
       headers: filtered_headers.to_json,
       status: "received"
     )
+
+    Events::Publisher.publish(
+      event_type: "webhook.received",
+      subject: webhook_log,
+      tenant: webhook_log.tenant,
+      source: "#{self.class.name}#log_webhook",
+      payload: {
+        source: webhook_log.source,
+        event_type: webhook_log.event_type,
+        status: webhook_log.status
+      }
+    )
+
+    webhook_log
   rescue StandardError => e
     Rails.logger.error("Failed to log webhook: #{e.message}")
+    nil
+  end
+
+  def mark_webhook_processed(webhook_log)
+    return unless webhook_log
+
+    with_webhook_tenant(webhook_log) do
+      webhook_log.mark_as_processed!
+    end
+
+    Events::Publisher.publish(
+      event_type: "webhook.processed",
+      subject: webhook_log,
+      tenant: webhook_log.tenant,
+      source: self.class.name,
+      payload: {
+        source: webhook_log.source,
+        event_type: webhook_log.event_type,
+        status: webhook_log.status
+      }
+    )
+  rescue StandardError => e
+    Rails.logger.error("Failed to mark webhook as processed: #{e.message}")
+  end
+
+  def mark_webhook_failed(webhook_log, error_message)
+    return unless webhook_log
+
+    with_webhook_tenant(webhook_log) do
+      webhook_log.mark_as_failed!(error_message)
+    end
+
+    Events::Publisher.publish(
+      event_type: "webhook.failed",
+      subject: webhook_log,
+      tenant: webhook_log.tenant,
+      source: self.class.name,
+      payload: {
+        source: webhook_log.source,
+        event_type: webhook_log.event_type,
+        status: webhook_log.status,
+        error_message: error_message
+      }
+    )
+  rescue StandardError => e
+    Rails.logger.error("Failed to mark webhook as failed: #{e.message}")
   end
 
   def infer_tenant_from_webhook_payload(payload)
@@ -36,14 +96,18 @@ module WebhookLoggable
 
     # Try to find tenant from subscription reference
     if payload["AccountReference"].present?
-      subscription = Subscription.find_by(reference_number: payload["AccountReference"])
+      subscription = ActsAsTenant.without_tenant do
+        Subscription.find_by(reference_number: payload["AccountReference"])
+      end
       return subscription&.tenant
     end
 
     # Try to find tenant from checkout request ID (STK Push)
     if payload.dig("Body", "stkCallback", "CheckoutRequestID").present?
       checkout_id = payload.dig("Body", "stkCallback", "CheckoutRequestID")
-      billing_attempt = BillingAttempt.find_by(stk_push_checkout_id: checkout_id)
+      billing_attempt = ActsAsTenant.without_tenant do
+        BillingAttempt.find_by(stk_push_checkout_id: checkout_id)
+      end
       return billing_attempt&.subscription&.tenant
     end
 
@@ -66,7 +130,7 @@ module WebhookLoggable
       key = header.upcase.tr("-", "_")
       http_key = "HTTP_#{key}"
 
-      value = headers[header] || headers[http_key] || headers[header.downcase]
+      value = headers[header] || headers[key] || headers[http_key] || headers[header.downcase]
       filtered[header] = value.to_s if value.present?
     end
     filtered
@@ -75,9 +139,21 @@ module WebhookLoggable
   def extract_event_type(payload)
     case payload
     when Hash
-      payload["ResultCode"] || payload.dig("Body", "stkCallback", "ResultCode") || "unknown"
+      payload["event_type"] ||
+        payload[:event_type] ||
+        payload["ResultCode"] ||
+        payload.dig("Body", "stkCallback", "ResultCode") ||
+        "unknown"
     else
       "unknown"
+    end
+  end
+
+  def with_webhook_tenant(webhook_log)
+    if webhook_log.tenant.present?
+      ActsAsTenant.with_tenant(webhook_log.tenant) { yield }
+    else
+      ActsAsTenant.without_tenant { yield }
     end
   end
 end

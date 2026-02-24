@@ -6,11 +6,14 @@ class Customer < ApplicationRecord
   # Associations
   belongs_to :user
   has_many :subscriptions, dependent: :destroy
+  has_many :support_interactions, dependent: :nullify
 
   # Callbacks
   before_validation :format_phone_number
   before_validation :set_tenant_from_user, on: :create
   before_save :set_tenant_from_user
+  after_commit :publish_status_change_event, on: :update, if: :saved_change_to_status?
+  after_commit :publish_failed_payment_count_change_event, on: :update, if: :saved_change_to_failed_payment_count?
 
   # Validations
   validates :name, presence: true
@@ -67,5 +70,37 @@ class Customer < ApplicationRecord
       user_tenant_id = user.tenant_id
       self.tenant_id = user_tenant_id if user_tenant_id.present?
     end
+  end
+
+  def publish_status_change_event
+    previous_status, current_status = saved_change_to_status
+
+    Events::Publisher.publish(
+      event_type: "customer.status_changed",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        user_id: user_id,
+        from: previous_status,
+        to: current_status
+      }
+    )
+  end
+
+  def publish_failed_payment_count_change_event
+    previous_count, current_count = saved_change_to_failed_payment_count
+
+    Events::Publisher.publish(
+      event_type: "customer.failed_payment_count_changed",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        user_id: user_id,
+        from: previous_count,
+        to: current_count
+      }
+    )
   end
 end

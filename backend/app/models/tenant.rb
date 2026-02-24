@@ -27,6 +27,9 @@ class Tenant < ApplicationRecord
   has_many :billing_attempts, through: :subscriptions
   has_many :refunds, through: :subscriptions
   has_many :webhook_logs, dependent: :destroy
+  has_many :domain_events, dependent: :destroy
+  has_many :notification_deliveries, dependent: :destroy
+  has_many :support_interactions, dependent: :destroy
 
   # Callbacks
   before_validation :normalize_subdomain

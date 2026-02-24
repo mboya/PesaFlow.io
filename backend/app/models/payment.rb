@@ -26,6 +26,8 @@ class Payment < ApplicationRecord
 
   # Callbacks
   before_validation :set_paid_at, on: :create
+  after_commit :publish_created_event, on: :create
+  after_commit :publish_status_change_event, on: :update, if: :saved_change_to_status?
 
   # Instance methods
   def mark_as_refunded!
@@ -52,5 +54,40 @@ class Payment < ApplicationRecord
 
   def set_paid_at
     self.paid_at ||= Time.current
+  end
+
+  def publish_created_event
+    Events::Publisher.publish(
+      event_type: "payment.created",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        subscription_id: subscription_id,
+        billing_attempt_id: billing_attempt_id,
+        amount: amount.to_s,
+        payment_method: payment_method,
+        status: status,
+        mpesa_transaction_id: mpesa_transaction_id,
+        paid_at: paid_at
+      }
+    )
+  end
+
+  def publish_status_change_event
+    previous_status, current_status = saved_change_to_status
+    Events::Publisher.publish(
+      event_type: "payment.status_changed",
+      subject: self,
+      tenant: tenant,
+      source: self.class.name,
+      payload: {
+        subscription_id: subscription_id,
+        billing_attempt_id: billing_attempt_id,
+        from: previous_status,
+        to: current_status,
+        mpesa_transaction_id: mpesa_transaction_id
+      }
+    )
   end
 end
