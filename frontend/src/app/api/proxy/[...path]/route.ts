@@ -3,6 +3,7 @@
 // to the browser through the frontend server
 
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 
 const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://backend:3000';
 const EXCLUDED_REQUEST_HEADERS = ['host', 'connection', 'content-length'];
@@ -97,13 +98,15 @@ async function proxyRequest(
   pathSegments: string[],
   method: string
 ) {
+  const fullPath = pathSegments.join('/');
+  let backendUrl = '';
+
   try {
     // Reconstruct the API path
     // When client requests /api/proxy/api/v1/subscriptions,
     // pathSegments will be ['api', 'v1', 'subscriptions']
     // We need to extract the actual endpoint path (everything after /api/v1/)
-    const fullPath = pathSegments.join('/');
-    
+
     // Remove 'api/v1' prefix if present (since client sends /api/proxy/api/v1/...)
     let apiPath = fullPath;
     if (fullPath.startsWith('api/v1/')) {
@@ -120,7 +123,7 @@ async function proxyRequest(
     // Build the backend URL with /api/v1/ prefix
     // If apiPath is empty, just use /api/v1
     const backendPath = apiPath ? `/api/v1/${apiPath}` : '/api/v1';
-    const backendUrl = `${BACKEND_URL}${backendPath}${queryString}`;
+    backendUrl = `${BACKEND_URL}${backendPath}${queryString}`;
 
 
     // Get request body if present
@@ -243,10 +246,24 @@ async function proxyRequest(
     return proxiedResponse;
   } catch (error) {
     console.error('Proxy error:', error);
+    Sentry.withScope((scope) => {
+      scope.setTag('proxy_route', 'api_proxy');
+      scope.setTag('surface', 'frontend_server');
+      scope.setContext('proxy_request', {
+        method,
+        path: fullPath,
+        backend_url: backendUrl || null,
+      });
+      if (error instanceof Error) {
+        Sentry.captureException(error);
+      } else {
+        Sentry.captureMessage('Unknown proxy error while forwarding request');
+      }
+    });
+
     return NextResponse.json(
       { error: 'Failed to proxy request to backend' },
       { status: 502 }
     );
   }
 }
-

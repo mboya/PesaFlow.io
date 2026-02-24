@@ -1,4 +1,5 @@
 // frontend/src/lib/auth-api.ts
+import * as Sentry from '@sentry/nextjs';
 import { apiClient } from './api';
 
 export interface User {
@@ -94,6 +95,28 @@ const retryAuthCallWithoutTenantSubdomain = async <T>(call: () => Promise<T>): P
   }
 };
 
+const captureGoogleLoginFailure = (error: unknown) => {
+  const responseStatus = (error as any)?.response?.status;
+  const responseData = (error as any)?.response?.data;
+
+  Sentry.withScope((scope) => {
+    scope.setTag('auth_flow', 'google_login');
+    scope.setTag('surface', 'frontend');
+    scope.setContext('google_login', {
+      response_status: responseStatus ?? null,
+      has_tenant_subdomain: typeof window !== 'undefined' ? Boolean(localStorage.getItem('tenantSubdomain')) : false,
+      backend_status_code: responseData?.status?.code ?? null,
+      backend_status_message: responseData?.status?.message ?? null,
+    });
+
+    if (error instanceof Error) {
+      Sentry.captureException(error);
+    } else {
+      Sentry.captureMessage('Google login failed on frontend');
+    }
+  });
+};
+
 export const authApi = {
   // Sign up new user
   signup: async (data: SignupData): Promise<{ user: User; token: string }> => {
@@ -170,21 +193,26 @@ export const authApi = {
 
   // Login user with Google ID token
   googleLogin: async (credential: string): Promise<LoginResponse> => {
-    const response = await retryAuthCallWithoutTenantSubdomain(() =>
-      apiClient.post('/google_login', { credential })
-    );
-    const token = extractToken(response);
-    const loginData: LoginResponse = response.data;
+    try {
+      const response = await retryAuthCallWithoutTenantSubdomain(() =>
+        apiClient.post('/google_login', { credential })
+      );
+      const token = extractToken(response);
+      const loginData: LoginResponse = response.data;
 
-    if (token && typeof window !== 'undefined') {
-      localStorage.setItem('authToken', token);
+      if (token && typeof window !== 'undefined') {
+        localStorage.setItem('authToken', token);
+      }
+
+      if (loginData.data?.tenant_subdomain && typeof window !== 'undefined') {
+        localStorage.setItem('tenantSubdomain', loginData.data.tenant_subdomain);
+      }
+
+      return loginData;
+    } catch (error) {
+      captureGoogleLoginFailure(error);
+      throw error;
     }
-
-    if (loginData.data?.tenant_subdomain && typeof window !== 'undefined') {
-      localStorage.setItem('tenantSubdomain', loginData.data.tenant_subdomain);
-    }
-
-    return loginData;
   },
 
   // Verify OTP during login

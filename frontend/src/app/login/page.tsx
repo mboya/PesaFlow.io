@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import Link from 'next/link';
+import * as Sentry from '@sentry/nextjs';
 
 import { AuthGuard } from '@/components';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +46,12 @@ export default function LoginPage() {
 
   const handleGoogleCredential = useCallback(async (credential?: string) => {
     if (!credential) {
+      Sentry.withScope((scope) => {
+        scope.setTag('auth_flow', 'google_login');
+        scope.setTag('surface', 'frontend');
+        scope.setLevel('warning');
+        Sentry.captureMessage('Google callback returned without credential');
+      });
       setError('Google login failed. Please try again.');
       return;
     }
@@ -320,6 +327,15 @@ export default function LoginPage() {
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
           onLoad={initializeGoogleSignIn}
+          onError={() => {
+            Sentry.withScope((scope) => {
+              scope.setTag('auth_flow', 'google_login');
+              scope.setTag('surface', 'frontend');
+              scope.setLevel('error');
+              Sentry.captureMessage('Failed to load Google Identity script');
+            });
+            setError('Google sign-in is temporarily unavailable. Please try again later.');
+          }}
         />
       )}
     </AuthGuard>
