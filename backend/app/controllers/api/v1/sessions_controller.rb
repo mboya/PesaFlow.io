@@ -79,6 +79,11 @@ module Api
       def google
         credential = google_sign_in_params[:credential]
         unless credential.present?
+          capture_google_login_message(
+            "Google login rejected: missing credential",
+            level: :warning,
+            extra: { failure_reason: "missing_credential" }
+          )
           render json: {
             status: {
               code: 401,
@@ -91,6 +96,11 @@ module Api
         google_client_id = ENV["GOOGLE_CLIENT_ID"].presence || ENV["NEXT_PUBLIC_GOOGLE_CLIENT_ID"].presence
         unless google_client_id.present?
           Rails.logger.error("[Google Login] GOOGLE_CLIENT_ID is not configured")
+          capture_google_login_message(
+            "Google login misconfigured: client id missing",
+            level: :error,
+            extra: { failure_reason: "missing_google_client_id" }
+          )
           render json: {
             status: {
               code: 503,
@@ -104,6 +114,11 @@ module Api
           payload = GoogleIdTokenVerifier.verify!(credential, audience: google_client_id)
         rescue GoogleIdTokenVerifier::VerificationError => e
           Rails.logger.warn("[Google Login] Invalid credential: #{e.message}")
+          capture_google_login_exception(
+            e,
+            level: :warning,
+            extra: { failure_reason: "invalid_google_credential" }
+          )
           render json: {
             status: {
               code: 401,
@@ -117,6 +132,15 @@ module Api
         tenant = resolve_authentication_tenant
 
         if normalized_email.blank? || tenant.blank?
+          capture_google_login_message(
+            "Google login rejected: email or tenant could not be resolved",
+            level: :warning,
+            extra: {
+              failure_reason: "missing_email_or_tenant",
+              resolved_email: normalized_email.present?,
+              resolved_tenant: tenant.present?
+            }
+          )
           render json: {
             status: {
               code: 401,
@@ -128,6 +152,14 @@ module Api
 
         user, created = find_or_create_google_user(normalized_email, tenant)
         unless user.present?
+          capture_google_login_message(
+            "Google login failed: user creation or lookup returned nil",
+            level: :error,
+            extra: {
+              failure_reason: "user_resolution_failed",
+              tenant_id: tenant.id
+            }
+          )
           render json: {
             status: {
               code: 422,
@@ -163,6 +195,20 @@ module Api
           data: Api::V1::UserSerializer.serialize(resource),
           token: token
         }, status: :ok
+      rescue StandardError => e
+        Rails.logger.error("[Google Login] Unexpected error: #{e.message}")
+        capture_google_login_exception(
+          e,
+          level: :error,
+          extra: { failure_reason: "unexpected_error" }
+        )
+
+        render json: {
+          status: {
+            code: 500,
+            message: "Unable to complete Google login"
+          }
+        }, status: :internal_server_error
       end
 
       # DELETE /api/v1/logout
@@ -250,6 +296,15 @@ module Api
         saved = ActsAsTenant.without_tenant { user.save }
         unless saved
           Rails.logger.warn("[Google Login] Failed creating user #{normalized_email}: #{user.errors.full_messages.join(', ')}")
+          capture_google_login_message(
+            "Google login user creation failed validation",
+            level: :warning,
+            extra: {
+              failure_reason: "user_validation_failed",
+              tenant_id: tenant.id,
+              validation_errors: user.errors.full_messages
+            }
+          )
           return [ nil, false ]
         end
 
@@ -301,6 +356,14 @@ module Api
         )
       rescue StandardError => e
         Rails.logger.error("Failed to create customer for user #{user.id}: #{e.message}")
+        capture_google_login_exception(
+          e,
+          level: :warning,
+          extra: {
+            failure_reason: "customer_creation_failed",
+            user_id: user.id
+          }
+        )
       end
 
       def send_signup_welcome_email(user)
@@ -309,6 +372,57 @@ module Api
         UserMailer.welcome_email(user).deliver_later
       rescue StandardError => e
         Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{e.message}")
+        capture_google_login_exception(
+          e,
+          level: :warning,
+          extra: {
+            failure_reason: "welcome_email_enqueue_failed",
+            user_id: user.id
+          }
+        )
+      end
+
+      def sentry_available?
+        defined?(Sentry) &&
+          Sentry.respond_to?(:capture_message) &&
+          Sentry.respond_to?(:capture_exception) &&
+          Sentry.respond_to?(:with_scope)
+      end
+
+      def capture_google_login_message(message, level: :warning, extra: {})
+        return unless sentry_available?
+
+        Sentry.with_scope do |scope|
+          scope.set_tags(auth_flow: "google_login", controller: self.class.name)
+          scope.set_level(level)
+          scope.set_context("google_login", sentry_google_login_context.merge(extra))
+          Sentry.capture_message(message)
+        end
+      rescue StandardError => e
+        Rails.logger.warn("[Google Login] Failed to send Sentry message: #{e.message}")
+      end
+
+      def capture_google_login_exception(exception, level: :error, extra: {})
+        return unless sentry_available?
+
+        Sentry.with_scope do |scope|
+          scope.set_tags(auth_flow: "google_login", controller: self.class.name)
+          scope.set_level(level)
+          scope.set_context("google_login", sentry_google_login_context.merge(extra))
+          Sentry.capture_exception(exception)
+        end
+      rescue StandardError => e
+        Rails.logger.warn("[Google Login] Failed to send Sentry exception: #{e.message}")
+      end
+
+      def sentry_google_login_context
+        {
+          request_id: request.request_id,
+          path: request.fullpath,
+          tenant_subdomain_header: request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER],
+          tenant_id_header: request.headers[TenantScoped::TENANT_ID_HEADER],
+          user_agent: request.user_agent
+        }.compact
       end
 
       def respond_with(resource, _opts = {})
