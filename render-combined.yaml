@@ -74,6 +74,14 @@ services:
         value: "false"
       - key: PORT
         value: "3000"
+      - key: DB_PREPARE_MAX_ATTEMPTS
+        value: "60"
+      - key: DB_PREPARE_WAIT_SECONDS
+        value: "2"
+      - key: SKIP_DB_PREPARE
+        value: "false"
+      - key: SEED_ON_BOOT
+        value: "false"
 
   # Sidekiq Worker (Background Jobs)
   - type: worker
@@ -119,6 +127,14 @@ services:
       - key: SENTRY_TRACES_SAMPLE_RATE
         value: "0.1"
       - key: SENTRY_SEND_DEFAULT_PII
+        value: "false"
+      - key: DB_PREPARE_MAX_ATTEMPTS
+        value: "60"
+      - key: DB_PREPARE_WAIT_SECONDS
+        value: "2"
+      - key: SKIP_DB_PREPARE
+        value: "false"
+      - key: SEED_ON_BOOT
         value: "false"
 
   # Frontend Service (Next.js)

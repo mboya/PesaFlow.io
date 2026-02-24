@@ -77,6 +77,10 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       SENTRY_SEND_DEFAULT_PII: ${SENTRY_SEND_DEFAULT_PII:-false}
+      DB_PREPARE_MAX_ATTEMPTS: ${DB_PREPARE_MAX_ATTEMPTS:-30}
+      DB_PREPARE_WAIT_SECONDS: ${DB_PREPARE_WAIT_SECONDS:-2}
+      SKIP_DB_PREPARE: ${SKIP_DB_PREPARE:-false}
+      SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,6 +113,10 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       SENTRY_SEND_DEFAULT_PII: ${SENTRY_SEND_DEFAULT_PII:-false}
+      DB_PREPARE_MAX_ATTEMPTS: ${DB_PREPARE_MAX_ATTEMPTS:-30}
+      DB_PREPARE_WAIT_SECONDS: ${DB_PREPARE_WAIT_SECONDS:-2}
+      SKIP_DB_PREPARE: ${SKIP_DB_PREPARE:-false}
+      SEED_ON_BOOT: ${SEED_ON_BOOT:-false}
     depends_on:
       postgres:
         condition: service_healthy

@@ -130,6 +130,19 @@ The Docker setup uses volume mounts for hot reloading:
 - Code changes are reflected immediately
 - Gems/node_modules are cached in Docker volumes
 
+### Automatic Database Bootstrap
+
+On both local Docker and Render, backend startup now includes a DB bootstrap step:
+- Waits/retries until the database is reachable
+- Runs `rails db:prepare` (creates DB if missing, then migrates)
+- Seeds non-production environments by default
+
+Environment variables:
+- `DB_PREPARE_MAX_ATTEMPTS` (default `30` locally, `60` on Render)
+- `DB_PREPARE_WAIT_SECONDS` (default `2`)
+- `SKIP_DB_PREPARE` (`false` by default)
+- `SEED_ON_BOOT` (`true` local backend, `false` for sidekiq/Render)
+
 ### Useful Commands
 
 ```bash

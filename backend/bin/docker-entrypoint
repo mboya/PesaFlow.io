@@ -1,15 +1,66 @@
-#!/bin/bash -e
+#!/bin/sh
+set -e
 
 # Enable jemalloc for reduced memory usage and latency.
-if [ -z "${LD_PRELOAD+x}" ] && [ -f /usr/lib/*/libjemalloc.so.2 ]; then
-  export LD_PRELOAD="$(echo /usr/lib/*/libjemalloc.so.2)"
+if [ -z "${LD_PRELOAD+x}" ]; then
+  JEMALLOC_PATH="$(ls /usr/lib/*/libjemalloc.so.2 2>/dev/null | head -n 1 || true)"
+  if [ -n "${JEMALLOC_PATH}" ]; then
+    export LD_PRELOAD="${JEMALLOC_PATH}"
+  fi
 fi
 
-# If running the rails server then create or migrate existing database
-if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
-  ./bin/rails db:prepare
+should_prepare_db() {
+  case "$1 $2 $3 $4" in
+    "./bin/rails server "*|"./bin/rails s "*)
+      return 0
+      ;;
+    "bundle exec rails server"|"bundle exec rails s")
+      return 0
+      ;;
+    "bundle exec sidekiq "*|"sidekiq "*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+run_db_prepare_with_retry() {
+  if [ "${SKIP_DB_PREPARE:-false}" = "true" ]; then
+    echo "[entrypoint] SKIP_DB_PREPARE=true, skipping db:prepare"
+    return 0
+  fi
+
+  MAX_ATTEMPTS="${DB_PREPARE_MAX_ATTEMPTS:-30}"
+  WAIT_SECONDS="${DB_PREPARE_WAIT_SECONDS:-2}"
+  ATTEMPT=1
+
+  while [ "${ATTEMPT}" -le "${MAX_ATTEMPTS}" ]; do
+    echo "[entrypoint] Running db:prepare (attempt ${ATTEMPT}/${MAX_ATTEMPTS})..."
+
+    if ./bin/rails db:prepare; then
+      echo "[entrypoint] Database is ready."
+      return 0
+    fi
+
+    if [ "${ATTEMPT}" -eq "${MAX_ATTEMPTS}" ]; then
+      echo "[entrypoint] db:prepare failed after ${MAX_ATTEMPTS} attempts."
+      return 1
+    fi
+
+    echo "[entrypoint] Database not ready yet. Retrying in ${WAIT_SECONDS}s..."
+    ATTEMPT=$((ATTEMPT + 1))
+    sleep "${WAIT_SECONDS}"
+  done
+}
+
+if should_prepare_db "${1:-}" "${2:-}" "${3:-}" "${4:-}"; then
+  run_db_prepare_with_retry
+
   # Seed the database with initial data (idempotent) - only in development/staging
-  if [ "${RAILS_ENV}" != "production" ]; then
+  if [ "${RAILS_ENV}" != "production" ] && [ "${SEED_ON_BOOT:-true}" = "true" ]; then
+    echo "[entrypoint] Running db:seed..."
     ./bin/rails db:seed
   fi
 fi
