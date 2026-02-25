@@ -113,7 +113,7 @@ module Backend
       config.action_mailer.smtp_settings = smtp_settings
     end
 
-    # Enable rack-attack middleware for rate limiting
-    config.middleware.use Rack::Attack
+    # Rack::Attack is inserted by its Railtie. Avoid adding it manually here,
+    # otherwise requests can be counted twice and auth throttles fire too early.
   end
 end

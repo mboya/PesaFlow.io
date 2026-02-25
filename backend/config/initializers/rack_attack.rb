@@ -1,154 +1,215 @@
 # Rate limiting configuration using Rack::Attack
 # See https://github.com/rack/rack-attack for documentation
 
+require "ipaddr"
+require "json"
+
 class Rack::Attack
-  # Configure Redis store for rate limiting
-  # Uses the same Redis connection as Sidekiq
+  AUTH_PATH_PATTERN = %r{\A/api/v1/(login|google_login|signup|registration|otp(?:/.*)?)\z}.freeze
+  OTP_VERIFY_PATH_PATTERN = %r{\A/api/v1/otp/(verify|verify_login)\z}.freeze
+
+  AUTH_IP_LIMIT = ENV.fetch("RACK_ATTACK_AUTH_IP_LIMIT", "20").to_i
+  AUTH_IP_PERIOD_SECONDS = ENV.fetch("RACK_ATTACK_AUTH_IP_PERIOD_SECONDS", "60").to_i
+  AUTH_EMAIL_LIMIT = ENV.fetch("RACK_ATTACK_AUTH_EMAIL_LIMIT", "8").to_i
+  AUTH_EMAIL_PERIOD_SECONDS = ENV.fetch("RACK_ATTACK_AUTH_EMAIL_PERIOD_SECONDS", "300").to_i
+
+  OTP_IP_LIMIT = ENV.fetch("RACK_ATTACK_OTP_IP_LIMIT", "8").to_i
+  OTP_IP_PERIOD_SECONDS = ENV.fetch("RACK_ATTACK_OTP_IP_PERIOD_SECONDS", "300").to_i
+  OTP_EMAIL_LIMIT = ENV.fetch("RACK_ATTACK_OTP_EMAIL_LIMIT", "5").to_i
+  OTP_EMAIL_PERIOD_SECONDS = ENV.fetch("RACK_ATTACK_OTP_EMAIL_PERIOD_SECONDS", "300").to_i
+
+  API_IP_LIMIT = ENV.fetch("RACK_ATTACK_API_IP_LIMIT", "300").to_i
+  API_IP_PERIOD_SECONDS = ENV.fetch("RACK_ATTACK_API_IP_PERIOD_SECONDS", "60").to_i
+  WEBHOOK_IP_LIMIT = ENV.fetch("RACK_ATTACK_WEBHOOK_IP_LIMIT", "400").to_i
+  WEBHOOK_IP_PERIOD_SECONDS = ENV.fetch("RACK_ATTACK_WEBHOOK_IP_PERIOD_SECONDS", "60").to_i
+  REQ_IP_LIMIT = ENV.fetch("RACK_ATTACK_REQ_IP_LIMIT", "1200").to_i
+  REQ_IP_PERIOD_SECONDS = ENV.fetch("RACK_ATTACK_REQ_IP_PERIOD_SECONDS", "300").to_i
+
+  # Configure Redis store for rate limiting.
   Rack::Attack.cache.store = ActiveSupport::Cache::RedisCacheStore.new(
     url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0")
   )
 
-  # Enable logging
-  ActiveSupport::Notifications.subscribe("rack.attack") do |_name, _start, _finish, _request_id, request|
-    # The request parameter can be a Rack::Request object or a Hash depending on Rack::Attack version
-    begin
-      if request.is_a?(Hash)
-        # If it's a hash (newer Rack::Attack versions), extract values from hash
-        match_type = request['rack.attack.match_type'] || request[:match_type] || 'unknown'
-        path = request['PATH_INFO'] || request[:path] || request['path'] || 'unknown'
-        ip = request['REMOTE_ADDR'] || request[:ip] || request['ip'] || 'unknown'
-        Rails.logger.warn("[Rack::Attack] Blocked request: #{match_type} - #{path} - IP: #{ip}")
-      elsif request.respond_to?(:env) && request.respond_to?(:path) && request.respond_to?(:ip)
-        # Standard Rack::Request object (older versions)
-        match_type = request.env['rack.attack.match_type'] || 'unknown'
-        Rails.logger.warn("[Rack::Attack] Blocked request: #{match_type} - #{request.path} - IP: #{request.ip}")
-      else
-        # Fallback logging if format is unexpected
-        Rails.logger.warn("[Rack::Attack] Blocked request (request_id: #{_request_id}, type: #{request.class})")
+  class << self
+    def auth_request?(req)
+      req.post? && req.path.match?(AUTH_PATH_PATTERN)
+    end
+
+    def otp_verify_request?(req)
+      req.post? && req.path.match?(OTP_VERIFY_PATH_PATTERN)
+    end
+
+    def health_request?(req)
+      req.path.start_with?("/up") || req.path.start_with?("/health")
+    end
+
+    def client_identifier(req)
+      forwarded_for = req.get_header("HTTP_X_FORWARDED_FOR").to_s
+      forwarded_for.split(",").map(&:strip).each do |candidate|
+        return candidate if valid_ip?(candidate)
       end
-    rescue => e
-      # Don't let logging errors break the application
+
+      x_real_ip = req.get_header("HTTP_X_REAL_IP").to_s.strip
+      return x_real_ip if valid_ip?(x_real_ip)
+
+      remote_ip = req.get_header("action_dispatch.remote_ip").to_s.strip
+      return remote_ip if valid_ip?(remote_ip)
+
+      request_ip = req.ip.to_s.strip
+      return request_ip if valid_ip?(request_ip)
+
+      remote_addr = req.get_header("REMOTE_ADDR").to_s.strip
+      return remote_addr if valid_ip?(remote_addr)
+
+      "unknown"
+    end
+
+    def normalized_email(value)
+      email = value.to_s.downcase.strip
+      return nil if email.empty?
+
+      email
+    end
+
+    def extract_email(req)
+      return nil unless req.post?
+      return nil unless req.content_type.to_s.include?("application/json")
+
+      payload = parsed_json_body(req)
+      normalized_email(payload.dig("user", "email") || payload["email"])
+    end
+
+    def parsed_json_body(req)
+      cache_key = "rack.attack.parsed_json_body"
+      return req.env[cache_key] if req.env.key?(cache_key)
+
+      req.env[cache_key] = begin
+        body = req.body.read
+        req.body.rewind
+        body.strip.empty? ? {} : JSON.parse(body)
+      rescue JSON::ParserError
+        {}
+      end
+    end
+
+    def valid_ip?(value)
+      return false if value.blank?
+
+      IPAddr.new(value)
+      true
+    rescue IPAddr::InvalidAddressError
+      false
+    end
+
+    def match_data_value(match_data, key, default = nil)
+      match_data[key] || match_data[key.to_s] || default
+    end
+  end
+
+  # Enable logging for blocked requests.
+  ActiveSupport::Notifications.subscribe("rack.attack") do |_name, _start, _finish, request_id, payload|
+    begin
+      request = payload.is_a?(Hash) ? payload[:request] || payload["request"] : nil
+      env = request&.env || {}
+      matched = env["rack.attack.matched"] || env["rack.attack.match_type"] || "unknown"
+      path = request&.path || env["PATH_INFO"] || "unknown"
+      ip = request&.ip || env["action_dispatch.remote_ip"] || env["REMOTE_ADDR"] || "unknown"
+      Rails.logger.warn("[Rack::Attack] Blocked request: #{matched} - #{path} - IP: #{ip} - Request ID: #{request_id}")
+    rescue StandardError => e
       Rails.logger.error("[Rack::Attack] Error logging blocked request: #{e.class} - #{e.message}")
     end
   end
 
-  # Safelist - allow these requests to bypass rate limiting
-  # Health checks and internal endpoints
-  safelist("allow-health-checks") do |req|
-    req.path.start_with?("/up") || req.path.start_with?("/health")
-  end
-
-  # Keep test runs deterministic: request specs intentionally hit auth endpoints
-  # many times in quick succession and should not be throttled.
+  # Safelist health checks and test suite traffic.
+  safelist("allow-health-checks") { |req| health_request?(req) }
   safelist("allow-test-suite") { |_req| Rails.env.test? }
 
-  # Throttle authentication endpoints (login, signup, OTP)
-  # Limit: 5 requests per 20 seconds per IP
-  throttle("auth/ip", limit: 5, period: 20.seconds) do |req|
-    if req.path.match?(%r{/api/v1/(login|google_login|signup|registration|otp)})
-      req.ip
-    end
+  # Throttle authentication endpoints by client and endpoint.
+  throttle("auth/ip", limit: AUTH_IP_LIMIT, period: AUTH_IP_PERIOD_SECONDS.seconds) do |req|
+    next unless auth_request?(req)
+
+    "#{client_identifier(req)}:#{req.path}"
   end
 
-  # Throttle authentication endpoints by email
-  # Limit: 3 requests per 1 minute per email (prevents brute force on specific accounts)
-  throttle("auth/email", limit: 3, period: 1.minute) do |req|
-    if req.path.match?(%r{/api/v1/(login|google_login|signup|registration|otp)})
-      # Extract email from request body
-      if req.post? && req.content_type&.include?("application/json")
-        begin
-          body = req.body.read
-          req.body.rewind
-          params = JSON.parse(body)
-          email = params.dig("user", "email") || params.dig("email")
-          email&.downcase&.strip
-        rescue JSON::ParserError
-          nil
-        end
-      end
-    end
+  # Throttle authentication endpoints by email and endpoint.
+  throttle("auth/email", limit: AUTH_EMAIL_LIMIT, period: AUTH_EMAIL_PERIOD_SECONDS.seconds) do |req|
+    next unless auth_request?(req)
+
+    email = extract_email(req)
+    next if email.blank?
+
+    "#{email}:#{req.path}"
   end
 
-  # Throttle OTP verification endpoints more strictly
-  # Limit: 5 requests per 5 minutes per IP (prevents OTP brute force)
-  throttle("otp/ip", limit: 5, period: 5.minutes) do |req|
-    if req.path.match?(%r{/api/v1/otp/(verify|verify_login)})
-      req.ip
-    end
+  # OTP endpoints are intentionally stricter than generic auth.
+  throttle("otp/ip", limit: OTP_IP_LIMIT, period: OTP_IP_PERIOD_SECONDS.seconds) do |req|
+    next unless otp_verify_request?(req)
+
+    client_identifier(req)
   end
 
-  # Throttle OTP verification by email
-  # Limit: 3 requests per 5 minutes per email
-  throttle("otp/email", limit: 3, period: 5.minutes) do |req|
-    if req.path.match?(%r{/api/v1/otp/(verify|verify_login)})
-      if req.post? && req.content_type&.include?("application/json")
-        begin
-          body = req.body.read
-          req.body.rewind
-          params = JSON.parse(body)
-          email = params.dig("user", "email") || params.dig("email")
-          email&.downcase&.strip
-        rescue JSON::ParserError
-          nil
-        end
-      end
-    end
+  throttle("otp/email", limit: OTP_EMAIL_LIMIT, period: OTP_EMAIL_PERIOD_SECONDS.seconds) do |req|
+    next unless otp_verify_request?(req)
+
+    extract_email(req)
   end
 
-  # Throttle general API endpoints for authenticated users
-  # Limit: 100 requests per 1 minute per IP
-  throttle("api/ip", limit: 100, period: 1.minute) do |req|
-    if req.path.start_with?("/api/v1/") && !req.path.match?(%r{/api/v1/(login|google_login|signup|registration|otp|health)})
-      req.ip
-    end
+  # Throttle general API traffic.
+  throttle("api/ip", limit: API_IP_LIMIT, period: API_IP_PERIOD_SECONDS.seconds) do |req|
+    next unless req.path.start_with?("/api/v1/")
+    next if auth_request?(req) || req.path.start_with?("/api/v1/health")
+
+    client_identifier(req)
   end
 
-  # Throttle webhook endpoints (less restrictive, but still protected)
-  # Limit: 200 requests per 1 minute per IP
-  throttle("webhooks/ip", limit: 200, period: 1.minute) do |req|
-    if req.path.start_with?("/webhooks/")
-      req.ip
-    end
+  # Throttle webhook traffic.
+  throttle("webhooks/ip", limit: WEBHOOK_IP_LIMIT, period: WEBHOOK_IP_PERIOD_SECONDS.seconds) do |req|
+    next unless req.path.start_with?("/webhooks/")
+
+    client_identifier(req)
   end
 
-  # Block suspicious requests (too many requests from same IP)
-  # Block: More than 300 requests per 5 minutes
-  throttle("req/ip", limit: 300, period: 5.minutes) do |req|
-    req.ip unless req.path.start_with?("/up") || req.path.start_with?("/health")
+  # Global IP safeguard for non-health traffic.
+  throttle("req/ip", limit: REQ_IP_LIMIT, period: REQ_IP_PERIOD_SECONDS.seconds) do |req|
+    next if health_request?(req)
+
+    client_identifier(req)
   end
 
-  # Custom response for throttled requests
-  self.throttled_responder = lambda do |env|
+  # Custom response for throttled requests.
+  self.throttled_responder = lambda do |request|
+    env = request.env
     match_data = env["rack.attack.match_data"] || {}
-    now = match_data[:epoch_time].to_i
-    now = Time.now.to_i if now <= 0
-    period = match_data[:period].to_i
+    throttle_name = (env["rack.attack.matched"] || env["rack.attack.match_type"] || "throttle").to_s
+
+    now = Rack::Attack.match_data_value(match_data, :epoch_time, Time.now.to_i).to_i
+    period = Rack::Attack.match_data_value(match_data, :period, 60).to_i
     period = 60 if period <= 0
     retry_after = period - (now % period)
     retry_after = period if retry_after <= 0
 
+    limit = Rack::Attack.match_data_value(match_data, :limit, 0).to_i
+
     headers = {
       "Content-Type" => "application/json",
       "Retry-After" => retry_after.to_s,
-      "X-RateLimit-Limit" => match_data.fetch(:limit, 0).to_s,
+      "X-RateLimit-Limit" => limit.to_s,
       "X-RateLimit-Remaining" => "0",
       "X-RateLimit-Reset" => (now + retry_after).to_s
     }
 
-    # Determine the error message based on the throttle type
-    throttle_type = env["rack.attack.match_type"]
-    message = case throttle_type
-              when "auth/ip", "auth/email"
-                "Too many authentication attempts. Please try again in #{retry_after} seconds."
-              when "otp/ip", "otp/email"
-                "Too many OTP verification attempts. Please try again in #{retry_after} seconds."
-              when "api/ip"
-                "API rate limit exceeded. Please try again in #{retry_after} seconds."
-              when "webhooks/ip"
-                "Webhook rate limit exceeded. Please try again in #{retry_after} seconds."
-              else
-                "Rate limit exceeded. Please try again in #{retry_after} seconds."
-              end
+    message = case throttle_name
+    when "auth/ip", "auth/email"
+      "Too many authentication attempts. Please try again in #{retry_after} seconds."
+    when "otp/ip", "otp/email"
+      "Too many OTP verification attempts. Please try again in #{retry_after} seconds."
+    when "api/ip"
+      "API rate limit exceeded. Please try again in #{retry_after} seconds."
+    when "webhooks/ip"
+      "Webhook rate limit exceeded. Please try again in #{retry_after} seconds."
+    else
+      "Rate limit exceeded. Please try again in #{retry_after} seconds."
+    end
 
     body = {
       status: {

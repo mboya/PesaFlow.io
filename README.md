@@ -151,6 +151,20 @@ If login/signup returns `403` before hitting controller logs, the request host i
 - `RAILS_ALLOWED_HOSTS=api.example.com,pesaflow-backend.onrender.com` for public hosts.
 - `RENDER_EXTERNAL_HOSTNAME` is auto-accepted when present on Render.
 
+### Auth Throttling (Render)
+
+If login/signup/google-login returns `429 Too Many Requests`, the backend auth limiter is blocking requests.
+
+- Auth limits are proxy-aware and use `X-Forwarded-For` when present (Render/Cloudflare style).
+- Defaults are tuned for production safety:
+  - `RACK_ATTACK_AUTH_IP_LIMIT=20` per `60` seconds (per endpoint and client IP)
+  - `RACK_ATTACK_AUTH_EMAIL_LIMIT=8` per `300` seconds (per endpoint and email)
+- You can tune these via env vars without code changes:
+  - `RACK_ATTACK_AUTH_IP_LIMIT`
+  - `RACK_ATTACK_AUTH_IP_PERIOD_SECONDS`
+  - `RACK_ATTACK_AUTH_EMAIL_LIMIT`
+  - `RACK_ATTACK_AUTH_EMAIL_PERIOD_SECONDS`
+
 ### Useful Commands
 
 ```bash
