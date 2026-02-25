@@ -58,6 +58,11 @@ services:
         sync: false
       - key: APP_HOST
         sync: false
+      - key: RAILS_ALLOWED_HOSTS
+        sync: false
+        # Example: pesaflow-backend.onrender.com,api.yourdomain.com
+      - key: RAILS_ALLOWED_INTERNAL_HOSTS
+        value: "backend,frontend"
       - key: FRONTEND_URL
         sync: false
       - key: GOOGLE_CLIENT_ID

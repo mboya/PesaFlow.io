@@ -143,6 +143,14 @@ Environment variables:
 - `SKIP_DB_PREPARE` (`false` by default)
 - `SEED_ON_BOOT` (`true` local backend, `false` for sidekiq/Render)
 
+### Host Authorization (Render/Auth Reliability)
+
+If login/signup returns `403` before hitting controller logs, the request host is likely blocked by Rails HostAuthorization.
+
+- `RAILS_ALLOWED_INTERNAL_HOSTS=backend,frontend` for Docker internal calls.
+- `RAILS_ALLOWED_HOSTS=api.example.com,pesaflow-backend.onrender.com` for public hosts.
+- `RENDER_EXTERNAL_HOSTNAME` is auto-accepted when present on Render.
+
 ### Useful Commands
 
 ```bash

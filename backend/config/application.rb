@@ -45,11 +45,34 @@ module Backend
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    # Allow Docker service hostnames used for internal proxying between frontend and backend.
-    # Comma-separated override example: RAILS_ALLOWED_INTERNAL_HOSTS=backend,frontend,api.local
-    ENV.fetch("RAILS_ALLOWED_INTERNAL_HOSTS", "backend,frontend").split(",").map(&:strip).reject(&:empty?).each do |host|
+    # Host allowlist for HostAuthorization middleware.
+    # This is critical in production because blocked hosts fail before controllers
+    # and auth logs are not emitted.
+    normalize_host = lambda do |value|
+      raw = value.to_s.strip
+      next nil if raw.empty?
+
+      stripped = raw.sub(%r{\Ahttps?://}i, "")
+      stripped = stripped.split("/").first
+      stripped = stripped.split(":").first if stripped.count(":") <= 1
+      stripped.presence
+    end
+
+    configured_hosts = []
+    configured_hosts.concat(ENV.fetch("RAILS_ALLOWED_INTERNAL_HOSTS", "backend,frontend,www.example.com,test.host").split(","))
+    configured_hosts.concat(ENV.fetch("RAILS_ALLOWED_HOSTS", "").split(","))
+    configured_hosts << ENV["APP_HOST"]
+    configured_hosts << ENV["FRONTEND_URL"]
+    configured_hosts << ENV["RENDER_EXTERNAL_HOSTNAME"]
+
+    configured_hosts.map(&normalize_host).compact.uniq.each do |host|
       config.hosts << host
       config.hosts << /\A#{Regexp.escape(host)}(?::\d+)?\z/
+    end
+
+    # Render preview/live services are hosted under *.onrender.com.
+    if ENV["RENDER"] == "true"
+      config.hosts << /\A[a-z0-9-]+\.onrender\.com(?::\d+)?\z/
     end
 
     # Enable session middleware for Devise/Warden (required for JWT authentication)

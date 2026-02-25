@@ -7,8 +7,8 @@ FROM ruby:3.3-alpine
 RUN --mount=type=cache,target=/var/cache/apk \
     apk add --no-cache \
     build-base \
-    postgresql-dev \
-    postgresql-libs \
+    libpq-dev \
+    libpq \
     yaml-dev \
     yaml \
     tzdata \
