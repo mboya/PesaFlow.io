@@ -174,13 +174,20 @@ RSpec.describe "Sessions API", type: :request do
   end
 
   describe "POST /api/v1/google_login" do
+    let(:sentry_scope) do
+      instance_double("Sentry::Scope", set_tags: nil, set_level: nil, set_context: nil)
+    end
+
     around do |example|
       previous_google_client_id = ENV["GOOGLE_CLIENT_ID"]
+      previous_next_public_google_client_id = ENV["NEXT_PUBLIC_GOOGLE_CLIENT_ID"]
       ENV["GOOGLE_CLIENT_ID"] = "google-client-id"
+      ENV["NEXT_PUBLIC_GOOGLE_CLIENT_ID"] = nil
       begin
         example.run
       ensure
         ENV["GOOGLE_CLIENT_ID"] = previous_google_client_id
+        ENV["NEXT_PUBLIC_GOOGLE_CLIENT_ID"] = previous_next_public_google_client_id
       end
     end
 
@@ -193,7 +200,7 @@ RSpec.describe "Sessions API", type: :request do
 
     before do
       allow(GoogleIdTokenVerifier).to receive(:verify!).and_return(google_payload)
-      allow(Sentry).to receive(:with_scope).and_call_original
+      allow(Sentry).to receive(:with_scope).and_yield(sentry_scope)
       allow(Sentry).to receive(:capture_message)
       allow(Sentry).to receive(:capture_exception)
     end
