@@ -10,9 +10,40 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_23_143000) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_24_130500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "audit_logs", force: :cascade do |t|
+    t.bigint "tenant_id"
+    t.string "actor_type"
+    t.bigint "actor_id"
+    t.string "auditable_type"
+    t.bigint "auditable_id"
+    t.string "action", null: false
+    t.string "status", default: "success", null: false
+    t.datetime "occurred_at", null: false
+    t.string "request_id", null: false
+    t.string "correlation_id"
+    t.string "http_method"
+    t.string "path"
+    t.integer "response_status"
+    t.string "ip_address"
+    t.text "user_agent"
+    t.jsonb "changeset", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action", "occurred_at"], name: "index_audit_logs_on_action_and_occurred_at"
+    t.index ["actor_type", "actor_id"], name: "index_audit_logs_on_actor_type_and_actor_id"
+    t.index ["auditable_type", "auditable_id"], name: "index_audit_logs_on_auditable_type_and_auditable_id"
+    t.index ["correlation_id"], name: "index_audit_logs_on_correlation_id"
+    t.index ["request_id"], name: "index_audit_logs_on_request_id"
+    t.index ["status", "occurred_at"], name: "index_audit_logs_on_status_and_occurred_at"
+    t.index ["tenant_id", "occurred_at"], name: "index_audit_logs_on_tenant_time"
+    t.index ["tenant_id"], name: "index_audit_logs_on_tenant_id"
+    t.check_constraint "status::text = ANY (ARRAY['success'::character varying, 'failure'::character varying, 'denied'::character varying]::text[])", name: "audit_logs_status_check"
+  end
 
   create_table "billing_attempts", force: :cascade do |t|
     t.bigint "subscription_id", null: false
@@ -249,8 +280,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_23_143000) do
     t.text "backup_codes"
     t.bigint "tenant_id"
     t.boolean "admin", default: false, null: false
+    t.string "role", default: "member", null: false
     t.index ["admin"], name: "index_users_on_admin"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["role"], name: "index_users_on_role"
     t.index ["tenant_id", "email"], name: "index_users_on_tenant_id_and_email", unique: true
     t.index ["tenant_id"], name: "index_users_on_tenant_id"
   end
@@ -271,6 +304,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_23_143000) do
     t.index ["tenant_id"], name: "index_webhook_logs_on_tenant_id"
   end
 
+  add_foreign_key "audit_logs", "tenants"
   add_foreign_key "billing_attempts", "subscriptions"
   add_foreign_key "billing_attempts", "tenants"
   add_foreign_key "customers", "tenants"

@@ -28,6 +28,7 @@ class Tenant < ApplicationRecord
   has_many :refunds, through: :subscriptions
   has_many :webhook_logs, dependent: :destroy
   has_many :domain_events, dependent: :destroy
+  has_many :audit_logs, dependent: :destroy
   has_many :notification_deliveries, dependent: :destroy
   has_many :support_interactions, dependent: :destroy
 

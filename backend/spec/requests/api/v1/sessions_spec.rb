@@ -174,10 +174,6 @@ RSpec.describe "Sessions API", type: :request do
   end
 
   describe "POST /api/v1/google_login" do
-    let(:sentry_scope) do
-      instance_double("Sentry::Scope", set_tags: nil, set_level: nil, set_context: nil)
-    end
-
     around do |example|
       previous_google_client_id = ENV["GOOGLE_CLIENT_ID"]
       ENV["GOOGLE_CLIENT_ID"] = "google-client-id"
@@ -197,7 +193,7 @@ RSpec.describe "Sessions API", type: :request do
 
     before do
       allow(GoogleIdTokenVerifier).to receive(:verify!).and_return(google_payload)
-      allow(Sentry).to receive(:with_scope).and_yield(sentry_scope)
+      allow(Sentry).to receive(:with_scope).and_call_original
       allow(Sentry).to receive(:capture_message)
       allow(Sentry).to receive(:capture_exception)
     end
@@ -235,7 +231,13 @@ RSpec.describe "Sessions API", type: :request do
 
     context "when user does not exist" do
       it "creates a new user and customer in the current tenant" do
-        default_tenant = ActsAsTenant.without_tenant { Tenant.find_by!(subdomain: "default") }
+        default_tenant = ActsAsTenant.without_tenant do
+          Tenant.find_or_create_by!(subdomain: "default") do |tenant|
+            tenant.name = "Default Tenant"
+            tenant.status = "active"
+            tenant.settings = {}
+          end
+        end
 
         expect do
           post "/api/v1/google_login", params: { credential: "valid-google-token" }, as: :json

@@ -38,6 +38,10 @@ class Rack::Attack
     req.path.start_with?("/up") || req.path.start_with?("/health")
   end
 
+  # Keep test runs deterministic: request specs intentionally hit auth endpoints
+  # many times in quick succession and should not be throttled.
+  safelist("allow-test-suite") { |_req| Rails.env.test? }
+
   # Throttle authentication endpoints (login, signup, OTP)
   # Limit: 5 requests per 20 seconds per IP
   throttle("auth/ip", limit: 5, period: 20.seconds) do |req|
@@ -115,14 +119,18 @@ class Rack::Attack
 
   # Custom response for throttled requests
   self.throttled_responder = lambda do |env|
-    match_data = env["rack.attack.match_data"]
-    now = match_data[:epoch_time]
-    retry_after = match_data[:period] - (now % match_data[:period])
+    match_data = env["rack.attack.match_data"] || {}
+    now = match_data[:epoch_time].to_i
+    now = Time.now.to_i if now <= 0
+    period = match_data[:period].to_i
+    period = 60 if period <= 0
+    retry_after = period - (now % period)
+    retry_after = period if retry_after <= 0
 
     headers = {
       "Content-Type" => "application/json",
       "Retry-After" => retry_after.to_s,
-      "X-RateLimit-Limit" => match_data[:limit].to_s,
+      "X-RateLimit-Limit" => match_data.fetch(:limit, 0).to_s,
       "X-RateLimit-Remaining" => "0",
       "X-RateLimit-Reset" => (now + retry_after).to_s
     }

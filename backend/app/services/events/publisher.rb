@@ -47,9 +47,10 @@ module Events
 
       def sanitize_hash(value)
         raw_hash = normalize_hash(value)
-        JSON.parse(JSON.generate(raw_hash))
+        masked_hash = Security::PiiMasker.mask_hash(raw_hash)
+        JSON.parse(JSON.generate(masked_hash))
       rescue StandardError
-        raw_hash.to_h.transform_values { |v| v.is_a?(String) ? v : v.to_s }
+        Security::PiiMasker.mask_hash(raw_hash.to_h.transform_values { |v| v.is_a?(String) ? v : v.to_s })
       end
 
       def normalize_hash(value)

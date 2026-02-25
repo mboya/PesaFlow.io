@@ -25,7 +25,7 @@ Rails.application.routes.draw do
       }
 
       # User routes
-      get "current_user", to: "users#current_user"
+      get "current_user", to: "users#show_current"
 
       # Tenant management
       resources :tenants, only: [ :index, :show, :create, :update ] do
@@ -33,6 +33,9 @@ Rails.application.routes.draw do
           get "current", to: "tenants#current"
         end
       end
+
+      # Security audit logs (RBAC-protected)
+      resources :audit_logs, only: [ :index ]
 
       # OTP routes
       post "otp/enable", to: "otp#enable"

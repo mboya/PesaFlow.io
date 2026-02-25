@@ -5,6 +5,7 @@ module Api
         data = {
           id: user.id,
           email: user.email,
+          role: user.role,
           created_at: user.created_at.iso8601,
           otp_enabled: user.otp_enabled
         }

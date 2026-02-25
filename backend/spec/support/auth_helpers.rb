@@ -14,14 +14,23 @@ module AuthHelpers
 
   # Login user and return JWT token
   def login_user(user, password = "password123")
+    headers = {}
+    tenant_subdomain = user.tenant&.subdomain
+    headers[TenantScoped::TENANT_SUBDOMAIN_HEADER] = tenant_subdomain if tenant_subdomain.present?
+
     post "/api/v1/login", params: {
       user: {
         email: user.email,
         password: password
       }
-    }, as: :json
+    }, headers: headers, as: :json
 
-    extract_jwt_token(response)
+    token = extract_jwt_token(response)
+    if respond_to?(:reset!)
+      reset!
+      host!("backend") if respond_to?(:host!)
+    end
+    token
   end
 
   # Generate valid OTP code for user

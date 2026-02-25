@@ -3,6 +3,8 @@ module Support
     class << self
       def log(channel:, topic:, message:, customer: nil, subscription: nil, actor: nil, tenant: nil, direction: "outbound", status: "logged", occurred_at: Time.current, metadata: {}, correlation_id: nil, external_id: nil)
         resolved_tenant = resolve_tenant(tenant, customer, subscription, actor)
+        masked_message = Security::PiiMasker.mask_free_text(message)
+        masked_metadata = Security::PiiMasker.mask_hash(metadata || {})
 
         attributes = {
           tenant: resolved_tenant,
@@ -14,10 +16,10 @@ module Support
           direction: direction,
           status: status,
           occurred_at: occurred_at || Time.current,
-          message: message.to_s,
+          message: masked_message,
           correlation_id: correlation_id,
           external_id: external_id,
-          metadata: metadata || {}
+          metadata: masked_metadata
         }
 
         interaction = with_tenant_scope(resolved_tenant) do

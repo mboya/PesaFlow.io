@@ -4,9 +4,20 @@ module Api
       before_action :authenticate_api_v1_user!
 
       # GET /api/v1/current_user
-      def current_user
+      def show_current
         # Ensure we get the user without tenant scoping to avoid issues with header-based tenant
-        user = ActsAsTenant.without_tenant { User.find_by(id: current_api_v1_user.id) }
+        authenticated_user = current_api_v1_user
+        unless authenticated_user
+          render json: {
+            status: {
+              code: 401,
+              message: "Unauthorized"
+            }
+          }, status: :unauthorized
+          return
+        end
+
+        user = ActsAsTenant.without_tenant { User.find_by(id: authenticated_user.id) }
         render json: {
           status: {
             code: 200,

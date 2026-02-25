@@ -99,7 +99,9 @@ module NotificationService
         return delivery
       end
 
-      Rails.logger.info("SMS to #{normalized_phone}: #{message}")
+      masked_phone = Security::PiiMasker.mask_phone(normalized_phone)
+      masked_message = Security::PiiMasker.mask_free_text(message)
+      Rails.logger.info("SMS to #{masked_phone}: #{masked_message}")
 
       delivery.mark_as_sent!
       publish_delivery_event("notification.sent", delivery, source: "NotificationService#send_sms")
@@ -134,7 +136,9 @@ module NotificationService
       end
 
       # TODO: Implement email sending via SendGrid or ActionMailer
-      Rails.logger.info("Email to #{normalized_to}: #{subject}")
+      masked_recipient = Security::PiiMasker.mask_email(normalized_to)
+      masked_subject = Security::PiiMasker.mask_free_text(subject)
+      Rails.logger.info("Email to #{masked_recipient}: #{masked_subject}")
 
       delivery.mark_as_sent!
       publish_delivery_event("notification.sent", delivery, source: "NotificationService#send_email")
@@ -201,12 +205,12 @@ module NotificationService
         channel: delivery.channel,
         status: delivery.status,
         template: delivery.template,
-        recipient: delivery.recipient,
+        recipient: Security::PiiMasker.mask_value(delivery.recipient, key: "recipient"),
         provider: delivery.provider,
         context_type: delivery.context_type,
         context_id: delivery.context_id
       }
-      payload[:error_message] = error_message if error_message.present?
+      payload[:error_message] = Security::PiiMasker.mask_free_text(error_message) if error_message.present?
 
       Events::Publisher.publish(
         event_type: event_type,

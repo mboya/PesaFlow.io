@@ -2,6 +2,7 @@ module Api
   module V1
     class RegistrationsController < Devise::RegistrationsController
       before_action :configure_sign_up_params, only: [ :create ]
+      around_action :audit_signup_request, only: [ :create ]
 
       # POST /api/v1/signup
       def create
@@ -43,7 +44,8 @@ module Api
         end
 
         # Log password presence before save (for debugging)
-        Rails.logger.info("[Signup] User email: #{resource.email}, Password present: #{resource.password.present?}, Encrypted password present: #{resource.encrypted_password.present?}")
+        masked_email = Security::PiiMasker.mask_email(resource.email)
+        Rails.logger.info("[Signup] User email: #{masked_email}, Password present: #{resource.password.present?}, Encrypted password present: #{resource.encrypted_password.present?}")
 
         # Save the resource - tenant_id is already set
         # Save within tenant context to ensure proper scoping during save
@@ -53,7 +55,8 @@ module Api
         if resource.persisted?
           Rails.logger.info("[Signup] User saved successfully. ID: #{resource.id}, Encrypted password present: #{resource.encrypted_password.present?}")
         else
-          Rails.logger.error("[Signup] User save failed. Errors: #{resource.errors.full_messages.join(', ')}")
+          masked_errors = Security::PiiMasker.mask_free_text(resource.errors.full_messages.join(", "))
+          Rails.logger.error("[Signup] User save failed. Errors: #{masked_errors}")
         end
         if resource.persisted?
           # Reload to ensure tenant is persisted
@@ -118,7 +121,8 @@ module Api
       end
 
       def find_tenant_for_registration(email = nil)
-        Rails.logger.info("find_tenant_for_registration called with email: #{email}")
+        masked_email = Security::PiiMasker.mask_email(email)
+        Rails.logger.info("find_tenant_for_registration called with email: #{masked_email}")
         Rails.logger.info("Tenant header (subdomain): #{request.headers[TenantScoped::TENANT_SUBDOMAIN_HEADER]}")
         Rails.logger.info("Tenant header (ID): #{request.headers[TenantScoped::TENANT_ID_HEADER]}")
         Rails.logger.info("Request subdomain: #{request.subdomain}")
@@ -185,10 +189,10 @@ module Api
           
           return default_tenant if default_tenant.present? && default_tenant.active?
         rescue ActiveRecord::RecordInvalid => e
-          Rails.logger.error("Failed to create/update default tenant: #{e.message}")
-          Rails.logger.error("Validation errors: #{e.record.errors.full_messages.join(', ')}")
+          Rails.logger.error("Failed to create/update default tenant: #{Security::PiiMasker.mask_free_text(e.message)}")
+          Rails.logger.error("Validation errors: #{Security::PiiMasker.mask_free_text(e.record.errors.full_messages.join(', '))}")
         rescue StandardError => e
-          Rails.logger.error("Unexpected error with default tenant: #{e.class.name}: #{e.message}")
+          Rails.logger.error("Unexpected error with default tenant: #{e.class.name}: #{Security::PiiMasker.mask_free_text(e.message)}")
           Rails.logger.error(e.backtrace.join("\n"))
         end
 
@@ -211,7 +215,7 @@ module Api
         )
       rescue StandardError => e
         # Log error but don't fail signup if customer creation fails
-        Rails.logger.error("Failed to create customer for user #{user.id}: #{e.message}")
+        Rails.logger.error("Failed to create customer for user #{user.id}: #{Security::PiiMasker.mask_free_text(e.message)}")
         Rails.logger.error(e.backtrace.join("\n"))
       end
 
@@ -221,8 +225,29 @@ module Api
         UserMailer.welcome_email(user).deliver_later
       rescue StandardError => e
         # Email delivery is non-blocking for signup.
-        Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{e.message}")
+        Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{Security::PiiMasker.mask_free_text(e.message)}")
         Rails.logger.error(e.backtrace.join("\n"))
+      end
+
+      def audit_signup_request
+        started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        yield
+      ensure
+        duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round(1)
+        masked_email = Security::PiiMasker.mask_email(params.dig(:user, :email))
+
+        Security::AuditLogger.log!(
+          action: "auth.signup",
+          status: Security::AuditLogger.status_from_response(response&.status),
+          actor: current_api_v1_user,
+          tenant: ActsAsTenant.current_tenant,
+          request: request,
+          response_status: response&.status,
+          metadata: {
+            email: masked_email,
+            duration_ms: duration_ms
+          }
+        )
       end
     end
   end

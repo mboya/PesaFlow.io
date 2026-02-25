@@ -2,6 +2,7 @@ module Api
   module V1
     class ApplicationController < ::ApplicationController
       include Transactional
+      include RoleAuthorization
 
       # Skip the parent's set_current_tenant and run our own version
       skip_before_action :set_current_tenant
@@ -11,6 +12,7 @@ module Api
       # Headers take precedence for cross-tenant operations
       before_action :set_current_tenant
       before_action :set_tenant_from_user
+      around_action :audit_api_request
 
       protected
 
@@ -60,6 +62,44 @@ module Api
           ActsAsTenant.current_tenant = user.tenant if user.tenant.present?
         end
         true # Return true to continue with action
+      end
+
+      def audit_action!(action:, status: nil, auditable: nil, changeset: {}, metadata: {})
+        Security::AuditLogger.log_request!(
+          controller: self,
+          action: action,
+          status: status || Security::AuditLogger.status_from_response(response&.status),
+          actor: audit_actor,
+          auditable: auditable,
+          changeset: changeset,
+          metadata: metadata
+        )
+      end
+
+      private
+
+      def audit_api_request
+        started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        yield
+      ensure
+        duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round(1)
+        actor = audit_actor
+
+        audit_action!(
+          action: "api.#{controller_name}.#{action_name}",
+          metadata: {
+            response_status: response&.status,
+            duration_ms: duration_ms,
+            actor_role: actor&.role,
+            current_tenant_id: ActsAsTenant.current_tenant&.id
+          }
+        )
+      end
+
+      def audit_actor
+        current_api_v1_user
+      rescue StandardError
+        nil
       end
     end
   end

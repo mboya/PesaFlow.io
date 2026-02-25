@@ -1,7 +1,7 @@
 class User < ApplicationRecord
-  # Include default devise modules
-  # Note: We override email uniqueness validation with tenant-scoped version
-  devise :database_authenticatable, :registerable, :validatable,
+  # Include default devise modules.
+  # We intentionally avoid :validatable to enforce tenant-scoped email uniqueness.
+  devise :database_authenticatable, :registerable,
          :jwt_authenticatable, jwt_revocation_strategy: JwtDenylist
 
   # Multi-tenancy
@@ -19,50 +19,29 @@ class User < ApplicationRecord
 
   # Associations
   has_one :customer, dependent: :destroy
+  has_many :audit_logs, as: :actor, dependent: :nullify
+
+  ROLES = {
+    member: "member",
+    support: "support",
+    admin: "admin",
+    owner: "owner"
+  }.freeze
+
+  enum :role, ROLES, prefix: true
 
   # Callbacks
   before_validation :ensure_tenant, on: :create
-  before_validation :ensure_devise_validator_removed
-  after_validation :clear_devise_email_uniqueness_error_if_no_tenant_duplicate
+  before_validation :normalize_email
+  before_validation :set_default_role
+  before_validation :sync_legacy_admin_flag_from_role
 
   # Validations
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
-
-  # Custom email uniqueness validation scoped by tenant_id
-  # This overrides Devise's global uniqueness validation
-  # Run BEFORE Devise's validators (prepend: true) to prevent Devise from adding errors
-  # We'll add our own error if there's a duplicate within the tenant
-  validate :validate_email_uniqueness_within_tenant, prepend: true
-
-  def validate_email_uniqueness_within_tenant
-    return unless email.present?
-
-    # Get tenant_id from association if not directly set
-    tenant_id_to_check = tenant_id || tenant&.id
-    return unless tenant_id_to_check.present?
-
-    # Check for existing user with same email in the same tenant
-    # Use without_tenant to query across all tenants for uniqueness check
-    # For new records (id is nil), we need to check if any user exists with this email in this tenant
-    # For existing records, we exclude the current record from the check
-    existing_user = ActsAsTenant.without_tenant do
-      scope = User.where("LOWER(email) = ?", email.downcase.strip)
-                   .where(tenant_id: tenant_id_to_check)
-
-      # Exclude current record if this is an update
-      scope = scope.where.not(id: id) if id.present?
-
-      scope.exists?
-    end
-
-    if existing_user
-      # Add our tenant-scoped error
-      # This will prevent Devise's validator from running (validation stops on first error)
-      errors.add(:email, :taken, value: email)
-    end
-    # If no duplicate found within the tenant, don't add any error
-    # Devise's validator will run after ours, but we'll clear its error in an after_validation callback
-  end
+  validates :email, presence: true,
+                    format: { with: URI::MailTo::EMAIL_REGEXP },
+                    uniqueness: { scope: :tenant_id, case_sensitive: false }
+  validates :password, presence: true, confirmation: true, length: { in: Devise.password_length }, if: :password_required?
+  validates :role, inclusion: { in: ROLES.values }
 
   # Serialize backup_codes as array
   serialize :backup_codes, coder: JSON
@@ -162,50 +141,31 @@ class User < ApplicationRecord
 
   # Admin check
   def admin?
-    admin == true
+    role_admin? || role_owner? || self[:admin] == true
+  end
+
+  def support?
+    role_support? || admin?
   end
 
   private
 
   DEFAULT_TENANT_SUBDOMAIN = "default"
 
-  def ensure_devise_validator_removed
-    self.class.remove_devise_email_uniqueness_validator
+  def set_default_role
+    self.role = self[:admin] ? "admin" : "member" if role.blank?
   end
 
-  def clear_devise_email_uniqueness_error_if_no_tenant_duplicate
-    return unless email.present?
-    
-    tenant_id_to_check = tenant_id || tenant&.id
-    return unless tenant_id_to_check.present?
+  def sync_legacy_admin_flag_from_role
+    self[:admin] = %w[admin owner].include?(role.to_s)
+  end
 
-    # Check if there's actually a duplicate within the tenant
-    # If not, clear Devise's global uniqueness error
-    has_tenant_duplicate = ActsAsTenant.without_tenant do
-      scope = User.where("LOWER(email) = ?", email.downcase.strip)
-                   .where(tenant_id: tenant_id_to_check)
-      scope = scope.where.not(id: id) if id.present?
-      scope.exists?
-    end
+  def password_required?
+    !persisted? || password.present? || password_confirmation.present?
+  end
 
-    # If there's no duplicate within the tenant, clear Devise's "taken" errors
-    # This allows same email across different tenants
-    unless has_tenant_duplicate
-      if errors.details[:email].present?
-        taken_indices = []
-        errors.details[:email].each_with_index do |detail, index|
-          is_taken = detail[:error] == :taken || 
-                    (errors[:email][index].present? && errors[:email][index].to_s.downcase.include?('taken'))
-          taken_indices << index if is_taken
-        end
-        
-        # Remove "taken" errors by index (in reverse order to maintain indices)
-        taken_indices.reverse.each do |index|
-          errors.details[:email].delete_at(index) if errors.details[:email].present?
-          errors[:email].delete_at(index) if errors[:email].present?
-        end
-      end
-    end
+  def normalize_email
+    self.email = email.to_s.downcase.strip if email.present?
   end
 
   def ensure_tenant
@@ -218,47 +178,4 @@ class User < ApplicationRecord
       self.tenant_id = default_tenant.id if default_tenant
     end
   end
-
-  # Class method to remove Devise's email uniqueness validator
-  # This must be called after the class is fully loaded
-  def self.remove_devise_email_uniqueness_validator
-    begin
-      # Clear validators cache first to force Rails to rebuild it
-      User._validators_cache.clear if User._validators_cache
-
-      # Remove non-scoped email uniqueness validators added by Devise
-      # Keep only our tenant-scoped validation
-      if User._validators && User._validators[:email]
-        User._validators[:email].reject! do |validator|
-          validator.is_a?(ActiveRecord::Validations::UniquenessValidator) &&
-          !validator.options.key?(:scope)
-        end
-      end
-      
-      # Also check _validate_callbacks for any uniqueness validations
-      # Devise adds validators via callbacks, so we need to remove them from the callback chain
-      if User._validate_callbacks
-        User._validate_callbacks.reject! do |callback|
-          callback.filter.is_a?(ActiveRecord::Validations::UniquenessValidator) &&
-          callback.filter.attributes.include?(:email) &&
-          !callback.filter.options.key?(:scope)
-        end
-      end
-
-      # Clear validators cache again after removal
-      User._validators_cache.clear if User._validators_cache
-    rescue => e
-      # Ignore errors - validator might already be removed
-      Rails.logger.debug("Failed to remove Devise email uniqueness validator: #{e.message}")
-    end
-  end
 end
-
-# Remove Devise's email uniqueness validator (added by :validatable)
-# We use our own tenant-scoped validation instead
-# This must be done after the class is fully loaded and in tests
-Rails.application.config.after_initialize do
-  User.remove_devise_email_uniqueness_validator
-end
-
-# RSpec configuration is handled in spec/rails_helper.rb

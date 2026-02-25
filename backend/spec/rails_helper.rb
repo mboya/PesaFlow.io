@@ -6,7 +6,7 @@ require_relative 'support/simplecov' if ENV['COVERAGE']
 # These occur because Devise redefines methods that Warden/Rails already define
 # They don't affect functionality and are safe to ignore
 # Suppress warnings before Rails environment is loaded
-ENV['RAILS_ENV'] ||= 'test'
+ENV['RAILS_ENV'] = 'test'
 
 # Suppress warnings globally in test environment (they're mostly from dependencies)
 $VERBOSE = nil
@@ -46,11 +46,6 @@ rescue ActiveRecord::PendingMigrationError => e
 end
 
 RSpec.configure do |config|
-  # Remove Devise's email uniqueness validator before each test
-  # This ensures tenant-scoped validation works correctly
-  config.before(:each) do
-    User.remove_devise_email_uniqueness_validator if defined?(User)
-  end
   # Restore verbose mode after Rails is loaded (optional - keeps warnings off)
   # config.after(:suite) { $VERBOSE = original_verbose }
 
@@ -96,6 +91,10 @@ RSpec.configure do |config|
   # Set ActiveJob queue adapter to :test for job matchers
   config.before(:each) do
     ActiveJob::Base.queue_adapter = :test
+  end
+
+  config.before(:each, type: :request) do
+    host! "backend"
   end
 
   # Include ActiveJob test helpers

@@ -5,6 +5,7 @@ module Api
       before_action :configure_sign_in_params, only: [ :create ]
       prepend_before_action :ensure_devise_mapping_for_google, only: [ :google ]
       prepend_before_action :verify_jwt_token, only: [ :destroy ]
+      around_action :audit_auth_request, only: [ :create, :google, :destroy ]
 
       # POST /api/v1/login
       def create
@@ -14,6 +15,7 @@ module Api
 
         # Normalize email (lowercase and strip whitespace)
         normalized_email = email&.downcase&.strip
+        masked_email = Security::PiiMasker.mask_email(normalized_email)
 
         tenant = resolve_authentication_tenant
         user = find_user_for_authentication(normalized_email, tenant)
@@ -21,7 +23,7 @@ module Api
 
         # Log authentication attempt (without sensitive data)
         Rails.logger.info(
-          "[Login] Attempting login for email: #{normalized_email}, Tenant: #{tenant&.subdomain || "none"}, " \
+          "[Login] Attempting login for email: #{masked_email}, Tenant: #{tenant&.subdomain || "none"}, " \
           "User found: #{user.present?}, Has encrypted_password: #{user&.encrypted_password.present?}"
         )
 
@@ -60,9 +62,9 @@ module Api
         else
           # Invalid credentials - log reason for debugging
           if user.nil?
-            Rails.logger.warn("[Login] User not found for email: #{normalized_email}")
+            Rails.logger.warn("[Login] User not found for email: #{masked_email}")
           elsif !password_valid
-            Rails.logger.warn("[Login] Invalid password for user: #{user.id} (#{normalized_email})")
+            Rails.logger.warn("[Login] Invalid password for user: #{user.id} (#{masked_email})")
           end
 
           # Invalid credentials
@@ -113,7 +115,7 @@ module Api
         begin
           payload = GoogleIdTokenVerifier.verify!(credential, audience: google_client_id)
         rescue GoogleIdTokenVerifier::VerificationError => e
-          Rails.logger.warn("[Google Login] Invalid credential: #{e.message}")
+          Rails.logger.warn("[Google Login] Invalid credential: #{Security::PiiMasker.mask_free_text(e.message)}")
           capture_google_login_exception(
             e,
             level: :warning,
@@ -196,7 +198,7 @@ module Api
           token: token
         }, status: :ok
       rescue StandardError => e
-        Rails.logger.error("[Google Login] Unexpected error: #{e.message}")
+        Rails.logger.error("[Google Login] Unexpected error: #{Security::PiiMasker.mask_free_text(e.message)}")
         capture_google_login_exception(
           e,
           level: :error,
@@ -295,7 +297,9 @@ module Api
 
         saved = ActsAsTenant.without_tenant { user.save }
         unless saved
-          Rails.logger.warn("[Google Login] Failed creating user #{normalized_email}: #{user.errors.full_messages.join(', ')}")
+          masked_email = Security::PiiMasker.mask_email(normalized_email)
+          masked_errors = Security::PiiMasker.mask_free_text(user.errors.full_messages.join(", "))
+          Rails.logger.warn("[Google Login] Failed creating user #{masked_email}: #{masked_errors}")
           capture_google_login_message(
             "Google login user creation failed validation",
             level: :warning,
@@ -332,8 +336,22 @@ module Api
 
       def default_tenant
         ActsAsTenant.without_tenant do
-          Tenant.active.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
+          tenant = Tenant.find_or_initialize_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
+
+          if tenant.new_record?
+            tenant.name = "Default Tenant"
+            tenant.status = "active"
+            tenant.settings = {}
+            tenant.save!
+          elsif !tenant.active?
+            tenant.update!(status: "active")
+          end
+
+          tenant
         end
+      rescue StandardError => e
+        Rails.logger.error("[Login] Failed to resolve default tenant: #{Security::PiiMasker.mask_free_text(e.message)}")
+        nil
       end
 
       def issue_jwt_token(user)
@@ -355,7 +373,7 @@ module Api
           status: "active"
         )
       rescue StandardError => e
-        Rails.logger.error("Failed to create customer for user #{user.id}: #{e.message}")
+        Rails.logger.error("Failed to create customer for user #{user.id}: #{Security::PiiMasker.mask_free_text(e.message)}")
         capture_google_login_exception(
           e,
           level: :warning,
@@ -371,7 +389,7 @@ module Api
 
         UserMailer.welcome_email(user).deliver_later
       rescue StandardError => e
-        Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{e.message}")
+        Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{Security::PiiMasker.mask_free_text(e.message)}")
         capture_google_login_exception(
           e,
           level: :warning,
@@ -399,7 +417,7 @@ module Api
           Sentry.capture_message(message)
         end
       rescue StandardError => e
-        Rails.logger.warn("[Google Login] Failed to send Sentry message: #{e.message}")
+        Rails.logger.warn("[Google Login] Failed to send Sentry message: #{Security::PiiMasker.mask_free_text(e.message)}")
       end
 
       def capture_google_login_exception(exception, level: :error, extra: {})
@@ -412,7 +430,7 @@ module Api
           Sentry.capture_exception(exception)
         end
       rescue StandardError => e
-        Rails.logger.warn("[Google Login] Failed to send Sentry exception: #{e.message}")
+        Rails.logger.warn("[Google Login] Failed to send Sentry exception: #{Security::PiiMasker.mask_free_text(e.message)}")
       end
 
       def sentry_google_login_context
@@ -501,6 +519,28 @@ module Api
         end
 
         true
+      end
+
+      def audit_auth_request
+        started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        yield
+      ensure
+        duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round(1)
+        masked_email = Security::PiiMasker.mask_email(params.dig(:user, :email) || params[:email])
+
+        Security::AuditLogger.log!(
+          action: "auth.#{action_name}",
+          status: Security::AuditLogger.status_from_response(response&.status),
+          actor: current_api_v1_user,
+          tenant: ActsAsTenant.current_tenant,
+          request: request,
+          response_status: response&.status,
+          metadata: {
+            auth_flow: action_name,
+            email: masked_email,
+            duration_ms: duration_ms
+          }
+        )
       end
     end
   end
