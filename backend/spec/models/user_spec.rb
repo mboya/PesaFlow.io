@@ -50,6 +50,8 @@ RSpec.describe User, type: :model do
         expect(secret).to be_present
         expect(secret.length).to be >= 16
         expect(user.reload.otp_secret_key).to eq(secret)
+        expect(user.reload[:otp_secret_key]).not_to eq(secret)
+        expect(user.reload[:otp_secret_key]).to start_with(User::OTP_SECRET_ENCRYPTION_PREFIX)
       end
     end
 
@@ -103,6 +105,8 @@ RSpec.describe User, type: :model do
         expect(codes.length).to eq(10)
         expect(codes.all? { |code| code.length == 8 }).to be true
         expect(user.reload.backup_codes.length).to eq(10)
+        expect(user.reload.backup_codes).not_to eq(codes)
+        expect(user.reload.backup_codes.all? { |code| code.start_with?(User::BACKUP_CODE_HASH_PREFIX) }).to be true
       end
 
       it "generates unique codes" do

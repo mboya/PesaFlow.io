@@ -3,6 +3,7 @@ module Api
     class ApplicationController < ::ApplicationController
       include Transactional
       include RoleAuthorization
+      include IdempotentRequest
 
       # Skip the parent's set_current_tenant and run our own version
       skip_before_action :set_current_tenant
@@ -31,7 +32,12 @@ module Api
       def require_customer!
         customer = current_user_customer
         unless customer
-          render json: { error: "Customer not found" }, status: :not_found
+          render_enveloped_error(
+            status_code: 404,
+            message: "Customer not found",
+            error_code: "customer_not_found",
+            http_status: :not_found
+          )
           return nil
         end
         customer
@@ -100,6 +106,45 @@ module Api
         current_api_v1_user
       rescue StandardError
         nil
+      end
+
+      def render_enveloped(resource: nil, status_code: 200, message: nil, error_code: nil, meta: nil, http_status: nil)
+        http_status ||= status_code
+
+        body = {
+          status: {
+            code: status_code,
+            message: message || default_http_status_message(http_status),
+            error_code: error_code
+          },
+          data: resource,
+          meta: meta
+        }.compact
+
+        render json: body, status: http_status
+      end
+
+      def render_enveloped_error(status_code:, message:, error_code: nil, meta: nil, http_status: nil)
+        render_enveloped(
+          resource: nil,
+          status_code: status_code,
+          message: message,
+          error_code: error_code,
+          meta: meta,
+          http_status: http_status
+        )
+      end
+
+      def default_http_status_message(http_status)
+        code =
+          case http_status
+          when Symbol, String
+            Rack::Utils.status_code(http_status)
+          else
+            http_status.to_i
+          end
+
+        Rack::Utils::HTTP_STATUS_CODES[code] || "HTTP #{code}"
       end
     end
   end

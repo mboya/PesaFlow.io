@@ -55,13 +55,13 @@ RSpec.describe 'Api::V1::Subscriptions', type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it 'returns unauthorized for other user\'s subscription' do
+    it 'returns forbidden for other user\'s subscription' do
       other_user = create(:user)
       other_customer = create(:customer, user: other_user)
       other_subscription = create(:subscription, customer: other_customer)
       get "/api/v1/subscriptions/#{other_subscription.id}", headers: headers
 
-      expect(response).to have_http_status(:unauthorized)
+      expect(response).to have_http_status(:forbidden)
     end
   end
 

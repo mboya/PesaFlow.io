@@ -154,29 +154,38 @@ module Subscriptions
                               amount # STK Push / C2B - customer owes until first payment
       end
 
-      @customer.subscriptions.create!(
-        # core commercial fields
-        name: name,
-        description: description,
-        amount: amount,
-        currency: currency,
-        billing_cycle_days: billing_days,
+      retries = 0
+      begin
+        @customer.subscriptions.create!(
+          # core commercial fields
+          name: name,
+          description: description,
+          amount: amount,
+          currency: currency,
+          billing_cycle_days: billing_days,
 
-        # status / trial
-        status: has_trial ? "trial" : "pending",
-        is_trial: has_trial,
-        trial_days: trial_days,
-        trial_ends_at: has_trial ? (current_start + trial_days.days) : nil,
+          # status / trial
+          status: has_trial ? "trial" : "pending",
+          is_trial: has_trial,
+          trial_days: trial_days,
+          trial_ends_at: has_trial ? (current_start + trial_days.days) : nil,
 
-        # outstanding amount
-        outstanding_amount: initial_outstanding,
+          # outstanding amount
+          outstanding_amount: initial_outstanding,
 
-        # Payment method - always set during creation
-        preferred_payment_method: @payment_method,
-        current_period_start: current_start,
-        current_period_end: current_end,
-        next_billing_date: next_billing
-      )
+          # Payment method - always set during creation
+          preferred_payment_method: @payment_method,
+          current_period_start: current_start,
+          current_period_end: current_end,
+          next_billing_date: next_billing
+        )
+      rescue ActiveRecord::RecordNotUnique
+        retries += 1
+        raise if retries > 3
+
+        Rails.logger.warn("Retrying subscription create after reference_number collision (attempt #{retries})")
+        retry
+      end
     end
 
     def setup_payment_method!

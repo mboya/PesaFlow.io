@@ -6,7 +6,11 @@ module Api
       # GET /api/v1/profile
       def show
         customer = find_or_create_customer
-        render json: Api::V1::CustomerSerializer.render(customer)
+        render_enveloped(
+          resource: Api::V1::CustomerSerializer.render_as_hash(customer),
+          status_code: 200,
+          message: "Profile retrieved successfully"
+        )
       end
 
       # PATCH/PUT /api/v1/profile
@@ -14,9 +18,19 @@ module Api
         customer = find_or_create_customer
 
         if customer.update(profile_params)
-          render json: Api::V1::CustomerSerializer.render(customer)
+          render_enveloped(
+            resource: Api::V1::CustomerSerializer.render_as_hash(customer),
+            status_code: 200,
+            message: "Profile updated successfully"
+          )
         else
-          render json: { errors: customer.errors.full_messages }, status: :unprocessable_entity
+          render_enveloped(
+            resource: { errors: customer.errors.full_messages },
+            status_code: 422,
+            message: "Profile could not be updated",
+            error_code: "validation_error",
+            http_status: :unprocessable_entity
+          )
         end
       end
 

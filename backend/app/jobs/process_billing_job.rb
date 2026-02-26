@@ -24,7 +24,7 @@ class ProcessBillingJob < ApplicationJob
   def process_subscription_billing(subscription)
     with_transaction do
       # Check if subscription is still active and valid
-      return unless subscription.is_active?
+      return unless subscription.active?
       return if subscription.outstanding_amount > 0 # Skip if already has outstanding balance
 
       # Create billing attempt

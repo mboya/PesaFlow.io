@@ -103,11 +103,10 @@ module TenantScoped
   end
 
   def find_tenant
-    # Priority 1: Header-based identification
-    header_tenant = find_tenant_from_headers
-    return header_tenant if header_tenant&.active?
+    # Priority 1 (header-based) is already handled by set_current_tenant
+    # before this method is called, so we skip it here.
 
-    # Priority 3: Subdomain-based identification (for future use)
+    # Priority 2: Subdomain-based identification (for future use)
     if request.subdomain.present? && request.subdomain != "www" && request.subdomain != "api"
       return ActsAsTenant.without_tenant do
         Tenant.active.find_by(subdomain: request.subdomain.downcase.strip)

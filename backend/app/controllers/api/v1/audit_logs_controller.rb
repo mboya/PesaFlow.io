@@ -8,7 +8,11 @@ module Api
         return unless authorize_permission!(:read_audit_logs)
 
         logs = audit_logs_scope.limit(limit_param).recent
-        render json: { data: logs.map { |log| serialize_audit_log(log) } }, status: :ok
+        render_enveloped(
+          resource: logs.map { |log| serialize_audit_log(log) },
+          status_code: 200,
+          message: "Audit logs retrieved successfully"
+        )
       end
 
       private

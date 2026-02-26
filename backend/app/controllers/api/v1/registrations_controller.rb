@@ -17,7 +17,7 @@ module Api
           return render json: {
             status: {
               code: 422,
-              message: "Failed to create or find tenant for registration."
+              message: "Failed to resolve an active tenant for registration."
             }
           }, status: :unprocessable_entity
         end
@@ -67,8 +67,8 @@ module Api
             Rails.logger.error("User #{resource.id} was created without tenant_id")
           end
           # Create associated Customer record (1:1 relationship)
-          create_customer_for_user(resource)
-          send_signup_welcome_email(resource)
+          Users::OnboardingService.ensure_customer(resource)
+          Users::OnboardingService.send_welcome_email(resource)
 
           if resource.active_for_authentication?
             # Sign in the user (session is null store, so no data is stored)
@@ -113,11 +113,11 @@ module Api
       protected
 
       def configure_sign_up_params
-        devise_parameter_sanitizer.permit(:sign_up, keys: [ :email, :password ])
+        devise_parameter_sanitizer.permit(:sign_up, keys: [ :email, :password, :password_confirmation ])
       end
 
       def sign_up_params
-        params.require(:user).permit(:email, :password)
+        params.require(:user).permit(:email, :password, :password_confirmation)
       end
 
       def find_tenant_for_registration(email = nil)
@@ -159,74 +159,19 @@ module Api
           return tenant if tenant.present?
         end
 
-        # Priority 4: Use default tenant as fallback (don't auto-generate from email)
-        # Auto-generation from email was removed - always use default tenant if no tenant specified
+        # Priority 4: Use existing active default tenant as fallback.
         begin
           default_tenant = ActsAsTenant.without_tenant do
-            tenant = Tenant.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
-            
-            if tenant.nil?
-              # Create new default tenant
-              tenant = Tenant.create!(
-                subdomain: TenantScoped::DEFAULT_SUBDOMAIN,
-                name: "Default Tenant",
-                status: "active",
-                settings: {}
-              )
-              Rails.logger.info("Created default tenant: #{tenant.inspect}")
-            else
-              # Ensure existing default tenant is active
-              if tenant.status != "active"
-                tenant.update!(status: "active")
-                Rails.logger.info("Updated default tenant status to active: #{tenant.inspect}")
-              else
-                Rails.logger.info("Found existing default tenant: #{tenant.inspect}")
-              end
-            end
-            
-            tenant
+            Tenant.active.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
           end
-          
-          return default_tenant if default_tenant.present? && default_tenant.active?
-        rescue ActiveRecord::RecordInvalid => e
-          Rails.logger.error("Failed to create/update default tenant: #{Security::PiiMasker.mask_free_text(e.message)}")
-          Rails.logger.error("Validation errors: #{Security::PiiMasker.mask_free_text(e.record.errors.full_messages.join(', '))}")
+          return default_tenant if default_tenant.present?
         rescue StandardError => e
-          Rails.logger.error("Unexpected error with default tenant: #{e.class.name}: #{Security::PiiMasker.mask_free_text(e.message)}")
+          Rails.logger.error("Unexpected error while resolving default tenant: #{e.class.name}: #{Security::PiiMasker.mask_free_text(e.message)}")
           Rails.logger.error(e.backtrace.join("\n"))
         end
 
-        Rails.logger.error("find_tenant_for_registration returning nil - no tenant found or created")
+        Rails.logger.error("find_tenant_for_registration returning nil - no active tenant found")
         nil
-      end
-
-      def create_customer_for_user(user)
-        # Generate a name from email (e.g., "john.doe@example.com" -> "John Doe")
-        name = user.email.split("@").first.split(/[._]/).map(&:capitalize).join(" ")
-        name = user.email if name.blank? # Fallback to email if name generation fails
-
-        Customer.create!(
-          user: user,
-          tenant: user.tenant,
-          name: name,
-          email: user.email,
-          phone_number: nil, # Can be added later by the user
-          status: "active"
-        )
-      rescue StandardError => e
-        # Log error but don't fail signup if customer creation fails
-        Rails.logger.error("Failed to create customer for user #{user.id}: #{Security::PiiMasker.mask_free_text(e.message)}")
-        Rails.logger.error(e.backtrace.join("\n"))
-      end
-
-      def send_signup_welcome_email(user)
-        return unless user.email.present?
-
-        UserMailer.welcome_email(user).deliver_later
-      rescue StandardError => e
-        # Email delivery is non-blocking for signup.
-        Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{Security::PiiMasker.mask_free_text(e.message)}")
-        Rails.logger.error(e.backtrace.join("\n"))
       end
 
       def audit_signup_request

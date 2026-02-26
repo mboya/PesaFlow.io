@@ -60,9 +60,11 @@ class Subscription < ApplicationRecord
     update!(status: "expired")
   end
 
-  def is_active?
+  def active?
     status == "active"
   end
+
+  alias_method :is_active?, :active?
 
   def cancelled?
     status == "cancelled"
@@ -72,9 +74,11 @@ class Subscription < ApplicationRecord
     status == "suspended"
   end
 
-  def is_trial_active?
+  def trial_active?
     is_trial && trial_ends_at.present? && trial_ends_at >= Date.current
   end
+
+  alias_method :is_trial_active?, :trial_active?
 
   def total_paid
     payments.where(status: "completed").sum(:amount)

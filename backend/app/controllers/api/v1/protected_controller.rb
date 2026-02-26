@@ -5,16 +5,14 @@ module Api
 
       # GET /api/v1/protected
       def index
-        render json: {
-          status: {
-            code: 200,
-            message: "Access granted"
-          },
-          data: {
+        render_enveloped(
+          resource: {
             message: "This is a protected endpoint",
             user: Api::V1::UserSerializer.serialize(current_api_v1_user)
-          }
-        }, status: :ok
+          },
+          status_code: 200,
+          message: "Access granted"
+        )
       end
     end
   end

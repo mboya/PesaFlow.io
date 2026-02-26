@@ -49,7 +49,7 @@ Rails.application.routes.draw do
       get "protected", to: "protected#index"
 
       # Subscription management
-      resources :subscriptions do
+      resources :subscriptions, except: [ :destroy ] do
         member do
           post :cancel
           post :reactivate

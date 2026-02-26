@@ -2,7 +2,11 @@ class User < ApplicationRecord
   # Include default devise modules.
   # We intentionally avoid :validatable to enforce tenant-scoped email uniqueness.
   devise :database_authenticatable, :registerable,
-         :jwt_authenticatable, jwt_revocation_strategy: JwtDenylist
+         :jwt_authenticatable, :argon2,
+         jwt_revocation_strategy: JwtDenylist,
+         argon2_options: {
+           secret: ENV["ARGON2_SECRET_KEY"]
+         }
 
   # Multi-tenancy
   acts_as_tenant :tenant, required: false
@@ -41,14 +45,13 @@ class User < ApplicationRecord
                     format: { with: URI::MailTo::EMAIL_REGEXP },
                     uniqueness: { scope: :tenant_id, case_sensitive: false }
   validates :password, presence: true, confirmation: true, length: { in: Devise.password_length }, if: :password_required?
+  validates :password_confirmation, presence: true, if: :password_required?
   validates :role, inclusion: { in: ROLES.values }
 
   # Serialize backup_codes as array
   serialize :backup_codes, coder: JSON
 
-  # Note: OTP secret key should be encrypted at rest in production
-  # For now, storing as plain text. Consider using attr_encrypted gem
-  # or Rails encrypted attributes for production
+  OTP_SECRET_ENCRYPTION_PREFIX = "enc:v1:".freeze
 
   # OTP Methods (public for controller access)
 
@@ -94,10 +97,11 @@ class User < ApplicationRecord
   # Generate backup codes
   BACKUP_CODE_COUNT = 10
   BACKUP_CODE_LENGTH = 8
+  BACKUP_CODE_HASH_PREFIX = "bcrypt:".freeze
 
   def generate_backup_codes
     codes = Array.new(BACKUP_CODE_COUNT) { SecureRandom.alphanumeric(BACKUP_CODE_LENGTH).upcase }
-    self.backup_codes = codes
+    self.backup_codes = codes.map { |code| hash_backup_code(code) }
     save!
     codes
   end
@@ -107,13 +111,16 @@ class User < ApplicationRecord
     return false unless backup_codes.present?
 
     normalized_code = code.to_s.upcase
-    if backup_codes.include?(normalized_code)
-      self.backup_codes = backup_codes - [ normalized_code ]
-      save
-      true
-    else
-      false
-    end
+    mutable_codes = backup_codes.dup
+
+    matched_index = mutable_codes.index { |stored_code| backup_code_matches?(stored_code, normalized_code) }
+    return false unless matched_index
+
+    mutable_codes.delete_at(matched_index)
+    self.backup_codes = mutable_codes
+    # Persist best-effort without blocking authentication on validation issues.
+    save(validate: false)
+    true
   end
 
   # Generate provisioning URI for QR code
@@ -161,6 +168,15 @@ class User < ApplicationRecord
     role_support? || admin?
   end
 
+  # Encrypt/decrypt otp_secret_key transparently at rest.
+  def otp_secret_key
+    decrypt_otp_secret_key(self[:otp_secret_key])
+  end
+
+  def otp_secret_key=(value)
+    self[:otp_secret_key] = encrypt_otp_secret_key(value)
+  end
+
   private
 
   DEFAULT_TENANT_SUBDOMAIN = "default"
@@ -189,6 +205,56 @@ class User < ApplicationRecord
     ActsAsTenant.without_tenant do
       default_tenant = Tenant.find_by(subdomain: DEFAULT_TENANT_SUBDOMAIN)
       self.tenant_id = default_tenant.id if default_tenant
+    end
+  end
+
+  def hash_backup_code(code)
+    bcrypt_digest = BCrypt::Password.create(code.to_s.upcase)
+    "#{BACKUP_CODE_HASH_PREFIX}#{bcrypt_digest}"
+  end
+
+  def backup_code_matches?(stored_code, candidate)
+    raw = stored_code.to_s
+    return false if raw.blank?
+
+    if raw.start_with?(BACKUP_CODE_HASH_PREFIX)
+      digest = raw.delete_prefix(BACKUP_CODE_HASH_PREFIX)
+      BCrypt::Password.new(digest).is_password?(candidate)
+    else
+      # Legacy plaintext compatibility for existing rows.
+      ActiveSupport::SecurityUtils.secure_compare(raw.upcase, candidate)
+    end
+  rescue BCrypt::Errors::InvalidHash
+    false
+  rescue ArgumentError
+    false
+  end
+
+  def encrypt_otp_secret_key(value)
+    return nil if value.blank?
+
+    ciphertext = self.class.otp_secret_encryptor.encrypt_and_sign(value.to_s)
+    "#{OTP_SECRET_ENCRYPTION_PREFIX}#{ciphertext}"
+  end
+
+  def decrypt_otp_secret_key(value)
+    return nil if value.blank?
+
+    raw = value.to_s
+    return raw unless raw.start_with?(OTP_SECRET_ENCRYPTION_PREFIX)
+
+    token = raw.delete_prefix(OTP_SECRET_ENCRYPTION_PREFIX)
+    self.class.otp_secret_encryptor.decrypt_and_verify(token)
+  rescue ActiveSupport::MessageEncryptor::InvalidMessage
+    nil
+  end
+
+  def self.otp_secret_encryptor
+    @otp_secret_encryptor ||= begin
+      key_len = ActiveSupport::MessageEncryptor.key_len
+      generator = ActiveSupport::KeyGenerator.new(Rails.application.secret_key_base, iterations: 1000)
+      secret = generator.generate_key("user_otp_secret_key", key_len)
+      ActiveSupport::MessageEncryptor.new(secret)
     end
   end
 end

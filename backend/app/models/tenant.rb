@@ -118,15 +118,3 @@ class Tenant < ApplicationRecord
     self.subdomain = subdomain.downcase.strip
   end
 end
-
-# Remove tenant association after class loads (for queries)
-# Note: We keep a custom validator to override the presence validation
-Rails.application.config.after_initialize do
-  Tenant._reflections.delete("tenant") if Tenant._reflections.key?("tenant")
-end
-
-begin
-  Tenant._reflections.delete("tenant") if Tenant._reflections.key?("tenant")
-rescue
-  # Ignore if Tenant class isn't fully loaded yet
-end

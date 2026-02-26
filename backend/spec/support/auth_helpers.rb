@@ -63,12 +63,18 @@ module AuthHelpers
 
     return nil unless response.status == 200
 
+    login_response = JSON.parse(response.body)
+    otp_challenge_token = login_response["otp_challenge_token"]
+
     # Step 2: Verify OTP
     otp_code ||= generate_valid_otp_for(user)
-    post "/api/v1/otp/verify_login", params: {
-      user_id: user.id,
-      otp_code: otp_code
-    }, as: :json
+    verify_payload = { otp_code: otp_code }
+    if otp_challenge_token.present?
+      verify_payload[:otp_challenge_token] = otp_challenge_token
+    else
+      verify_payload[:user_id] = user.id
+    end
+    post "/api/v1/otp/verify_login", params: verify_payload, as: :json
 
     extract_jwt_token(response)
   end

@@ -52,7 +52,8 @@ RSpec.describe "Sessions API", type: :request do
 
         json_response = JSON.parse(response.body)
         expect(json_response["otp_required"]).to be true
-        expect(json_response["user_id"]).to eq(user.id)
+        expect(json_response["otp_challenge_token"]).to be_present
+        expect(Security::OtpLoginChallenge.resolve_user_id(json_response["otp_challenge_token"])).to eq(user.id)
         expect(UserMailer).to have_received(:login_otp_email).with(instance_of(User), match(/\A\d{6}\z/))
       end
     end
@@ -243,7 +244,8 @@ RSpec.describe "Sessions API", type: :request do
 
         json_response = JSON.parse(response.body)
         expect(json_response["otp_required"]).to be(true)
-        expect(json_response["user_id"]).to eq(user.id)
+        expect(json_response["otp_challenge_token"]).to be_present
+        expect(Security::OtpLoginChallenge.resolve_user_id(json_response["otp_challenge_token"])).to eq(user.id)
         expect(UserMailer).to have_received(:login_otp_email).with(instance_of(User), match(/\A\d{6}\z/))
       end
     end

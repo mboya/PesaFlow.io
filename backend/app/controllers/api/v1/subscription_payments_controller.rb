@@ -11,7 +11,11 @@ module Api
 
         @payments = @subscription.payments.order(paid_at: :desc, created_at: :desc)
 
-        render json: Api::V1::PaymentSerializer.render(@payments)
+        render_enveloped(
+          resource: Api::V1::PaymentSerializer.render_as_hash(@payments),
+          status_code: 200,
+          message: "Payments retrieved successfully"
+        )
       end
 
       private
@@ -23,7 +27,12 @@ module Api
       def authorize_subscription!
         customer = current_user_customer
         unless customer && @subscription.customer == customer
-          render json: { error: "Unauthorized" }, status: :unauthorized
+          render_enveloped_error(
+            status_code: 403,
+            message: "Forbidden",
+            error_code: "forbidden",
+            http_status: :forbidden
+          )
           nil
         end
       end

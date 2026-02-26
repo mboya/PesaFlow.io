@@ -71,11 +71,13 @@ RSpec.describe "Authentication Integration", type: :request do
       expect(response).to have_http_status(:ok)
       json_response = JSON.parse(response.body)
       expect(json_response["otp_required"]).to be true
+      otp_challenge_token = json_response["otp_challenge_token"]
+      expect(otp_challenge_token).to be_present
 
       # Verify OTP to complete login
       new_otp_code = generate_valid_otp_for(user.reload)
       post "/api/v1/otp/verify_login", params: {
-        user_id: user.id,
+        otp_challenge_token: otp_challenge_token,
         otp_code: new_otp_code
       }, as: :json
 
@@ -109,10 +111,12 @@ RSpec.describe "Authentication Integration", type: :request do
       expect(response).to have_http_status(:ok)
       json_response = JSON.parse(response.body)
       expect(json_response["otp_required"]).to be true
+      otp_challenge_token = json_response["otp_challenge_token"]
+      expect(otp_challenge_token).to be_present
 
       # Use backup code instead of OTP
       post "/api/v1/otp/verify_login", params: {
-        user_id: user.id,
+        otp_challenge_token: otp_challenge_token,
         otp_code: backup_code
       }, as: :json
 
@@ -126,7 +130,7 @@ RSpec.describe "Authentication Integration", type: :request do
 
       # Cannot reuse same backup code
       post "/api/v1/otp/verify_login", params: {
-        user_id: user.id,
+        otp_challenge_token: otp_challenge_token,
         otp_code: backup_code
       }, as: :json
 

@@ -60,13 +60,13 @@ RSpec.describe 'Api::V1::Invoices', type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it 'returns unauthorized for other customer\'s invoice' do
+    it 'returns forbidden for other customer\'s invoice' do
       other_customer = create(:customer)
       other_subscription = create(:subscription, customer: other_customer)
       other_billing_attempt = create(:billing_attempt, subscription: other_subscription, invoice_number: 'INV-OTHER')
       get "/api/v1/invoices/#{other_billing_attempt.invoice_number}", headers: headers
 
-      expect(response).to have_http_status(:unauthorized)
+      expect(response).to have_http_status(:forbidden)
     end
 
     it 'requires authentication' do

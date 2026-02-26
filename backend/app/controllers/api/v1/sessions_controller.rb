@@ -208,7 +208,7 @@ module Api
         end
 
         # Only proceed if token is valid and not revoked
-        signed_out = (Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name))
+        Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name)
 
         render json: {
           status: {
@@ -259,6 +259,9 @@ module Api
 
       def render_otp_required_response(user)
         otp_code = user.generate_email_login_otp!
+        challenge_token = Security::OtpLoginChallenge.issue(user_id: user.id, ttl: User::EMAIL_LOGIN_OTP_TTL)
+        raise "Failed to issue OTP challenge token" if challenge_token.blank?
+
         UserMailer.login_otp_email(user, otp_code).deliver_now
 
         render json: {
@@ -267,7 +270,7 @@ module Api
             message: "OTP verification required"
           },
           otp_required: true,
-          user_id: user.id
+          otp_challenge_token: challenge_token
         }, status: :ok
       rescue StandardError => e
         masked_email = Security::PiiMasker.mask_email(user&.email)
@@ -323,8 +326,8 @@ module Api
           return [ nil, false ]
         end
 
-        create_customer_for_user(user)
-        send_signup_welcome_email(user)
+        Users::OnboardingService.ensure_customer(user)
+        Users::OnboardingService.send_welcome_email(user)
         [ user, true ]
       end
 
@@ -347,18 +350,10 @@ module Api
 
       def default_tenant
         ActsAsTenant.without_tenant do
-          tenant = Tenant.find_or_initialize_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
+          tenant = Tenant.find_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
+          return tenant if tenant&.active?
 
-          if tenant.new_record?
-            tenant.name = "Default Tenant"
-            tenant.status = "active"
-            tenant.settings = {}
-            tenant.save!
-          elsif !tenant.active?
-            tenant.update!(status: "active")
-          end
-
-          tenant
+          nil
         end
       rescue StandardError => e
         Rails.logger.error("[Login] Failed to resolve default tenant: #{Security::PiiMasker.mask_free_text(e.message)}")
@@ -367,48 +362,6 @@ module Api
 
       def issue_jwt_token(user)
         Warden::JWTAuth::UserEncoder.new.call(user, :api_v1_user, nil).first
-      end
-
-      def create_customer_for_user(user)
-        return if ActsAsTenant.without_tenant { Customer.exists?(user_id: user.id) }
-
-        name = user.email.split("@").first.split(/[._]/).map(&:capitalize).join(" ")
-        name = user.email if name.blank?
-
-        Customer.create!(
-          user: user,
-          tenant: user.tenant,
-          name: name,
-          email: user.email,
-          phone_number: nil,
-          status: "active"
-        )
-      rescue StandardError => e
-        Rails.logger.error("Failed to create customer for user #{user.id}: #{Security::PiiMasker.mask_free_text(e.message)}")
-        capture_google_login_exception(
-          e,
-          level: :warning,
-          extra: {
-            failure_reason: "customer_creation_failed",
-            user_id: user.id
-          }
-        )
-      end
-
-      def send_signup_welcome_email(user)
-        return unless user.email.present?
-
-        UserMailer.welcome_email(user).deliver_later
-      rescue StandardError => e
-        Rails.logger.error("Failed to queue welcome email for user #{user.id}: #{Security::PiiMasker.mask_free_text(e.message)}")
-        capture_google_login_exception(
-          e,
-          level: :warning,
-          extra: {
-            failure_reason: "welcome_email_enqueue_failed",
-            user_id: user.id
-          }
-        )
       end
 
       def sentry_available?

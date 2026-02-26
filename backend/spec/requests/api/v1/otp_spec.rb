@@ -160,11 +160,12 @@ RSpec.describe "OTP API", type: :request do
   describe "POST /api/v1/otp/verify_login" do
     let(:user) { create(:user, :with_otp) }
     let(:otp_code) { generate_valid_otp_for(user) }
+    let(:otp_challenge_token) { Security::OtpLoginChallenge.issue(user_id: user.id, ttl: User::EMAIL_LOGIN_OTP_TTL) }
 
     context "with valid OTP code" do
       it "returns JWT token" do
         post "/api/v1/otp/verify_login", params: {
-          user_id: user.id,
+          otp_challenge_token: otp_challenge_token,
           otp_code: otp_code
         }, as: :json
 
@@ -179,7 +180,7 @@ RSpec.describe "OTP API", type: :request do
 
       it "returns JWT token" do
         post "/api/v1/otp/verify_login", params: {
-          user_id: user.id,
+          otp_challenge_token: otp_challenge_token,
           otp_code: backup_code
         }, as: :json
 
@@ -190,7 +191,7 @@ RSpec.describe "OTP API", type: :request do
       it "removes backup code from list" do
         expect {
           post "/api/v1/otp/verify_login", params: {
-            user_id: user.id,
+            otp_challenge_token: otp_challenge_token,
             otp_code: backup_code
           }, as: :json
         }.to change { user.reload.backup_codes.length }.by(-1)
@@ -202,7 +203,7 @@ RSpec.describe "OTP API", type: :request do
 
       it "returns JWT token" do
         post "/api/v1/otp/verify_login", params: {
-          user_id: user.id,
+          otp_challenge_token: otp_challenge_token,
           otp_code: otp_code
         }, as: :json
 
@@ -213,13 +214,13 @@ RSpec.describe "OTP API", type: :request do
 
       it "consumes email OTP after successful verification" do
         post "/api/v1/otp/verify_login", params: {
-          user_id: user.id,
+          otp_challenge_token: otp_challenge_token,
           otp_code: otp_code
         }, as: :json
         expect(response).to have_http_status(:ok)
 
         post "/api/v1/otp/verify_login", params: {
-          user_id: user.id,
+          otp_challenge_token: otp_challenge_token,
           otp_code: otp_code
         }, as: :json
         expect(response).to have_http_status(:unauthorized)
@@ -229,8 +230,19 @@ RSpec.describe "OTP API", type: :request do
     context "with invalid OTP code" do
       it "returns 401" do
         post "/api/v1/otp/verify_login", params: {
-          user_id: user.id,
+          otp_challenge_token: otp_challenge_token,
           otp_code: "000000"
+        }, as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context "with invalid challenge token" do
+      it "returns 401" do
+        post "/api/v1/otp/verify_login", params: {
+          otp_challenge_token: "invalid-token",
+          otp_code: otp_code
         }, as: :json
 
         expect(response).to have_http_status(:unauthorized)
@@ -242,14 +254,14 @@ RSpec.describe "OTP API", type: :request do
 
       before do
         post "/api/v1/otp/verify_login", params: {
-          user_id: user.id,
+          otp_challenge_token: otp_challenge_token,
           otp_code: backup_code
         }, as: :json
       end
 
       it "returns 401" do
         post "/api/v1/otp/verify_login", params: {
-          user_id: user.id,
+          otp_challenge_token: otp_challenge_token,
           otp_code: backup_code
         }, as: :json
 

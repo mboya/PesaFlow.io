@@ -143,60 +143,81 @@ module Api
 
       # POST /api/v1/otp/verify_login
       def verify_login
-        user_id = params[:user_id]
-        otp_code = params[:otp_code]
+        perform_idempotent(endpoint: "otp#verify_login") do
+          otp_code = params[:otp_code]
+          challenge_token = params[:otp_challenge_token]
 
-        unless user_id.present? && otp_code.present?
-          render json: {
-            status: {
-              code: 422,
-              message: "User ID and OTP code are required"
-            }
-          }, status: :unprocessable_entity
-          return
+          unless otp_code.present?
+            render json: {
+              status: {
+                code: 422,
+                message: "OTP code is required"
+              }
+            }, status: :unprocessable_entity
+            return
+          end
+
+          user_id = Security::OtpLoginChallenge.resolve_user_id(challenge_token)
+          if user_id.blank? && allow_legacy_user_id_otp_verification?
+            user_id = params[:user_id]
+          end
+
+          unless user_id.present?
+            render json: {
+              status: {
+                code: 401,
+                message: "Invalid or expired OTP login challenge"
+              }
+            }, status: :unauthorized
+            return
+          end
+
+          # Find user without tenant scoping - OTP verification is not tenant-scoped
+          user = ActsAsTenant.without_tenant { User.find_by(id: user_id) }
+          unless user&.otp_enabled?
+            render json: {
+              status: {
+                code: 422,
+                message: "User not found or OTP not enabled"
+              }
+            }, status: :unprocessable_entity
+            return
+          end
+
+          # Verify email OTP first, then fall back to authenticator OTP and backup code
+          otp_valid = user.verify_email_login_otp(otp_code) ||
+                      user.verify_otp(otp_code) ||
+                      user.verify_backup_code(otp_code)
+
+          if otp_valid
+            # Sign in the user and generate JWT token
+            sign_in(:api_v1_user, user)
+
+            # Generate JWT token manually for the response header
+            token = Warden::JWTAuth::UserEncoder.new.call(user, :api_v1_user, nil).first
+            response.set_header("Authorization", "Bearer #{token}")
+
+            render json: {
+              status: {
+                code: 200,
+                message: "Logged in successfully"
+              },
+              data: Api::V1::UserSerializer.serialize(user),
+              token: token  # Include token in response body as fallback (for proxies that strip headers)
+            }, status: :ok
+          else
+            render json: {
+              status: {
+                code: 401,
+                message: "Invalid OTP code or backup code"
+              }
+            }, status: :unauthorized
+          end
         end
+      end
 
-        # Find user without tenant scoping - OTP verification is not tenant-scoped
-        user = ActsAsTenant.without_tenant { User.find_by(id: user_id) }
-        unless user&.otp_enabled?
-          render json: {
-            status: {
-              code: 422,
-              message: "User not found or OTP not enabled"
-            }
-          }, status: :unprocessable_entity
-          return
-        end
-
-        # Verify email OTP first, then fall back to authenticator OTP and backup code
-        otp_valid = user.verify_email_login_otp(otp_code) ||
-                    user.verify_otp(otp_code) ||
-                    user.verify_backup_code(otp_code)
-
-        if otp_valid
-          # Sign in the user and generate JWT token
-          sign_in(:api_v1_user, user)
-
-          # Generate JWT token manually for the response header
-          token = Warden::JWTAuth::UserEncoder.new.call(user, :api_v1_user, nil).first
-          response.set_header("Authorization", "Bearer #{token}")
-
-          render json: {
-            status: {
-              code: 200,
-              message: "Logged in successfully"
-            },
-            data: Api::V1::UserSerializer.serialize(user),
-            token: token  # Include token in response body as fallback (for proxies that strip headers)
-          }, status: :ok
-        else
-          render json: {
-            status: {
-              code: 401,
-              message: "Invalid OTP code or backup code"
-            }
-          }, status: :unauthorized
-        end
+      def allow_legacy_user_id_otp_verification?
+        ActiveModel::Type::Boolean.new.cast(ENV.fetch("ALLOW_LEGACY_OTP_USER_ID", "false"))
       end
 
       # POST /api/v1/otp/backup_codes

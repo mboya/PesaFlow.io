@@ -42,7 +42,11 @@ class Api::V1::DashboardController < Api::V1::ApplicationController
       analytics: analytics
     }
 
-    render json: dashboard_data
+    render_enveloped(
+      resource: dashboard_data,
+      status_code: 200,
+      message: "Dashboard data retrieved successfully"
+    )
   end
 
   private
@@ -64,10 +68,10 @@ class Api::V1::DashboardController < Api::V1::ApplicationController
     end
 
     # Payment success rate
-    all_payments = Payment.where(subscription_id: subscription_ids)
-                          .where("created_at >= ?", 30.days.ago)
-    payment_stats = all_payments.group(:status).count
-    total_payments = all_payments.count.to_f
+    payments_last_30_days = Payment.where(subscription_id: subscription_ids)
+                                   .where("created_at >= ?", 30.days.ago)
+    payment_stats = payments_last_30_days.group(:status).count
+    total_payments = payment_stats.values.sum.to_f
     completed_payments = payment_stats["completed"] || 0
     success_rate = total_payments > 0 ? (completed_payments / total_payments * 100).round(1) : 0.0
 

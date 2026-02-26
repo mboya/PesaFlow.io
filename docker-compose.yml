@@ -3,7 +3,7 @@
 
 services:
   postgres:
-    container_name: pG
+    container_name: pesaflow-postgres
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -22,7 +22,7 @@ services:
       retries: 5
 
   redis:
-    container_name: rD
+    container_name: pesaflow-redis
     image: redis:7-alpine
     command: redis-server --appendonly yes
     ports:
@@ -38,7 +38,7 @@ services:
       retries: 5
 
   mailpit:
-    container_name: mP
+    container_name: pesaflow-mailpit
     image: axllent/mailpit:latest
     ports:
       - "8025:8025"   # Web UI
@@ -50,7 +50,7 @@ services:
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
   backend:
-    container_name: bE
+    container_name: pesaflow-backend
     build:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
@@ -90,7 +90,7 @@ services:
         condition: service_started
 
   sidekiq:
-    container_name: sK
+    container_name: pesaflow-sidekiq
     build:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
@@ -126,7 +126,7 @@ services:
         condition: service_started
 
   frontend:
-    container_name: fE
+    container_name: pesaflow-frontend
     build:
       context: ./frontend
       dockerfile: ../docker/frontend.Dockerfile
@@ -150,7 +150,7 @@ services:
       # WebSocket connections are proxied through the frontend server
       NEXT_PUBLIC_WS_URL: ws://localhost:3001/api/proxy/ws
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-      NEXT_PUBLIC_GOOGLE_CLIENT_SECRET: ${NEXT_PUBLIC_GOOGLE_CLIENT_SECRET}
+      ALLOWED_CORS_ORIGINS: ${ALLOWED_CORS_ORIGINS:-http://localhost:3001}
       NEXT_PUBLIC_ENABLE_PASSWORD_AUTH: ${NEXT_PUBLIC_ENABLE_PASSWORD_AUTH:-true}
       SENTRY_DSN: ${FRONTEND_SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}

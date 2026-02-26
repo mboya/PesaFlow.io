@@ -37,6 +37,7 @@ gem "rack-attack"
 # Authentication
 gem "devise"
 gem "devise-jwt"
+gem "devise-argon2"
 # OTP (Two-Factor Authentication)
 gem "rotp" # Time-based OTP generation and verification
 gem "rqrcode" # QR code generation for authenticator apps

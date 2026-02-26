@@ -166,7 +166,7 @@ services:
         # This is the frontend's own URL + /api/proxy/ws (WebSocket proxy)
       - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
         sync: false
-      - key: NEXT_PUBLIC_GOOGLE_CLIENT_SECRET
+      - key: ALLOWED_CORS_ORIGINS
         sync: false
       - key: NEXT_PUBLIC_ENABLE_PASSWORD_AUTH
         value: "true"

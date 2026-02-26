@@ -13,14 +13,22 @@ module Api
           @tenants = [ current_user.tenant ].compact
         end
 
-        render json: @tenants.map { |t| tenant_json(t) }
+        render_enveloped(
+          resource: @tenants.map { |t| tenant_json(t) },
+          status_code: 200,
+          message: "Tenants retrieved successfully"
+        )
       end
 
       # GET /api/v1/tenants/:id
       def show
         return unless authorize_tenant_access!(@tenant, allow_cross_tenant_permission: :view_all_tenants)
 
-        render json: tenant_json(@tenant)
+        render_enveloped(
+          resource: tenant_json(@tenant),
+          status_code: 200,
+          message: "Tenant retrieved successfully"
+        )
       end
 
       # POST /api/v1/tenants
@@ -36,14 +44,25 @@ module Api
             changeset: tenant_params.to_h,
             metadata: { tenant_id: @tenant.id }
           )
-          render json: tenant_json(@tenant), status: :created
+          render_enveloped(
+            resource: tenant_json(@tenant),
+            status_code: 201,
+            message: "Tenant created successfully",
+            http_status: :created
+          )
         else
           audit_action!(
             action: "tenant.create_failed",
             status: "failure",
             metadata: { errors: @tenant.errors.full_messages }
           )
-          render json: { errors: @tenant.errors.full_messages }, status: :unprocessable_entity
+          render_enveloped(
+            resource: { errors: @tenant.errors.full_messages },
+            status_code: 422,
+            message: "Tenant could not be created",
+            error_code: "validation_error",
+            http_status: :unprocessable_entity
+          )
         end
       end
 
@@ -59,7 +78,11 @@ module Api
             changeset: tenant_params.to_h,
             metadata: { tenant_id: @tenant.id }
           )
-          render json: tenant_json(@tenant)
+          render_enveloped(
+            resource: tenant_json(@tenant),
+            status_code: 200,
+            message: "Tenant updated successfully"
+          )
         else
           audit_action!(
             action: "tenant.update_failed",
@@ -67,16 +90,34 @@ module Api
             auditable: @tenant,
             metadata: { tenant_id: @tenant.id, errors: @tenant.errors.full_messages }
           )
-          render json: { errors: @tenant.errors.full_messages }, status: :unprocessable_entity
+          render_enveloped(
+            resource: { errors: @tenant.errors.full_messages },
+            status_code: 422,
+            message: "Tenant could not be updated",
+            error_code: "validation_error",
+            http_status: :unprocessable_entity
+          )
         end
       end
 
       # GET /api/v1/tenants/current
       def current
         @tenant = current_user.tenant
-        return render json: { error: "No tenant associated with user" }, status: :not_found unless @tenant
+        unless @tenant
+          render_enveloped_error(
+            status_code: 404,
+            message: "No tenant associated with user",
+            error_code: "tenant_not_found",
+            http_status: :not_found
+          )
+          return
+        end
 
-        render json: tenant_json(@tenant)
+        render_enveloped(
+          resource: tenant_json(@tenant),
+          status_code: 200,
+          message: "Tenant retrieved successfully"
+        )
       end
 
       private

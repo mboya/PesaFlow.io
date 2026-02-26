@@ -7,29 +7,52 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
 
   # GET /api/v1/subscriptions
   def index
-    @subscriptions = current_user.customer&.subscriptions&.includes(:customer) || Subscription.none
-    render json: @subscriptions, each_serializer: Api::V1::SubscriptionSerializer
+    subscriptions = current_user.customer&.subscriptions&.includes(:customer) || Subscription.none
+
+    render_enveloped(
+      resource: Api::V1::SubscriptionSerializer.render_as_hash(subscriptions),
+      status_code: 200,
+      message: "Subscriptions retrieved successfully"
+    )
   end
 
   # GET /api/v1/subscriptions/:id
   def show
     return unless authorize_subscription!
-    render json: @subscription, serializer: Api::V1::SubscriptionSerializer
+
+    render_enveloped(
+      resource: Api::V1::SubscriptionSerializer.render_as_hash(@subscription),
+      status_code: 200,
+      message: "Subscription retrieved successfully"
+    )
   end
 
   # POST /api/v1/subscriptions
   def create
-    result = ::Subscriptions::CreateService.new(
-      user: current_user,
-      customer_params: customer_params,
-      subscription_params: create_subscription_params,
-      payment_method: params[:payment_method] || create_subscription_params[:preferred_payment_method] || "ratiba"
-    ).call
+    perform_idempotent(endpoint: "subscriptions#create") do
+      result = ::Subscriptions::CreateService.new(
+        user: current_user,
+        customer_params: customer_params,
+        subscription_params: create_subscription_params,
+        payment_method: params[:payment_method] || create_subscription_params[:preferred_payment_method] || "ratiba"
+      ).call
 
-    if result.success?
-      render json: Api::V1::SubscriptionSerializer.render(result.subscription), status: :created
-    else
-      render json: { errors: result.errors }, status: :unprocessable_entity
+      if result.success?
+        render_enveloped(
+          resource: Api::V1::SubscriptionSerializer.render_as_hash(result.subscription),
+          status_code: 201,
+          message: "Subscription created successfully",
+          http_status: :created
+        )
+      else
+        render_enveloped(
+          resource: { errors: result.errors },
+          status_code: 422,
+          message: "Subscription could not be created",
+          error_code: "validation_error",
+          http_status: :unprocessable_entity
+        )
+      end
     end
   end
 
@@ -39,9 +62,19 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
 
     with_transaction do
       if @subscription.update(subscription_params)
-        render json: Api::V1::SubscriptionSerializer.render(@subscription)
+        render_enveloped(
+          resource: Api::V1::SubscriptionSerializer.render_as_hash(@subscription),
+          status_code: 200,
+          message: "Subscription updated successfully"
+        )
       else
-        render json: { errors: @subscription.errors.full_messages }, status: :unprocessable_entity
+        render_enveloped(
+          resource: { errors: @subscription.errors.full_messages },
+          status_code: 422,
+          message: "Subscription could not be updated",
+          error_code: "validation_error",
+          http_status: :unprocessable_entity
+        )
       end
     end
   end
@@ -55,9 +88,19 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
       refund_unused: params[:refund_unused] || false
     )
 
-    render json: { message: "Subscription cancelled successfully", subscription: Api::V1::SubscriptionSerializer.render(@subscription.reload) }
+    render_enveloped(
+      resource: Api::V1::SubscriptionSerializer.render_as_hash(@subscription.reload),
+      status_code: 200,
+      message: "Subscription cancelled successfully"
+    )
   rescue StandardError => e
-    render json: { error: e.message }, status: :unprocessable_entity
+    render_enveloped(
+      resource: { errors: [ e.message ] },
+      status_code: 422,
+      message: "Subscription cancellation failed",
+      error_code: "cancellation_failed",
+      http_status: :unprocessable_entity
+    )
   end
 
   # POST /api/v1/subscriptions/:id/reactivate
@@ -66,12 +109,28 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
 
     with_transaction do
       if @subscription.outstanding_amount.to_d > 0
-        render json: { error: "Please clear outstanding balance before reactivating" }, status: :unprocessable_entity
+        render_enveloped(
+          resource: { errors: [ "Please clear outstanding balance before reactivating" ] },
+          status_code: 422,
+          message: "Subscription cannot be reactivated",
+          error_code: "outstanding_balance",
+          http_status: :unprocessable_entity
+        )
       elsif %w[suspended cancelled expired].include?(@subscription.status)
         @subscription.reactivate!
-        render json: { message: "Subscription reactivated successfully", subscription: Api::V1::SubscriptionSerializer.render(@subscription) }
+        render_enveloped(
+          resource: Api::V1::SubscriptionSerializer.render_as_hash(@subscription),
+          status_code: 200,
+          message: "Subscription reactivated successfully"
+        )
       else
-        render json: { error: "Only suspended, cancelled, or expired subscriptions can be reactivated" }, status: :unprocessable_entity
+        render_enveloped(
+          resource: { errors: [ "Only suspended, cancelled, or expired subscriptions can be reactivated" ] },
+          status_code: 422,
+          message: "Subscription cannot be reactivated",
+          error_code: "invalid_status",
+          http_status: :unprocessable_entity
+        )
       end
     end
   end
@@ -87,7 +146,12 @@ class Api::V1::SubscriptionsController < Api::V1::ApplicationController
   def authorize_subscription!
     customer = current_user_customer
     unless customer && @subscription.customer == customer
-      render json: { error: "Unauthorized" }, status: :unauthorized
+      render_enveloped_error(
+        status_code: 403,
+        message: "Forbidden",
+        error_code: "forbidden",
+        http_status: :forbidden
+      )
       return false
     end
     true

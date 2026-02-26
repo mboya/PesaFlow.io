@@ -15,13 +15,22 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
                               .where.not(invoice_number: nil)
                               .order(attempted_at: :desc)
 
-    render json: Api::V1::BillingAttemptSerializer.render(@invoices)
+    render_enveloped(
+      resource: Api::V1::BillingAttemptSerializer.render_as_hash(@invoices),
+      status_code: 200,
+      message: "Invoices retrieved successfully"
+    )
   end
 
   # GET /api/v1/invoices/:id
   def show
     return unless authorize_invoice!
-    render json: Api::V1::BillingAttemptSerializer.render(@invoice)
+
+    render_enveloped(
+      resource: Api::V1::BillingAttemptSerializer.render_as_hash(@invoice),
+      status_code: 200,
+      message: "Invoice retrieved successfully"
+    )
   end
 
   private
@@ -40,9 +49,14 @@ class Api::V1::InvoicesController < Api::V1::ApplicationController
   def authorize_invoice!
     customer = require_customer!
     return false unless customer
-    
+
     unless @invoice.subscription.customer == customer
-      render json: { error: "Unauthorized" }, status: :unauthorized
+      render_enveloped_error(
+        status_code: 403,
+        message: "Forbidden",
+        error_code: "forbidden",
+        http_status: :forbidden
+      )
       return false
     end
     true
