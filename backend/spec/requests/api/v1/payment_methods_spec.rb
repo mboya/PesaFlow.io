@@ -48,7 +48,7 @@ RSpec.describe 'Api::V1::PaymentMethods', type: :request do
   end
 
   describe 'POST /api/v1/payment_methods/stk_push' do
-    let(:params) { { reference: subscription.reference_number, amount: subscription.amount } }
+    let(:params) { { reference: subscription.reference_number } }
 
     before do
       allow(SafaricomApi.client.mpesa.stk_push).to receive(:initiate).and_return(

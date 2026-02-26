@@ -155,20 +155,23 @@ export const subscriptionsApi = {
         };
         payment_method?: 'ratiba' | 'stk_push';
     }): Promise<{ data: Subscription }> =>
-        apiClient.post('/subscriptions', data).then(res => ({ data: res.data })),
+        apiClient.post('/subscriptions', data).then(extractData<Subscription>),
     update: (id: string | number, data: Partial<Subscription>): Promise<{ data: Subscription }> => 
-        apiClient.patch(`/subscriptions/${id}`, data).then(res => ({ data: res.data })),
+        apiClient.patch(`/subscriptions/${id}`, data).then(extractData<Subscription>),
     cancel: (id: string | number, data?: { reason?: string; refund_unused?: boolean }): Promise<{ data: Subscription }> => 
-        apiClient.post(`/subscriptions/${id}/cancel`, data).then(res => ({ data: res.data })),
+        apiClient.post(`/subscriptions/${id}/cancel`, data).then(extractData<Subscription>),
     reactivate: (id: string | number): Promise<{ data: Subscription }> => 
-        apiClient.post(`/subscriptions/${id}/reactivate`).then(res => ({ data: res.data })),
+        apiClient.post(`/subscriptions/${id}/reactivate`).then(extractData<Subscription>),
 };
 
 // Payment Methods API
+// For both Ratiba and STK Push, the backend determines the effective amount
+// based on the customer's active subscription/outstanding balance.
+// The client only provides phone number and an optional reference.
 export const paymentMethodsApi = {
-    setupRatiba: (data: { phone_number: string; amount: number; reference: string }): Promise<{ data: any }> => 
+    setupRatiba: (data: { phone_number: string; reference?: string }): Promise<{ data: any }> => 
         apiClient.post('/payment_methods/ratiba', data).then(extractData<any>),
-    initiateStkPush: (data: { phone_number: string; amount: number; reference: string }): Promise<{ data: any }> => 
+    initiateStkPush: (data: { phone_number: string; reference?: string }): Promise<{ data: any }> => 
         apiClient.post('/payment_methods/stk_push', data).then(extractData<any>),
 };
 

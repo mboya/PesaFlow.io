@@ -20,13 +20,11 @@ export default function PaymentMethodsPage() {
 
   const [ratibaForm, setRatibaForm] = useState({
     phone_number: '',
-    amount: '',
     reference: '',
   });
 
   const [stkForm, setStkForm] = useState({
     phone_number: '',
-    amount: '',
     reference: '',
   });
 
@@ -39,11 +37,12 @@ export default function PaymentMethodsPage() {
     try {
       await paymentMethodsApi.setupRatiba({
         phone_number: ratibaForm.phone_number,
-        amount: parseFloat(ratibaForm.amount),
-        reference: ratibaForm.reference,
+        reference: ratibaForm.reference || undefined,
       });
-      setSuccess('Ratiba setup initiated. Check your phone for M-Pesa approval.');
-      setRatibaForm({ phone_number: '', amount: '', reference: '' });
+      setSuccess(
+        'Ratiba setup initiated. The standing order will use your active subscription amount.'
+      );
+      setRatibaForm({ phone_number: '', reference: '' });
     } catch (error: unknown) {
       setError(getApiErrorMessage(error, 'Failed to setup Ratiba'));
       console.error('Ratiba error:', error);
@@ -61,11 +60,12 @@ export default function PaymentMethodsPage() {
     try {
       await paymentMethodsApi.initiateStkPush({
         phone_number: stkForm.phone_number,
-        amount: parseFloat(stkForm.amount),
-        reference: stkForm.reference,
+        reference: stkForm.reference || undefined,
       });
-      setSuccess('STK Push initiated. Check your phone for M-Pesa prompt.');
-      setStkForm({ phone_number: '', amount: '', reference: '' });
+      setSuccess(
+        'STK Push initiated. The payment amount is based on your active subscription or outstanding balance.'
+      );
+      setStkForm({ phone_number: '', reference: '' });
     } catch (error: unknown) {
       setError(getApiErrorMessage(error, 'Failed to initiate STK Push'));
       console.error('STK Push error:', error);
@@ -135,22 +135,6 @@ export default function PaymentMethodsPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="ratiba_amount" className="block text-sm font-medium text-slate-700">
-                    Amount (KES)
-                  </label>
-                  <input
-                    type="number"
-                    id="ratiba_amount"
-                    required
-                    min="1"
-                    step="0.01"
-                    value={ratibaForm.amount}
-                    onChange={(e) => setRatibaForm({ ...ratibaForm, amount: e.target.value })}
-                    placeholder="1000.00"
-                    className="app-input"
-                  />
-                </div>
-                <div>
                   <label htmlFor="ratiba_reference" className="block text-sm font-medium text-slate-700">
                     Reference
                   </label>
@@ -191,22 +175,6 @@ export default function PaymentMethodsPage() {
                     value={stkForm.phone_number}
                     onChange={(e) => setStkForm({ ...stkForm, phone_number: e.target.value })}
                     placeholder="254712345678"
-                    className="app-input"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="stk_amount" className="block text-sm font-medium text-slate-700">
-                    Amount (KES)
-                  </label>
-                  <input
-                    type="number"
-                    id="stk_amount"
-                    required
-                    min="1"
-                    step="0.01"
-                    value={stkForm.amount}
-                    onChange={(e) => setStkForm({ ...stkForm, amount: e.target.value })}
-                    placeholder="1000.00"
                     className="app-input"
                   />
                 </div>

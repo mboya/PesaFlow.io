@@ -128,7 +128,8 @@ class Api::V1::PaymentMethodsController < Api::V1::ApplicationController
           return
         end
 
-        amount = params[:amount] || subscription.outstanding_amount || subscription.amount
+        # Compute amount from subscription context rather than trusting a client-supplied value.
+        amount = subscription.outstanding_amount.presence || subscription.amount
 
         # Create billing attempt
         billing_attempt = BillingAttempt.create!(
