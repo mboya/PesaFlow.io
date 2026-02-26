@@ -71,11 +71,24 @@ class User < ApplicationRecord
   OTP_DRIFT_BEHIND = 1
   OTP_DRIFT_AHEAD = 1
 
+  EMAIL_LOGIN_OTP_LENGTH = 6
+  EMAIL_LOGIN_OTP_TTL = 10.minutes
+
   def verify_otp(code)
     return false unless otp_secret_key.present?
 
     totp = ROTP::TOTP.new(otp_secret_key)
     totp.verify(code.to_s, drift_behind: OTP_DRIFT_BEHIND, drift_ahead: OTP_DRIFT_AHEAD).present?
+  end
+
+  def generate_email_login_otp!
+    code = format("%0#{EMAIL_LOGIN_OTP_LENGTH}d", SecureRandom.random_number(10**EMAIL_LOGIN_OTP_LENGTH))
+    Security::LoginOtpStore.write(user_id: id, code: code, ttl: EMAIL_LOGIN_OTP_TTL)
+    code
+  end
+
+  def verify_email_login_otp(code)
+    Security::LoginOtpStore.verify_and_consume(user_id: id, code: code)
   end
 
   # Generate backup codes

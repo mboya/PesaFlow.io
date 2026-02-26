@@ -197,6 +197,35 @@ RSpec.describe "OTP API", type: :request do
       end
     end
 
+    context "with valid email OTP code" do
+      let(:otp_code) { user.generate_email_login_otp! }
+
+      it "returns JWT token" do
+        post "/api/v1/otp/verify_login", params: {
+          user_id: user.id,
+          otp_code: otp_code
+        }, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(response.headers["Authorization"]).to be_present
+        expect(response.headers["Authorization"]).to start_with("Bearer ")
+      end
+
+      it "consumes email OTP after successful verification" do
+        post "/api/v1/otp/verify_login", params: {
+          user_id: user.id,
+          otp_code: otp_code
+        }, as: :json
+        expect(response).to have_http_status(:ok)
+
+        post "/api/v1/otp/verify_login", params: {
+          user_id: user.id,
+          otp_code: otp_code
+        }, as: :json
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
     context "with invalid OTP code" do
       it "returns 401" do
         post "/api/v1/otp/verify_login", params: {

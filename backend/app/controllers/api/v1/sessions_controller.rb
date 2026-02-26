@@ -32,15 +32,7 @@ module Api
           self.resource = user
 
           if resource.otp_enabled?
-            # User has OTP enabled, require OTP verification before issuing JWT
-            render json: {
-              status: {
-                code: 200,
-                message: "OTP verification required"
-              },
-              otp_required: true,
-              user_id: resource.id
-            }, status: :ok
+            return render_otp_required_response(resource)
           else
             # User doesn't have OTP, issue JWT token immediately
             sign_in(resource_name, resource)
@@ -174,15 +166,7 @@ module Api
         self.resource = user
 
         if resource.otp_enabled?
-          render json: {
-            status: {
-              code: 200,
-              message: "OTP verification required"
-            },
-            otp_required: true,
-            user_id: resource.id
-          }, status: :ok
-          return
+          return render_otp_required_response(resource)
         end
 
         sign_in(resource_name, resource)
@@ -271,6 +255,33 @@ module Api
 
         # Final fallback for auth endpoints is the default tenant.
         default_tenant
+      end
+
+      def render_otp_required_response(user)
+        otp_code = user.generate_email_login_otp!
+        UserMailer.login_otp_email(user, otp_code).deliver_later
+
+        render json: {
+          status: {
+            code: 200,
+            message: "OTP verification required"
+          },
+          otp_required: true,
+          user_id: user.id
+        }, status: :ok
+      rescue StandardError => e
+        masked_email = Security::PiiMasker.mask_email(user&.email)
+        Rails.logger.error(
+          "[Login OTP] Failed to issue email OTP for user #{user&.id} (#{masked_email}): " \
+          "#{Security::PiiMasker.mask_free_text(e.message)}"
+        )
+
+        render json: {
+          status: {
+            code: 503,
+            message: "Unable to deliver OTP code. Please try again."
+          }
+        }, status: :service_unavailable
       end
 
       def find_user_for_authentication(normalized_email, tenant)

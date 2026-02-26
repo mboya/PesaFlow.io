@@ -33,8 +33,13 @@ RSpec.describe "Sessions API", type: :request do
 
     context "with valid credentials (OTP enabled)" do
       let!(:user) { create(:user, :with_otp, email: "test@example.com", password: "password123") }
+      let(:mail_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_later: true) }
 
-      it "returns 200 without JWT, requires OTP" do
+      before do
+        allow(UserMailer).to receive(:login_otp_email).and_return(mail_delivery)
+      end
+
+      it "returns 200 without JWT, requires OTP, and sends an email code" do
         post "/api/v1/login", params: {
           user: {
             email: "test@example.com",
@@ -48,6 +53,7 @@ RSpec.describe "Sessions API", type: :request do
         json_response = JSON.parse(response.body)
         expect(json_response["otp_required"]).to be true
         expect(json_response["user_id"]).to eq(user.id)
+        expect(UserMailer).to have_received(:login_otp_email).with(instance_of(User), match(/\A\d{6}\z/))
       end
     end
 
@@ -223,6 +229,11 @@ RSpec.describe "Sessions API", type: :request do
 
     context "with an existing user with OTP enabled" do
       let!(:user) { create(:user, :with_otp, email: "google-user@example.com", password: "password123") }
+      let(:mail_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_later: true) }
+
+      before do
+        allow(UserMailer).to receive(:login_otp_email).and_return(mail_delivery)
+      end
 
       it "returns OTP required response without JWT" do
         post "/api/v1/google_login", params: { credential: "valid-google-token" }, as: :json
@@ -233,6 +244,7 @@ RSpec.describe "Sessions API", type: :request do
         json_response = JSON.parse(response.body)
         expect(json_response["otp_required"]).to be(true)
         expect(json_response["user_id"]).to eq(user.id)
+        expect(UserMailer).to have_received(:login_otp_email).with(instance_of(User), match(/\A\d{6}\z/))
       end
     end
 

@@ -165,7 +165,7 @@ export default function LoginPage() {
 
           <div className="mb-6 text-center">
             <h1 className="font-display text-2xl font-semibold text-slate-900">Two-Factor Authentication</h1>
-            <p className="mt-2 text-sm text-slate-600">Enter the 6-digit code from your authenticator app.</p>
+            <p className="mt-2 text-sm text-slate-600">Enter the 6-digit code sent to your email.</p>
           </div>
 
           <form onSubmit={handleOtpSubmit} className="space-y-5">

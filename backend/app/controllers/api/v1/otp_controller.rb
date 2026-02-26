@@ -168,8 +168,10 @@ module Api
           return
         end
 
-        # Verify OTP or backup code
-        otp_valid = user.verify_otp(otp_code) || user.verify_backup_code(otp_code)
+        # Verify email OTP first, then fall back to authenticator OTP and backup code
+        otp_valid = user.verify_email_login_otp(otp_code) ||
+                    user.verify_otp(otp_code) ||
+                    user.verify_backup_code(otp_code)
 
         if otp_valid
           # Sign in the user and generate JWT token

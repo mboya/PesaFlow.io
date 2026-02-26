@@ -1,0 +1,11 @@
+<p>Hi <%= @user.email %>,</p>
+
+<p>Your one-time login code for <strong><%= @app_name %></strong> is:</p>
+
+<p style="font-family: monospace; font-size: 28px; font-weight: 700; letter-spacing: 0.35em; margin: 20px 0;">
+  <%= @otp_code %>
+</p>
+
+<p>This code expires in <%= @otp_ttl_minutes %> minutes and can only be used once.</p>
+
+<p>If you did not try to sign in, you can safely ignore this email.</p>

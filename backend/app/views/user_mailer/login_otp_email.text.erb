@@ -1,0 +1,9 @@
+Hi <%= @user.email %>,
+
+Your one-time login code for <%= @app_name %> is:
+
+<%= @otp_code %>
+
+This code expires in <%= @otp_ttl_minutes %> minutes and can only be used once.
+
+If you did not try to sign in, you can safely ignore this email.
