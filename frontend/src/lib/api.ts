@@ -115,7 +115,20 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // Helper to extract data from API responses (Axios response structure)
-const extractData = <T>(response: any): { data: T } => ({ data: response.data as T });
+// Supports both plain payloads and unified envelopes: { status, data, meta }
+const extractData = <T>(response: any): { data: T } => {
+    const body = response.data;
+
+    if (body && typeof body === 'object') {
+        const maybeEnvelope = body as { status?: unknown; data?: unknown };
+
+        if ('status' in maybeEnvelope && 'data' in maybeEnvelope) {
+            return { data: maybeEnvelope.data as T };
+        }
+    }
+
+    return { data: body as T };
+};
 
 // Subscriptions API
 export const subscriptionsApi = {

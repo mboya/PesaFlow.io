@@ -14,6 +14,7 @@ export interface User {
 export interface SignupData {
   email: string;
   password: string;
+  passwordConfirmation?: string;
   tenantSubdomain?: string; // Optional tenant subdomain (backend will auto-generate if not provided)
 }
 
@@ -29,11 +30,14 @@ export interface LoginResponse {
   };
   data?: User;
   otp_required?: boolean;
+  otp_challenge_token?: string;
+  // Backward compatibility with legacy backend responses.
   user_id?: number;
 }
 
 export interface OtpVerifyData {
-  user_id: number;
+  otp_challenge_token?: string;
+  user_id?: number;
   otp_code: string;
 }
 
@@ -136,7 +140,13 @@ export const authApi = {
 
     const response = await apiClient.post(
       '/signup', 
-      { user: { email: data.email, password: data.password } },
+      {
+        user: {
+          email: data.email,
+          password: data.password,
+          password_confirmation: data.passwordConfirmation || data.password,
+        }
+      },
       config
     );
     
@@ -217,7 +227,14 @@ export const authApi = {
 
   // Verify OTP during login
   verifyOtpLogin: async (data: OtpVerifyData): Promise<{ user: User; token: string }> => {
-    const response = await apiClient.post('/otp/verify_login', data);
+    const payload: Record<string, string | number> = { otp_code: data.otp_code };
+    if (data.otp_challenge_token) {
+      payload.otp_challenge_token = data.otp_challenge_token;
+    } else if (data.user_id) {
+      payload.user_id = data.user_id;
+    }
+
+    const response = await apiClient.post('/otp/verify_login', payload);
     const token = extractToken(response);
     if (!token) {
       // Log detailed error for debugging

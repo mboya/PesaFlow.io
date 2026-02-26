@@ -10,9 +10,6 @@ const EXCLUDED_REQUEST_HEADERS = ['host', 'connection', 'content-length'];
 const EXCLUDED_RESPONSE_HEADERS = [
   'access-control-allow-origin', 
   'connection', 
-  'etag', 
-  'last-modified', 
-  'cache-control',
   'content-encoding',  // Exclude Content-Encoding since response.text() decompresses automatically
   'content-length',    // Exclude Content-Length as it may be incorrect after decompression
   'transfer-encoding' // Exclude Transfer-Encoding as it's handled by fetch API
@@ -21,6 +18,43 @@ const TENANT_HEADERS = {
   SUBDOMAIN: 'X-Tenant-Subdomain',
   ID: 'X-Tenant-ID',
 } as const;
+const ALLOWED_CORS_ORIGINS = [
+  process.env.FRONTEND_URL,
+  ...((process.env.ALLOWED_CORS_ORIGINS || '').split(','))
+]
+  .map((origin) => normalizeOrigin(origin))
+  .filter((origin): origin is string => Boolean(origin));
+
+function normalizeOrigin(value?: string | null): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function requestOrigin(request: NextRequest): string | null {
+  const originHeader = request.headers.get('origin');
+  if (originHeader) return normalizeOrigin(originHeader);
+
+  const refererHeader = request.headers.get('referer');
+  if (!refererHeader) return null;
+  return normalizeOrigin(refererHeader);
+}
+
+function isOriginAllowed(request: NextRequest, origin: string): boolean {
+  if (!origin) return false;
+  if (origin === request.nextUrl.origin) return true;
+  if (ALLOWED_CORS_ORIGINS.includes(origin)) return true;
+
+  // Keep local development flexible without opening production.
+  if (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+    return true;
+  }
+
+  return false;
+}
 
 export async function GET(
   request: NextRequest,
@@ -69,9 +103,13 @@ export async function OPTIONS(
   // Handle CORS preflight requests
   // When credentials are included, we cannot use '*' for Access-Control-Allow-Origin
   // We must use the specific origin from the request
-  const origin = request.headers.get('origin') || 
-                 (request.headers.get('referer') ? new URL(request.headers.get('referer')!).origin : null) ||
-                 '*';
+  const origin = requestOrigin(request);
+  if (origin && !isOriginAllowed(request, origin)) {
+    return NextResponse.json(
+      { error: 'CORS origin not allowed' },
+      { status: 403 }
+    );
+  }
   
   const headers: Record<string, string> = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
@@ -83,8 +121,9 @@ export async function OPTIONS(
   
   // Only set Access-Control-Allow-Origin if we have a valid origin
   // For same-origin requests (no origin header), the browser doesn't need CORS headers
-  if (origin && origin !== '*') {
+  if (origin) {
     headers['Access-Control-Allow-Origin'] = origin;
+    headers['Vary'] = 'Origin';
   }
   
   return new NextResponse(null, {
@@ -167,19 +206,14 @@ async function proxyRequest(
       responseBody = '{}'; // Return empty JSON object for empty 200 responses
     }
 
-    // NextResponse doesn't accept certain status codes like 304
-    // Map them to valid status codes or use 200 for 304 (Not Modified)
     let statusCode = response.status;
-    if (statusCode === 304) {
-      // 304 Not Modified - NextResponse doesn't support it, use 200 instead
-      statusCode = 200;
-    } else if (statusCode < 100 || statusCode >= 600) {
-      // Invalid status code, default to 200
-      statusCode = 200;
+    if (statusCode < 100 || statusCode >= 600) {
+      // Invalid status code, default to gateway error.
+      statusCode = 502;
     }
 
     // Create response with same status and headers
-    const proxiedResponse = new NextResponse(responseBody, {
+    const proxiedResponse = new NextResponse(statusCode === 304 ? null : responseBody, {
       status: statusCode,
       statusText: response.statusText,
     });
@@ -203,28 +237,32 @@ async function proxyRequest(
       // Token extraction happens automatically in the frontend API client
     }
 
-    // Forward response headers (excluding CORS and cache headers)
+    // Forward response headers (excluding CORS and Authorization headers)
     response.headers.forEach((value, key) => {
       const lowerKey = key.toLowerCase();
       if (!EXCLUDED_RESPONSE_HEADERS.includes(lowerKey) && lowerKey !== 'authorization') {
         proxiedResponse.headers.set(key, value);
       }
     });
-    
-    // Set cache control to prevent caching issues
-    proxiedResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    proxiedResponse.headers.set('Pragma', 'no-cache');
-    proxiedResponse.headers.set('Expires', '0');
 
-    // Set CORS headers for the frontend
-    // When credentials are included, we cannot use '*' for Access-Control-Allow-Origin
-    // We must use the specific origin from the request
-    const origin = request.headers.get('origin') || 
-                   (request.headers.get('referer') ? new URL(request.headers.get('referer')!).origin : null);
-    
-    if (origin) {
+    // For authentication endpoints, explicitly disable caching at the proxy layer
+    // to prevent browsers or intermediaries from caching responses that include
+    // credentials or tokens.
+    if (isAuthEndpoint) {
+      proxiedResponse.headers.set(
+        'Cache-Control',
+        'no-store, no-cache, must-revalidate, proxy-revalidate'
+      );
+      proxiedResponse.headers.set('Pragma', 'no-cache');
+      proxiedResponse.headers.set('Expires', '0');
+    }
+
+    // Set CORS headers for approved frontend origins only.
+    const origin = requestOrigin(request);
+    if (origin && isOriginAllowed(request, origin)) {
       proxiedResponse.headers.set('Access-Control-Allow-Origin', origin);
       proxiedResponse.headers.set('Access-Control-Allow-Credentials', 'true');
+      proxiedResponse.headers.set('Vary', 'Origin');
     }
     
     proxiedResponse.headers.set(
@@ -236,8 +274,8 @@ async function proxyRequest(
       'Content-Type, Authorization, X-Tenant-Subdomain, X-Tenant-ID'
     );
     
-    // Expose Authorization header so Axios can read it from the response
-    // Browsers don't expose custom headers by default due to CORS restrictions
+    // Expose Authorization header so Axios can read it from the response.
+    // Browsers don't expose custom headers by default due to CORS restrictions.
     proxiedResponse.headers.set(
       'Access-Control-Expose-Headers',
       'Authorization, X-Tenant-Subdomain, X-Tenant-ID'

@@ -13,6 +13,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   otpRequired: boolean;
+  otpChallengeToken: string | null;
   otpUserId: number | null;
   verifyOtpLogin: (otpCode: string) => Promise<void>;
   clearOtpState: () => void;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [otpRequired, setOtpRequired] = useState(false);
+  const [otpChallengeToken, setOtpChallengeToken] = useState<string | null>(null);
   const [otpUserId, setOtpUserId] = useState<number | null>(null);
 
   const checkAuth = async () => {
@@ -72,10 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const response = await authApi.login({ email, password });
     
-    if (response.otp_required && response.user_id) {
+    if (response.otp_required && (response.otp_challenge_token || response.user_id)) {
       // OTP is required, don't set user yet
       setOtpRequired(true);
-      setOtpUserId(response.user_id);
+      setOtpChallengeToken(response.otp_challenge_token || null);
+      setOtpUserId(response.user_id || null);
       return;
     }
 
@@ -83,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (response.data) {
       setUser(response.data);
       setOtpRequired(false);
+      setOtpChallengeToken(null);
       setOtpUserId(null);
     }
   };
@@ -90,31 +94,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = async (credential: string) => {
     const response = await authApi.googleLogin(credential);
 
-    if (response.otp_required && response.user_id) {
+    if (response.otp_required && (response.otp_challenge_token || response.user_id)) {
       setOtpRequired(true);
-      setOtpUserId(response.user_id);
+      setOtpChallengeToken(response.otp_challenge_token || null);
+      setOtpUserId(response.user_id || null);
       return;
     }
 
     if (response.data) {
       setUser(response.data);
       setOtpRequired(false);
+      setOtpChallengeToken(null);
       setOtpUserId(null);
     }
   };
 
   const verifyOtpLogin = async (otpCode: string) => {
-    if (!otpUserId) {
-      throw new Error('No user ID for OTP verification');
+    if (!otpChallengeToken && !otpUserId) {
+      throw new Error('No OTP challenge for verification');
     }
 
     const { user: loggedInUser } = await authApi.verifyOtpLogin({
-      user_id: otpUserId,
+      otp_challenge_token: otpChallengeToken || undefined,
+      user_id: otpUserId || undefined,
       otp_code: otpCode,
     });
 
     setUser(loggedInUser);
     setOtpRequired(false);
+    setOtpChallengeToken(null);
     setOtpUserId(null);
   };
 
@@ -127,11 +135,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authApi.logout();
     setUser(null);
     setOtpRequired(false);
+    setOtpChallengeToken(null);
     setOtpUserId(null);
   };
 
   const clearOtpState = () => {
     setOtpRequired(false);
+    setOtpChallengeToken(null);
     setOtpUserId(null);
   };
 
@@ -147,6 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         checkAuth,
         otpRequired,
+        otpChallengeToken,
         otpUserId,
         verifyOtpLogin,
         clearOtpState,

@@ -50,6 +50,7 @@ describe('SignupPage', () => {
       logout: vi.fn(),
       checkAuth: vi.fn(),
       otpRequired: false,
+      otpChallengeToken: null,
       otpUserId: null,
       verifyOtpLogin: vi.fn(),
       clearOtpState: vi.fn(),

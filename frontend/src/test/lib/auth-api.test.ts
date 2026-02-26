@@ -132,7 +132,7 @@ describe('authApi', () => {
         data: {
           status: { code: 200, message: 'OTP verification required' },
           otp_required: true,
-          user_id: 1,
+          otp_challenge_token: 'otp-challenge-token',
         },
         headers: {},
       };
@@ -145,7 +145,7 @@ describe('authApi', () => {
       });
 
       expect(result.otp_required).toBe(true);
-      expect(result.user_id).toBe(1);
+      expect(result.otp_challenge_token).toBe('otp-challenge-token');
       expect(localStorage.getItem('authToken')).toBeNull();
     });
   });
@@ -183,7 +183,7 @@ describe('authApi', () => {
         data: {
           status: { code: 200, message: 'OTP verification required' },
           otp_required: true,
-          user_id: 3,
+          otp_challenge_token: 'google-otp-challenge-token',
         },
         headers: {},
       };
@@ -193,7 +193,7 @@ describe('authApi', () => {
       const result = await authApi.googleLogin('google-id-token');
 
       expect(result.otp_required).toBe(true);
-      expect(result.user_id).toBe(3);
+      expect(result.otp_challenge_token).toBe('google-otp-challenge-token');
       expect(localStorage.getItem('authToken')).toBeNull();
     });
 
@@ -238,12 +238,12 @@ describe('authApi', () => {
       mockPost.mockResolvedValue(mockResponse);
 
       const result = await authApi.verifyOtpLogin({
-        user_id: 1,
+        otp_challenge_token: 'otp-challenge-token',
         otp_code: '123456',
       });
 
       expect(mockPost).toHaveBeenCalledWith('/otp/verify_login', {
-        user_id: 1,
+        otp_challenge_token: 'otp-challenge-token',
         otp_code: '123456',
       });
       expect(result.user).toEqual(mockUser);
