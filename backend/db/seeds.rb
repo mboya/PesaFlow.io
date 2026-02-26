@@ -2,7 +2,26 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-# Seeds should not create tenant/user accounts. Reuse existing records only.
+# Seeds should not create tenant/user accounts in production. Reuse existing records only.
+# However, we ensure a default tenant exists in non-production environments for local development.
+if !Rails.env.production?
+  ActsAsTenant.without_tenant do
+    default_tenant = Tenant.find_or_initialize_by(subdomain: TenantScoped::DEFAULT_SUBDOMAIN)
+    if default_tenant.new_record?
+      default_tenant.name = "Default Tenant"
+      default_tenant.status = "active"
+      default_tenant.settings ||= {}
+      default_tenant.save!
+      puts "✓ Created default tenant for #{Rails.env} environment (subdomain: #{default_tenant.subdomain})"
+    elsif !default_tenant.active?
+      default_tenant.update!(status: "active")
+      puts "✓ Ensured default tenant is active for #{Rails.env} environment"
+    else
+      puts "✓ Default tenant already present for #{Rails.env} environment (subdomain: #{default_tenant.subdomain})"
+    end
+  end
+end
+
 target_user = ActsAsTenant.without_tenant do
   if ENV["SEED_USER_EMAIL"].present?
     User.find_by(email: ENV["SEED_USER_EMAIL"].strip.downcase)

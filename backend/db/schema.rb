@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_24_130500) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -42,7 +42,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_24_130500) do
     t.index ["status", "occurred_at"], name: "index_audit_logs_on_status_and_occurred_at"
     t.index ["tenant_id", "occurred_at"], name: "index_audit_logs_on_tenant_time"
     t.index ["tenant_id"], name: "index_audit_logs_on_tenant_id"
-    t.check_constraint "status::text = ANY (ARRAY['success'::character varying, 'failure'::character varying, 'denied'::character varying]::text[])", name: "audit_logs_status_check"
+    t.check_constraint "status::text = ANY (ARRAY['success'::character varying::text, 'failure'::character varying::text, 'denied'::character varying::text])", name: "audit_logs_status_check"
   end
 
   create_table "billing_attempts", force: :cascade do |t|
@@ -111,6 +111,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_24_130500) do
     t.index ["tenant_id", "event_type", "occurred_at"], name: "index_domain_events_on_tenant_event_time"
     t.index ["tenant_id", "idempotency_key"], name: "index_domain_events_on_tenant_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
     t.index ["tenant_id"], name: "index_domain_events_on_tenant_id"
+  end
+
+  create_table "idempotency_keys", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "endpoint", null: false
+    t.string "idempotency_key", null: false
+    t.text "request_hash", null: false
+    t.text "response_body"
+    t.integer "response_status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "endpoint", "idempotency_key"], name: "index_idempotency_keys_on_user_endpoint_key", unique: true
+    t.index ["user_id"], name: "index_idempotency_keys_on_user_id"
   end
 
   create_table "jwt_denylists", force: :cascade do |t|
@@ -310,6 +323,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_24_130500) do
   add_foreign_key "customers", "tenants"
   add_foreign_key "customers", "users"
   add_foreign_key "domain_events", "tenants"
+  add_foreign_key "idempotency_keys", "users"
   add_foreign_key "notification_deliveries", "tenants"
   add_foreign_key "payments", "billing_attempts"
   add_foreign_key "payments", "subscriptions"
