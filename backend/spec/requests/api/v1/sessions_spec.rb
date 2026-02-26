@@ -33,7 +33,7 @@ RSpec.describe "Sessions API", type: :request do
 
     context "with valid credentials (OTP enabled)" do
       let!(:user) { create(:user, :with_otp, email: "test@example.com", password: "password123") }
-      let(:mail_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_later: true) }
+      let(:mail_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_now: true) }
 
       before do
         allow(UserMailer).to receive(:login_otp_email).and_return(mail_delivery)
@@ -229,7 +229,7 @@ RSpec.describe "Sessions API", type: :request do
 
     context "with an existing user with OTP enabled" do
       let!(:user) { create(:user, :with_otp, email: "google-user@example.com", password: "password123") }
-      let(:mail_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_later: true) }
+      let(:mail_delivery) { instance_double(ActionMailer::MessageDelivery, deliver_now: true) }
 
       before do
         allow(UserMailer).to receive(:login_otp_email).and_return(mail_delivery)

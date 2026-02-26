@@ -259,7 +259,7 @@ module Api
 
       def render_otp_required_response(user)
         otp_code = user.generate_email_login_otp!
-        UserMailer.login_otp_email(user, otp_code).deliver_later
+        UserMailer.login_otp_email(user, otp_code).deliver_now
 
         render json: {
           status: {
